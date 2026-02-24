@@ -114,13 +114,14 @@ const styles = StyleSheet.create({
   },
   bottomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: theme.spacing.sm,
   },
   statusPill: {
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 2,
     borderRadius: theme.borderRadius.sm,
+    marginTop: 2,
   },
   statusText: {
     fontSize: theme.fontSize.xs,
@@ -133,5 +134,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.textMuted,
+    marginTop: 4,
   },
 });
