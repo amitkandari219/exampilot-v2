@@ -14,7 +14,7 @@ export function RecoveryBanner({ day, totalDays }: RecoveryBannerProps) {
     <View style={styles.banner}>
       <View style={styles.textContainer}>
         <Text style={styles.title}>
-          Recovery Mode &ndash; Day {day}/{totalDays}
+          Recovery Mode – Day {day}/{totalDays}
         </Text>
         <Text style={styles.subtitle}>Calibrated for sustainable progress</Text>
       </View>
@@ -30,7 +30,7 @@ export function RecoveryBanner({ day, totalDays }: RecoveryBannerProps) {
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: '#065F46',
+    backgroundColor: theme.colors.recoveryBg,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
@@ -46,11 +46,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: theme.fontSize.sm,
-    color: '#A7F3D0',
+    color: theme.colors.recoveryLight,
   },
   progressTrack: {
     height: 6,
-    backgroundColor: '#064E3B',
+    backgroundColor: theme.colors.recoveryTrack,
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: theme.spacing.sm,
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   encouragement: {
     fontSize: theme.fontSize.xs,
-    color: '#6EE7B7',
+    color: theme.colors.recoveryMint,
     fontStyle: 'italic',
   },
 });

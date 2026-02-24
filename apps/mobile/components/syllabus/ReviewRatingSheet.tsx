@@ -13,25 +13,25 @@ const RATING_OPTIONS: { rating: number; label: string; color: string; descriptio
   {
     rating: 1,
     label: 'Again',
-    color: '#F87171',
+    color: theme.colors.error,
     description: 'Completely forgot',
   },
   {
     rating: 2,
     label: 'Hard',
-    color: '#F97316',
+    color: theme.colors.orange,
     description: 'Recalled with difficulty',
   },
   {
     rating: 3,
     label: 'Good',
-    color: '#22D3EE',
+    color: theme.colors.primary,
     description: 'Recalled with some effort',
   },
   {
     rating: 4,
     label: 'Easy',
-    color: '#34D399',
+    color: theme.colors.success,
     description: 'Recalled effortlessly',
   },
 ];
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   ratingDescription: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textAlign: 'center',
   },

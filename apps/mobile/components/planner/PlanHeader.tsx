@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   lightDayBadge: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: theme.colors.primaryDark,
     borderRadius: theme.borderRadius.sm,
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,

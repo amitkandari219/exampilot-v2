@@ -9,10 +9,10 @@ interface ConfidenceMeterProps {
 }
 
 const STATUS_COLORS: Record<ConfidenceStatus, string> = {
-  fresh: '#34D399',
-  fading: '#FBBF24',
-  stale: '#F97316',
-  decayed: '#F87171',
+  fresh: theme.colors.success,
+  fading: theme.colors.warning,
+  stale: theme.colors.orange,
+  decayed: theme.colors.error,
 };
 
 export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   label: {
-    fontSize: 9,
+    fontSize: theme.fontSize.xxs,
     fontWeight: '600',
     color: theme.colors.textMuted,
     marginTop: 2,

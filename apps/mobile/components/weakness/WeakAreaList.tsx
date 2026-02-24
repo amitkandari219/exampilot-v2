@@ -9,7 +9,7 @@ interface WeakAreaListProps {
 
 const CATEGORY_COLORS: Record<HealthCategory, string> = {
   critical: theme.colors.error,
-  weak: '#F97316',
+  weak: theme.colors.orange,
   moderate: theme.colors.warning,
   strong: theme.colors.success,
   exam_ready: theme.colors.primary,
@@ -37,7 +37,7 @@ export function WeakAreaList({ data }: WeakAreaListProps) {
                 </Text>
               )}
               {group.weak_count > 0 && (
-                <Text style={[styles.countBadge, { color: '#F97316' }]}>
+                <Text style={[styles.countBadge, { color: theme.colors.orange }]}>
                   {group.weak_count} weak
                 </Text>
               )}

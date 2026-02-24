@@ -13,7 +13,7 @@ interface BurnoutIndicatorProps {
 const statusColors: Record<BurnoutStatus, string> = {
   low: theme.colors.success,
   moderate: theme.colors.warning,
-  high: '#F97316',
+  high: theme.colors.orange,
   critical: theme.colors.error,
 };
 
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   label: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,

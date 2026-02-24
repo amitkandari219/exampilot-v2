@@ -10,7 +10,7 @@ interface HealthBadgeProps {
 
 const CATEGORY_COLORS: Record<HealthCategory, string> = {
   critical: theme.colors.error,
-  weak: '#F97316',
+  weak: theme.colors.orange,
   moderate: theme.colors.warning,
   strong: theme.colors.success,
   exam_ready: theme.colors.primary,
@@ -29,41 +29,35 @@ export function HealthBadge({ score, category }: HealthBadgeProps) {
   const color = CATEGORY_COLORS[cat];
 
   return (
-    <View style={styles.wrapper}>
-      <View style={[styles.badge, { backgroundColor: color + '20' }]}>
-        <View style={[styles.dot, { backgroundColor: color }]} />
-        <Text style={[styles.score, { color }]}>{score}</Text>
-      </View>
-      <Text style={styles.label}>Health</Text>
+    <View style={[styles.badge, { backgroundColor: color + '20' }]}>
+      <Text style={styles.label}>H</Text>
+      <View style={[styles.dot, { backgroundColor: color }]} />
+      <Text style={[styles.score, { color }]}>{score}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: 'center',
-  },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: theme.borderRadius.sm,
-    gap: 4,
+    gap: 3,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
   },
-  label: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
   score: {
     fontSize: theme.fontSize.xs,
     fontWeight: '700',
+  },
+  label: {
+    fontSize: theme.fontSize.xxs,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
   },
 });

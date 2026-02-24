@@ -101,14 +101,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#A855F7' + '22',
+    backgroundColor: theme.colors.purple + '22',
     alignItems: 'center',
     justifyContent: 'center',
   },
   revisionIconText: {
     fontSize: theme.fontSize.xs,
     fontWeight: '700',
-    color: '#A855F7',
+    color: theme.colors.purple,
   },
   headerTitle: {
     fontSize: theme.fontSize.md,
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   countBadge: {
-    backgroundColor: '#A855F7' + '22',
+    backgroundColor: theme.colors.purple + '22',
     borderRadius: theme.borderRadius.sm,
     paddingVertical: 2,
     paddingHorizontal: theme.spacing.sm,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   countBadgeText: {
     fontSize: theme.fontSize.xs,
     fontWeight: '700',
-    color: '#A855F7',
+    color: theme.colors.purple,
   },
   row: {
     flexDirection: 'row',
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#A855F7',
+    backgroundColor: theme.colors.purple,
   },
   rowContent: {
     flex: 1,

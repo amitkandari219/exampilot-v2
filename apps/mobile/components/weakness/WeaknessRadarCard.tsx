@@ -9,7 +9,7 @@ interface WeaknessRadarCardProps {
 
 const CATEGORY_COLORS: Record<HealthCategory, string> = {
   critical: theme.colors.error,
-  weak: '#F97316',
+  weak: theme.colors.orange,
   moderate: theme.colors.warning,
   strong: theme.colors.success,
   exam_ready: theme.colors.primary,
@@ -91,8 +91,10 @@ const styles = StyleSheet.create({
   alertBadge: {
     backgroundColor: theme.colors.error + '20',
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: theme.borderRadius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.error + '40',
   },
   alertText: {
     fontSize: theme.fontSize.xs,
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   summaryLabel: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'capitalize',
   },
@@ -140,12 +142,12 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   weakSubject: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     marginTop: 1,
   },
   weakRec: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 2,

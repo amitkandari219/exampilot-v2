@@ -20,7 +20,7 @@ interface StressThermometerProps {
 function getColor(score: number): string {
   if (score >= 70) return theme.colors.success;
   if (score >= 45) return theme.colors.warning;
-  if (score >= 25) return '#F97316'; // orange
+  if (score >= 25) return theme.colors.orange;
   return theme.colors.error;
 }
 
@@ -71,7 +71,7 @@ export function StressThermometer({ score, status, label, signals, recommendatio
                 ]}
               />
             </View>
-            <Text style={styles.signalLabel}>{signal.name[0]}</Text>
+            <Text style={styles.signalLabel}>{signal.name.slice(0, 3)}</Text>
           </View>
         ))}
       </View>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   signalLabel: {
-    fontSize: 9,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     marginTop: 2,
     fontWeight: '600',

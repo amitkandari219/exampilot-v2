@@ -8,10 +8,10 @@ interface EnergyBatteryProps {
 }
 
 const LEVEL_CONFIG: Record<EnergyLevel, { color: string; fill: number }> = {
-  full: { color: '#34D399', fill: 1 },
-  moderate: { color: '#FBBF24', fill: 0.66 },
-  low: { color: '#F97316', fill: 0.33 },
-  empty: { color: '#F87171', fill: 0 },
+  full: { color: theme.colors.success, fill: 1 },
+  moderate: { color: theme.colors.warning, fill: 0.66 },
+  low: { color: theme.colors.orange, fill: 0.33 },
+  empty: { color: theme.colors.error, fill: 0 },
 };
 
 export function EnergyBattery({ level }: EnergyBatteryProps) {

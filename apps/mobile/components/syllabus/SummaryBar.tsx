@@ -34,7 +34,8 @@ export function SummaryBar({
       <View style={styles.divider} />
 
       <View style={styles.stat}>
-        <Text style={styles.statValue}>Conf: {Math.round(avgConfidence)}</Text>
+        <Text style={styles.statValue}>{Math.round(avgConfidence)}</Text>
+        <Text style={styles.statLabel}>confidence</Text>
       </View>
     </View>
   );

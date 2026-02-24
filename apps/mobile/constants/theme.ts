@@ -13,6 +13,13 @@ export const theme = {
     warning: '#FBBF24',
     error: '#F87171',
     card: '#1E293B',
+    orange: '#F97316',
+    purple: '#A855F7',
+    recoveryBg: '#065F46',
+    recoveryTrack: '#064E3B',
+    recoveryLight: '#A7F3D0',
+    recoveryMint: '#6EE7B7',
+    primaryDark: '#1E3A5F',
   },
   spacing: {
     xs: 4,
@@ -29,6 +36,7 @@ export const theme = {
     xl: 24,
   },
   fontSize: {
+    xxs: 10,
     xs: 12,
     sm: 14,
     md: 16,

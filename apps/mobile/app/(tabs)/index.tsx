@@ -127,7 +127,7 @@ export default function DashboardScreen() {
                   const colors: Record<ConfidenceStatus, string> = {
                     fresh: theme.colors.success,
                     fading: theme.colors.warning,
-                    stale: '#F97316',
+                    stale: theme.colors.orange,
                     decayed: theme.colors.error,
                   };
                   return (
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   planItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
   statusDot: {
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   confLabel: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'capitalize',
   },

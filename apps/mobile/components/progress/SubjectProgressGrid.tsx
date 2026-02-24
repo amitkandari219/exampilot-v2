@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   subjectName: {
-    fontSize: 9,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textAlign: 'center',
     marginTop: theme.spacing.xs,

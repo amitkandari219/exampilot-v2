@@ -93,8 +93,8 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 2,
   },
   topicName: {
     flex: 1,
@@ -115,11 +115,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.xs,
   },
   statusPill: {
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: theme.borderRadius.sm,
   },
   statusText: {
@@ -127,7 +126,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confidenceRow: {
-    marginTop: theme.spacing.xs,
+    marginTop: 2,
   },
   dateText: {
     fontSize: theme.fontSize.xs,

@@ -43,7 +43,7 @@ export function SubjectCard({ subject, onTopicPress }: SubjectCardProps) {
           </View>
           <View style={styles.statColumn}>
             <Text style={styles.statValue}>{Math.round(avgConfidence)}</Text>
-            <Text style={styles.statLabel}>conf</Text>
+            <Text style={styles.statLabel}>confidence</Text>
           </View>
           <Text style={styles.expandArrow}>{expanded ? '\u25B2' : '\u25BC'}</Text>
         </View>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
   },
   expandArrow: {
