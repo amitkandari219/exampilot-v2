@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "ExamPilot",
+    "slug": "exampilot",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "exampilot",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.exampilot.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.exampilot.app"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
