@@ -243,6 +243,34 @@ export interface DailyPlanItem {
   actual_hours: number | null;
 }
 
+export interface RecalibrationLogEntry {
+  id: string;
+  user_id: string;
+  recalibrated_at: string;
+  trigger_type: string;
+  window_days: number;
+  old_fatigue_threshold: number | null;
+  old_buffer_capacity: number | null;
+  old_fsrs_target_retention: number | null;
+  old_burnout_threshold: number | null;
+  new_fatigue_threshold: number | null;
+  new_buffer_capacity: number | null;
+  new_fsrs_target_retention: number | null;
+  new_burnout_threshold: number | null;
+  input_velocity_ratio: number | null;
+  input_velocity_trend: string | null;
+  input_bri_score: number | null;
+  input_fatigue_avg: number | null;
+  input_stress_avg: number | null;
+  input_confidence_avg: number | null;
+  input_weakness_critical_pct: number | null;
+  reason_fatigue: string | null;
+  reason_buffer: string | null;
+  reason_retention: string | null;
+  reason_burnout: string | null;
+  params_changed: boolean;
+}
+
 // Fastify request augmentation
 declare module 'fastify' {
   interface FastifyRequest {

@@ -120,4 +120,17 @@ export const api = {
 
   regeneratePlan: (date?: string, hours?: number) =>
     request('/api/daily-plan/regenerate', { method: 'POST', body: JSON.stringify({ date, hours }) }),
+
+  // Recalibration
+  getRecalibrationStatus: () =>
+    request('/api/recalibration'),
+
+  getRecalibrationHistory: (limit = 20) =>
+    request(`/api/recalibration/history?limit=${limit}`),
+
+  triggerRecalibration: () =>
+    request('/api/recalibration/trigger', { method: 'POST' }),
+
+  setAutoRecalibrate: (enabled: boolean) =>
+    request('/api/recalibration/auto', { method: 'POST', body: JSON.stringify({ enabled }) }),
 };

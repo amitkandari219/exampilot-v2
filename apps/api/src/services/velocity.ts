@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase.js';
+import { runRecalibration } from './recalibration.js';
 
 export async function calculateVelocity(userId: string) {
   // Get user profile
@@ -276,6 +277,13 @@ export async function processEndOfDay(userId: string, date: string) {
   await calculateVelocity(userId);
   await updateBuffer(userId, date);
   await updateStreaks(userId, date);
+
+  // Auto-recalibrate persona params if enabled
+  try {
+    await runRecalibration(userId, 'auto_daily');
+  } catch {
+    // Recalibration is non-critical — don't fail end-of-day processing
+  }
 }
 
 async function updateStreaks(userId: string, date: string) {
