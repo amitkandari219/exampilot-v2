@@ -1,8 +1,23 @@
+import { supabase } from './supabase';
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
 
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return { Authorization: `Bearer ${session.access_token}` };
+  }
+  return {};
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const authHeaders = await getAuthHeader();
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+    },
     ...options,
   });
 
@@ -15,15 +30,81 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  completeOnboarding: (userId: string, body: unknown) =>
-    request(`/api/onboarding/${userId}`, { method: 'POST', body: JSON.stringify(body) }),
+  // Onboarding (no userId needed — server uses auth token)
+  completeOnboarding: (body: unknown) =>
+    request('/api/onboarding', { method: 'POST', body: JSON.stringify(body) }),
 
-  getStrategy: (userId: string) =>
-    request(`/api/strategy/${userId}`),
+  // Strategy
+  getStrategy: () =>
+    request('/api/strategy'),
 
-  switchMode: (userId: string, mode: string) =>
-    request(`/api/strategy/${userId}/switch`, { method: 'POST', body: JSON.stringify({ mode }) }),
+  switchMode: (mode: string) =>
+    request('/api/strategy/switch', { method: 'POST', body: JSON.stringify({ mode }) }),
 
-  customizeParams: (userId: string, params: Record<string, number>) =>
-    request(`/api/strategy/${userId}/customize`, { method: 'POST', body: JSON.stringify({ params }) }),
+  customizeParams: (params: Record<string, number>) =>
+    request('/api/strategy/customize', { method: 'POST', body: JSON.stringify({ params }) }),
+
+  // PYQ
+  getPyqStats: () =>
+    request('/api/pyq-stats'),
+
+  getTopicPyqDetail: (topicId: string) =>
+    request(`/api/pyq/${topicId}`),
+
+  // Syllabus
+  getSyllabus: () =>
+    request('/api/syllabus'),
+
+  getSyllabusProgress: () =>
+    request('/api/syllabus/progress'),
+
+  updateTopicProgress: (topicId: string, updates: Record<string, unknown>) =>
+    request(`/api/syllabus/progress/${topicId}`, { method: 'POST', body: JSON.stringify(updates) }),
+
+  // FSRS
+  recordReview: (topicId: string, rating: number) =>
+    request(`/api/fsrs/review/${topicId}`, { method: 'POST', body: JSON.stringify({ rating }) }),
+
+  recalculateConfidence: () =>
+    request('/api/fsrs/recalculate', { method: 'POST' }),
+
+  getRevisionsDue: (date?: string) =>
+    request(`/api/revisions${date ? `?date=${date}` : ''}`),
+
+  getConfidenceOverview: () =>
+    request('/api/confidence/overview'),
+
+  // Velocity
+  getVelocity: () =>
+    request('/api/velocity'),
+
+  getVelocityHistory: (days = 30) =>
+    request(`/api/velocity/history?days=${days}`),
+
+  getBuffer: () =>
+    request('/api/buffer'),
+
+  // Burnout
+  getBurnout: () =>
+    request('/api/burnout'),
+
+  startRecovery: () =>
+    request('/api/burnout/recovery/start', { method: 'POST' }),
+
+  endRecovery: (reason?: string) =>
+    request('/api/burnout/recovery/end', { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  // Stress
+  getStress: () =>
+    request('/api/stress'),
+
+  // Planner
+  getDailyPlan: (date?: string) =>
+    request(`/api/daily-plan${date ? `?date=${date}` : ''}`),
+
+  updatePlanItem: (itemId: string, body: { status: string; actual_hours?: number }) =>
+    request(`/api/daily-plan/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  regeneratePlan: (date?: string, hours?: number) =>
+    request('/api/daily-plan/regenerate', { method: 'POST', body: JSON.stringify({ date, hours }) }),
 };

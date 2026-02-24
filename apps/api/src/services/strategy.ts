@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase.js';
-import { StrategyMode, StrategyParams, OnboardingPayload, CustomizePayload } from '../types/index.js';
+import { StrategyMode, StrategyParams, OnboardingPayload, CustomizePayload, PersonaParams } from '../types/index.js';
 
-// Hardcoded defaults matching the seed data — used when DB lookup isn't needed
 const modeDefaults: Record<StrategyMode, StrategyParams> = {
   conservative: {
     revision_frequency: 5, daily_new_topics: 1, pyq_weight: 35,
@@ -29,8 +28,34 @@ const modeDefaults: Record<StrategyMode, StrategyParams> = {
   },
 };
 
+const personaDefaults: Record<StrategyMode, PersonaParams> = {
+  conservative: {
+    fatigue_threshold: 85,
+    buffer_capacity: 0.20,
+    fsrs_target_retention: 0.85,
+    burnout_threshold: 65,
+  },
+  balanced: {
+    fatigue_threshold: 85,
+    buffer_capacity: 0.15,
+    fsrs_target_retention: 0.90,
+    burnout_threshold: 75,
+  },
+  aggressive: {
+    fatigue_threshold: 85,
+    buffer_capacity: 0.10,
+    fsrs_target_retention: 0.95,
+    burnout_threshold: 80,
+  },
+  working_professional: {
+    fatigue_threshold: 85,
+    buffer_capacity: 0.25,
+    fsrs_target_retention: 0.85,
+    burnout_threshold: 65,
+  },
+};
+
 export async function getDefaultParams(mode: StrategyMode): Promise<StrategyParams> {
-  // Try DB first, fall back to hardcoded
   const { data } = await supabase
     .from('strategy_mode_defaults')
     .select('param_name, param_value')
@@ -47,8 +72,13 @@ export async function getDefaultParams(mode: StrategyMode): Promise<StrategyPara
   return modeDefaults[mode];
 }
 
+export function getPersonaDefaults(mode: StrategyMode): PersonaParams {
+  return personaDefaults[mode];
+}
+
 export async function completeOnboarding(userId: string, payload: OnboardingPayload) {
   const params = await getDefaultParams(payload.chosen_mode);
+  const persona = getPersonaDefaults(payload.chosen_mode);
 
   const { data, error } = await supabase
     .from('user_profiles')
@@ -60,18 +90,35 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
       strategy_mode: payload.chosen_mode,
       strategy_params: params,
       onboarding_completed: true,
+      fatigue_threshold: persona.fatigue_threshold,
+      buffer_capacity: persona.buffer_capacity,
+      fsrs_target_retention: persona.fsrs_target_retention,
+      burnout_threshold: persona.burnout_threshold,
     })
     .select()
     .single();
 
   if (error) throw error;
+
+  // Insert first persona snapshot
+  await supabase.from('persona_snapshots').insert({
+    user_id: userId,
+    strategy_mode: payload.chosen_mode,
+    strategy_params: params,
+    fatigue_threshold: persona.fatigue_threshold,
+    buffer_capacity: persona.buffer_capacity,
+    fsrs_target_retention: persona.fsrs_target_retention,
+    burnout_threshold: persona.burnout_threshold,
+    change_reason: 'initial_onboarding',
+  });
+
   return data;
 }
 
 export async function getStrategy(userId: string) {
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('strategy_mode, strategy_params, daily_hours, current_mode')
+    .select('strategy_mode, strategy_params, daily_hours, current_mode, fatigue_threshold, buffer_capacity, fsrs_target_retention, burnout_threshold')
     .eq('id', userId)
     .single();
 
@@ -81,6 +128,14 @@ export async function getStrategy(userId: string) {
 
 export async function switchMode(userId: string, mode: StrategyMode) {
   const params = await getDefaultParams(mode);
+  const persona = getPersonaDefaults(mode);
+
+  // Close previous snapshot
+  await supabase
+    .from('persona_snapshots')
+    .update({ valid_to: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('valid_to', 'infinity');
 
   const { data, error } = await supabase
     .from('user_profiles')
@@ -88,17 +143,33 @@ export async function switchMode(userId: string, mode: StrategyMode) {
       strategy_mode: mode,
       strategy_params: params,
       mode_switched_at: new Date().toISOString(),
+      fatigue_threshold: persona.fatigue_threshold,
+      buffer_capacity: persona.buffer_capacity,
+      fsrs_target_retention: persona.fsrs_target_retention,
+      burnout_threshold: persona.burnout_threshold,
     })
     .eq('id', userId)
     .select()
     .single();
 
   if (error) throw error;
+
+  // Insert new snapshot
+  await supabase.from('persona_snapshots').insert({
+    user_id: userId,
+    strategy_mode: mode,
+    strategy_params: params,
+    fatigue_threshold: persona.fatigue_threshold,
+    buffer_capacity: persona.buffer_capacity,
+    fsrs_target_retention: persona.fsrs_target_retention,
+    burnout_threshold: persona.burnout_threshold,
+    change_reason: 'mode_switch',
+  });
+
   return data;
 }
 
 export async function customizeParams(userId: string, payload: CustomizePayload) {
-  // First get current params
   const { data: current, error: fetchError } = await supabase
     .from('user_profiles')
     .select('strategy_params')

@@ -1,26 +1,49 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../hooks/useAuth';
+import { supabase, isDemoMode } from '../lib/supabase';
 import { theme } from '../constants/theme';
 
 export default function Index() {
-  const [loading, setLoading] = useState(true);
-  const [onboarded, setOnboarded] = useState(false);
+  const { session, loading: authLoading } = useAuth();
+  const [checking, setChecking] = useState(!isDemoMode);
+  const [onboarded, setOnboarded] = useState(isDemoMode);
 
   useEffect(() => {
-    AsyncStorage.getItem('onboarding_completed').then((val) => {
-      setOnboarded(val === 'true');
-      setLoading(false);
-    });
-  }, []);
+    if (isDemoMode || authLoading) return;
 
-  if (loading) {
+    if (!session) {
+      setChecking(false);
+      return;
+    }
+
+    // Check if onboarding is completed
+    supabase
+      .from('user_profiles')
+      .select('onboarding_completed')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          setOnboarded(false);
+        } else {
+          setOnboarded(data?.onboarding_completed === true);
+        }
+        setChecking(false);
+      });
+  }, [session, authLoading]);
+
+  if (authLoading || checking) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
+  }
+
+  if (!session) {
+    return <Redirect href="/auth/login" />;
   }
 
   if (onboarded) {

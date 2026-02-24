@@ -1,0 +1,3377 @@
+{
+  "exam": "UPSC CSE 2027",
+  "version": "1.0",
+  "total_subjects": 16,
+  "total_chapters": 93,
+  "total_topics": 466,
+  "total_estimated_hours": 803,
+  "subjects": [
+    {
+      "id": "art_culture",
+      "name": "Indian Heritage & Culture",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-I"
+      ],
+      "importance": 4,
+      "difficulty": 4,
+      "estimated_hours": 48,
+      "chapters": [
+        {
+          "id": "ac_visual_arts",
+          "name": "Visual Arts (Architecture & Sculpture)",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 14,
+          "topics": [
+            {
+              "name": "Temple Architecture \u2014 Nagara Style",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Temple Architecture \u2014 Dravida Style",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Temple Architecture \u2014 Vesara Style",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Cave Architecture (Ajanta, Ellora, Elephanta)",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Buddhist & Jain Architecture",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Mughal Architecture",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Indo-Saracenic & Colonial Architecture",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Sculpture (Gandhara, Mathura, Amaravati schools)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Painting Traditions (Miniature, Mughal, Rajput, Pahari)",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "ac_performing_arts",
+          "name": "Performing Arts",
+          "importance": 3,
+          "difficulty": 4,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Classical Dance Forms (Bharatanatyam, Kathak, etc.)",
+              "hours": 3,
+              "importance": 4
+            },
+            {
+              "name": "Folk Dances of India (State-wise)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Indian Music (Carnatic vs Hindustani)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Theatre & Puppetry Traditions",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "ac_religion_philosophy",
+          "name": "Religion & Philosophy",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "Vedic Religion & Upanishadic Philosophy",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Six Schools of Indian Philosophy (Samkhya, Yoga, Vedanta, etc.)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Buddhism \u2014 Sects, Councils, Literature, Spread",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Jainism \u2014 Sects, Councils, Literature",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Bhakti Movement",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Sufi Movement",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "ac_literature",
+          "name": "Literature & Language",
+          "importance": 2,
+          "difficulty": 4,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Sangam Literature",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Sanskrit & Prakrit Texts",
+              "hours": 1.5,
+              "importance": 2
+            },
+            {
+              "name": "Persian & Urdu Literary Traditions",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Classical Language Status & Eighth Schedule",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Modern Indian Literature",
+              "hours": 1,
+              "importance": 1
+            }
+          ]
+        },
+        {
+          "id": "ac_epigraphy",
+          "name": "Coins, Inscriptions & Foreign Accounts",
+          "importance": 3,
+          "difficulty": 4,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Ashokan Edicts & Inscriptions",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Numismatics (Gupta, Kushan coins)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Foreign Accounts (Fa-Hien, Hiuen Tsang, Al-Biruni, Ibn Battuta)",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "ac_current_culture",
+          "name": "Current Cultural Developments",
+          "importance": 4,
+          "difficulty": 2,
+          "estimated_hours": 3,
+          "topics": [
+            {
+              "name": "GI Tags (Recent)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "UNESCO World Heritage Sites (India)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Cultural Festivals & Commemorations in News",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modern_history",
+      "name": "Modern Indian History",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-I"
+      ],
+      "importance": 5,
+      "difficulty": 3,
+      "estimated_hours": 78,
+      "chapters": [
+        {
+          "id": "mh_european_advent",
+          "name": "Decline of Mughals & Advent of Europeans",
+          "importance": 2,
+          "difficulty": 2,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Carnatic Wars",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Anglo-Mysore Wars",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Anglo-Maratha Wars",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Battle of Plassey & Buxar",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Consolidation of British Power",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "mh_british_policy",
+          "name": "British Expansion & Economic Impact",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Land Revenue Systems (Zamindari, Ryotwari, Mahalwari)",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Commercialization of Agriculture",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Drain of Wealth Theory (Dadabhai Naoroji)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Deindustrialization & Impact on Indian Economy",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "British Education & Administrative Reforms",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "mh_reform_movements",
+          "name": "Socio-Religious Reform Movements",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Brahmo Samaj (Raja Ram Mohan Roy)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Arya Samaj (Dayananda Saraswati)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Aligarh Movement & Muslim Reform",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Caste Reform (Jyotiba Phule, Periyar)",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "B.R. Ambedkar & Dalit Movement",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "Women's Reform (Sati, Widow Remarriage, Age of Consent)",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "mh_1857",
+          "name": "Revolt of 1857 & Early Associations",
+          "importance": 3,
+          "difficulty": 2,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Causes of 1857 Revolt",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Course & Failure of the Revolt",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Queen's Proclamation & Aftermath",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Pre-Congress Political Associations",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "mh_moderate_inc",
+          "name": "Indian National Congress \u2014 Early Phase",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Formation of INC & Safety Valve Theory",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Moderate Phase & Demands",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Economic Critique of Colonialism (Naoroji, R.C. Dutt)",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "mh_swadeshi",
+          "name": "Swadeshi Movement & Surat Split",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Partition of Bengal (1905)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Swadeshi & Boycott",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Surat Split \u2014 Moderates vs Extremists",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "mh_gandhian",
+          "name": "Gandhian Era (1915\u20131947)",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 20,
+          "topics": [
+            {
+              "name": "Gandhi's South Africa Years & Early India Phase",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Champaran, Kheda, Ahmedabad Satyagrahas",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Rowlatt Act & Jallianwala Bagh",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Non-Cooperation Movement & Khilafat",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Swaraj Party & Council Entry",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Simon Commission & Nehru Report",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Civil Disobedience Movement & Salt March",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Round Table Conferences & Gandhi-Irwin Pact",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Quit India Movement (1942)",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "INA & Subhas Chandra Bose",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Partition & Independence (1947)",
+              "hours": 2,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "mh_revolutionary",
+          "name": "Revolutionary Nationalism",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "HRA/HSRA & Bhagat Singh",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Chittagong Armory Raid (Surya Sen)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Ghadar Party & International Revolutionaries",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Revolutionary Women (Kalpana Dutt, Pritilata)",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "mh_constitutional_dev",
+          "name": "Constitutional Developments",
+          "importance": 5,
+          "difficulty": 4,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Regulating Act 1773 & Pitt's India Act 1784",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Charter Acts (1813, 1833, 1853)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Indian Councils Acts (1861, 1892, 1909 \u2014 Morley-Minto)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Government of India Act 1919 (Montagu-Chelmsford)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Government of India Act 1935",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "Cripps Mission, Cabinet Mission, Mountbatten Plan",
+              "hours": 1,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "mh_peasant_tribal",
+          "name": "Peasant & Tribal Movements",
+          "importance": 4,
+          "difficulty": 4,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Indigo Revolt (1859-60)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Santhal Rebellion (1855-56)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Munda Uprising (Birsa Munda)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Mapilla Revolt (1921)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Deccan Riots, Tebhaga, Telangana Movements",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Tribal Movements in Northeast",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "post_independence",
+      "name": "Post-Independence India",
+      "paper": [
+        "Mains GS-I"
+      ],
+      "importance": 2,
+      "difficulty": 2,
+      "estimated_hours": 17,
+      "chapters": [
+        {
+          "id": "pi_princely",
+          "name": "Integration of Princely States",
+          "importance": 3,
+          "difficulty": 2,
+          "estimated_hours": 3,
+          "topics": [
+            {
+              "name": "Sardar Patel & V.P. Menon's Role",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Operation Polo (Hyderabad), Junagadh, Kashmir Accession",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pi_states_reorg",
+          "name": "Reorganization of States",
+          "importance": 3,
+          "difficulty": 2,
+          "estimated_hours": 3,
+          "topics": [
+            {
+              "name": "Linguistic Reorganization & SRC Commission",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Formation of New States (Telangana, Jharkhand, etc.)",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pi_land_reforms",
+          "name": "Land Reforms & Agrarian Changes",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Zamindari Abolition",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Bhoodan & Gramdan Movements (Vinoba Bhave)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Green Revolution \u2014 Impact & Critique",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Land Ceiling & Cooperative Farming",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pi_foreign_wars",
+          "name": "Wars & Foreign Policy (1947-1991)",
+          "importance": 2,
+          "difficulty": 3,
+          "estimated_hours": 3,
+          "topics": [
+            {
+              "name": "1962 (China), 1965, 1971 (Bangladesh) Wars",
+              "hours": 1.5,
+              "importance": 2
+            },
+            {
+              "name": "NAM & India's Non-Alignment Policy",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Nuclear Policy (Pokhran I & II)",
+              "hours": 0.5,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "pi_emergency",
+          "name": "Emergency & Political Developments",
+          "importance": 2,
+          "difficulty": 2,
+          "estimated_hours": 3,
+          "topics": [
+            {
+              "name": "JP Movement & Emergency (1975-77)",
+              "hours": 1.5,
+              "importance": 2
+            },
+            {
+              "name": "Coalition Politics Era",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Mandal Commission & OBC Reservations",
+              "hours": 0.5,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "world_history",
+      "name": "World History (post-1750)",
+      "paper": [
+        "Mains GS-I"
+      ],
+      "importance": 3,
+      "difficulty": 3,
+      "estimated_hours": 27,
+      "chapters": [
+        {
+          "id": "wh_industrial",
+          "name": "Industrial Revolution",
+          "importance": 2,
+          "difficulty": 2,
+          "estimated_hours": 3,
+          "topics": [
+            {
+              "name": "Causes & Impact on Society",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Rise of Capitalism & Imperialism",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Labor Movements",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "wh_revolutions",
+          "name": "American & French Revolutions",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Enlightenment Ideas (Locke, Rousseau, Montesquieu)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "American Revolution & Bill of Rights",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "French Revolution \u2014 Causes, Course, Impact",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "wh_world_wars",
+          "name": "World Wars I & II",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 7,
+          "topics": [
+            {
+              "name": "Causes of WWI & Alliance System",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Treaty of Versailles & League of Nations",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Rise of Fascism (Italy) & Nazism (Germany)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "WWII \u2014 Causes, Key Events, UN Formation",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "wh_cold_war",
+          "name": "Cold War & Decolonization",
+          "importance": 3,
+          "difficulty": 4,
+          "estimated_hours": 7,
+          "topics": [
+            {
+              "name": "Origin of Cold War & Bipolar World",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Korean & Vietnam Wars",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Disintegration of USSR",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Decolonization in Africa & Asia",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Apartheid & African Nationalism",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "wh_philosophies",
+          "name": "Political Philosophies",
+          "importance": 2,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Communism (Marx, Lenin, Mao)",
+              "hours": 1.5,
+              "importance": 2
+            },
+            {
+              "name": "Capitalism & Liberal Democracy",
+              "hours": 1.5,
+              "importance": 2
+            },
+            {
+              "name": "Socialism \u2014 Forms & Global Impact",
+              "hours": 2,
+              "importance": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "geography",
+      "name": "Geography (Physical, Indian, World)",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-I"
+      ],
+      "importance": 5,
+      "difficulty": 4,
+      "estimated_hours": 95,
+      "chapters": [
+        {
+          "id": "geo_geomorphology",
+          "name": "Geomorphology",
+          "importance": 3,
+          "difficulty": 4,
+          "estimated_hours": 14,
+          "topics": [
+            {
+              "name": "Interior of Earth & Seismic Waves",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Plate Tectonics & Continental Drift",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Earthquakes \u2014 Types, Distribution, Zones",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Volcanoes \u2014 Types, Distribution",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Weathering & Erosion",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Landforms (Fluvial, Aeolian, Glacial, Karst)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Rocks & Minerals Classification",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "geo_climatology",
+          "name": "Climatology",
+          "importance": 5,
+          "difficulty": 4,
+          "estimated_hours": 18,
+          "topics": [
+            {
+              "name": "Atmosphere \u2014 Composition & Structure",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Insolation & Heat Budget",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Pressure Belts & Wind Systems",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Cyclones \u2014 Tropical & Temperate",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Indian Monsoon Mechanism",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Climate Classification (Koppen, Thornthwaite)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Jet Streams & ENSO/La Nina/IOD",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Climate Change \u2014 Science & Impact",
+              "hours": 2,
+              "importance": 5
+            }
+          ]
+        },
+        {
+          "id": "geo_oceanography",
+          "name": "Oceanography",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Ocean Floor Configuration",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Ocean Currents \u2014 Major Gyres & Maps",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Salinity & Temperature Distribution",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Tides \u2014 Types & Mechanism",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Coral Reefs \u2014 Types, Threats (Env overlap)",
+              "hours": 2.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "geo_indian_physical",
+          "name": "Indian Physical Geography",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 15,
+          "topics": [
+            {
+              "name": "Physiographic Divisions (Himalayas, Plains, Plateau, Coastal, Islands)",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Drainage Systems \u2014 Himalayan vs Peninsular Rivers",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Indian Monsoon \u2014 Onset, Retreat, Variability",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Soils of India \u2014 Types & Distribution",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Natural Vegetation & Forest Types",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Indian Climate Regions",
+              "hours": 2.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "geo_economic",
+          "name": "Economic Geography",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 13,
+          "topics": [
+            {
+              "name": "Mineral Resources \u2014 Distribution in India",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Energy Resources (Coal, Oil, Gas, Nuclear, Renewable)",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Agriculture \u2014 Major Crops, Cropping Patterns",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Irrigation \u2014 Types & Major Projects",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Transport Networks (Road, Rail, Water, Air)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Industrial Regions of India",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "geo_human",
+          "name": "Human Geography",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Population Distribution & Density",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Migration \u2014 Types, Causes, Impact",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Urbanization \u2014 Trends, Problems, Smart Cities",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Industrial Location Factors (Weber, Losch models)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Census Data & Demographic Transition",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "geo_mapping",
+          "name": "Mapping & Places in News",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 15,
+          "topics": [
+            {
+              "name": "India \u2014 States, Capitals, Major Physical Features on Map",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "World \u2014 Continents, Oceans, Straits, Passes",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Geopolitical Hotspots (West Asia, South China Sea, Arctic)",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Bordering Countries & Boundary Lines",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Rivers, Lakes, Mountains in News",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Technology in Geography (GIS, Remote Sensing, AI)",
+              "hours": 3,
+              "importance": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "indian_society",
+      "name": "Indian Society",
+      "paper": [
+        "Mains GS-I"
+      ],
+      "importance": 4,
+      "difficulty": 3,
+      "estimated_hours": 47,
+      "chapters": [
+        {
+          "id": "soc_features",
+          "name": "Salient Features of Indian Society",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 7,
+          "topics": [
+            {
+              "name": "Unity in Diversity",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Caste System \u2014 Evolution & Present Dynamics",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Kinship, Joint Family & Nuclearization",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Multilingualism & Linguistic Diversity",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "soc_women",
+          "name": "Role of Women & Women's Organizations",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Feminization of Agriculture & Workforce",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Gender Inequality \u2014 Glass Ceiling, Pay Gap",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Self-Help Groups (SHGs) & Microfinance",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Women's Movements in India",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Domestic Violence, Dowry, Trafficking \u2014 Laws & Impact",
+              "hours": 2,
+              "importance": 5
+            }
+          ]
+        },
+        {
+          "id": "soc_population",
+          "name": "Population & Urbanization",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Population Growth \u2014 Trends, Demographic Dividend",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Aging Population & Dependency Ratio",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Urbanization \u2014 Trends, Challenges, Slums",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Smart Cities Mission & Urban Governance",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Migration \u2014 Rural-Urban, Interstate, International",
+              "hours": 2,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "soc_globalization",
+          "name": "Globalization & Indian Society",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Impact on Culture & Identity",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Impact on Family Structure",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Impact on Women, Elderly, Youth",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Homogenization vs Localization Debate",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "soc_empowerment",
+          "name": "Social Empowerment & Challenges",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "Communalism \u2014 Causes, Manifestations, Remedies",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Regionalism \u2014 Demand for Statehood, Sub-nationalism",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Secularism \u2014 Indian Model vs Western Model",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Poverty \u2014 Measurement, Trends, Programs",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Tribal Issues \u2014 PESA, FRA, Fifth Schedule",
+              "hours": 2,
+              "importance": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "polity",
+      "name": "Indian Polity & Constitution",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-II"
+      ],
+      "importance": 5,
+      "difficulty": 3,
+      "estimated_hours": 85,
+      "chapters": [
+        {
+          "id": "pol_historical",
+          "name": "Historical Background & Preamble",
+          "importance": 4,
+          "difficulty": 2,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Making of the Constitution & Constituent Assembly",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Preamble \u2014 Keywords, Amendments, Berubari Case",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Salient Features of the Constitution",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Features Borrowed from Other Constitutions",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pol_fr_dpsp",
+          "name": "Fundamental Rights, DPSP & Fundamental Duties",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 13,
+          "topics": [
+            {
+              "name": "Right to Equality (Art 14-18)",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "Right to Freedom (Art 19-22)",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Right against Exploitation (Art 23-24)",
+              "hours": 0.5,
+              "importance": 3
+            },
+            {
+              "name": "Right to Freedom of Religion (Art 25-28)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Cultural & Educational Rights (Art 29-30)",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Right to Constitutional Remedies (Art 32) & Writs",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "DPSPs (Art 36-51) \u2014 Classification & Key Articles",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Conflict between FR and DPSP \u2014 Landmark Cases",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "Fundamental Duties (Art 51A) & 86th Amendment",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Basic Structure Doctrine (Kesavananda Bharati)",
+              "hours": 1,
+              "importance": 5
+            }
+          ]
+        },
+        {
+          "id": "pol_union_state",
+          "name": "Union & State Executive",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "President \u2014 Election, Powers, Pardoning (Art 72)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Vice President & Rajya Sabha Chairman",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Prime Minister & Council of Ministers",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Governor \u2014 Appointment, Discretionary Powers",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Chief Minister & State Council of Ministers",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Ordinance Making Power (Art 123, 213)",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "pol_parliament",
+          "name": "Parliament & State Legislature",
+          "importance": 5,
+          "difficulty": 4,
+          "estimated_hours": 15,
+          "topics": [
+            {
+              "name": "Composition of Lok Sabha & Rajya Sabha",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Parliamentary Privileges & Immunities",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Law-Making Process \u2014 Ordinary & Money Bills",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Budget Process & Financial Legislation",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Parliamentary Committees (PAC, Estimates, etc.)",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Anti-Defection Law (10th Schedule)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Question Hour, Zero Hour, Motions, Resolutions",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "State Legislature \u2014 Vidhan Sabha/Parishad",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pol_judiciary",
+          "name": "Judiciary",
+          "importance": 5,
+          "difficulty": 4,
+          "estimated_hours": 11,
+          "topics": [
+            {
+              "name": "Supreme Court \u2014 Composition, Jurisdiction, Powers",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "High Courts \u2014 Powers & Writ Jurisdiction",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Judicial Appointment \u2014 Collegium vs NJAC Debate",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Judicial Activism & Judicial Overreach",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Public Interest Litigation (PIL)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Tribunals, Lok Adalat, Fast Track Courts",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Contempt of Court & Judicial Accountability",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pol_federalism",
+          "name": "Federalism & Centre-State Relations",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "Federal Structure \u2014 Union, State, Concurrent Lists",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Centre-State Legislative Relations",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Centre-State Administrative Relations",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Centre-State Financial Relations & Finance Commission",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "GST Council \u2014 Composition & Issues",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "Inter-State Water Disputes",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Article 356 \u2014 President's Rule",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "pol_local_govt",
+          "name": "Local Government (Panchayati Raj & Municipalities)",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "73rd Amendment \u2014 Panchayati Raj",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "74th Amendment \u2014 Municipalities",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "PESA Act (Scheduled Areas)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Issues in Decentralization",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "pol_bodies",
+          "name": "Constitutional & Statutory Bodies",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Election Commission of India",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "CAG \u2014 Comptroller & Auditor General",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "UPSC & State PSCs",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Finance Commission",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "NHRC, NCW, NCM, NCSC, NCST",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "NITI Aayog",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "CVC, CBI, Lokpal/Lokayukta",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "CIC & State Information Commissions",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "governance",
+      "name": "Governance",
+      "paper": [
+        "Mains GS-II"
+      ],
+      "importance": 4,
+      "difficulty": 3,
+      "estimated_hours": 30,
+      "chapters": [
+        {
+          "id": "gov_transparency",
+          "name": "Transparency & Accountability",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "RTI Act 2005 \u2014 Provisions & Issues",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Citizen's Charter & Sevottam Model",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Social Audit & Community Monitoring",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Lokpal/Lokayukta & Anti-Corruption Framework",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Whistleblower Protection Act",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "gov_egovernance",
+          "name": "E-Governance",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Digital India \u2014 Components & Progress",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "E-Governance Models & Applications (Health, Education, Agriculture)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Digital Divide & Challenges",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Data Privacy & Protection (DPDP Act)",
+              "hours": 1,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "gov_civil_services",
+          "name": "Role of Civil Services",
+          "importance": 3,
+          "difficulty": 2,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Role in Democracy & Policy Implementation",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Lateral Entry Debate",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Mission Karmayogi & Civil Service Reforms",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "ARC II Recommendations",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "gov_ngos",
+          "name": "NGOs, SHGs & Pressure Groups",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Role of NGOs in Development",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "FCRA Regulations & Challenges",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "SHG-Bank Linkage Model",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Pressure Groups & Interest Groups in India",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "gov_schemes",
+          "name": "Government Schemes \u2014 Performance Analysis",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Flagship Schemes (PM-KISAN, MGNREGA, Ayushman Bharat)",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Scheme Evaluation \u2014 Bottlenecks & Solutions",
+              "hours": 2.5,
+              "importance": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "social_justice",
+      "name": "Social Justice",
+      "paper": [
+        "Mains GS-II"
+      ],
+      "importance": 4,
+      "difficulty": 3,
+      "estimated_hours": 37,
+      "chapters": [
+        {
+          "id": "sj_welfare",
+          "name": "Welfare Schemes for Vulnerable Sections",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "SC/ST Welfare \u2014 Schemes, Reservation, Atrocities Act",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Women Welfare \u2014 Beti Bachao, Maternity Benefits",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Children \u2014 ICDS, POCSO, Child Labor Laws",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Elderly & PwD Welfare Schemes",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Transgender Rights \u2014 NALSA Judgment, TPA 2019",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Implementation Bottlenecks in Social Welfare",
+              "hours": 2.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "sj_health",
+          "name": "Health Sector",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Universal Health Coverage & Ayushman Bharat",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Malnutrition \u2014 NFHS Data, POSHAN Abhiyan",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Public vs Private Healthcare Debate",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Pandemic Preparedness & One Health Approach",
+              "hours": 2,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "sj_education",
+          "name": "Education & HRD",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "NEP 2020 \u2014 Key Provisions & Implementation",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "RTE Act & Access to Education",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Vocational & Skill Training (NSQF, Skill India)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Digital Education \u2014 SWAYAM, DIKSHA, Challenges",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Higher Education Reforms",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "sj_poverty",
+          "name": "Poverty & Hunger",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 9,
+          "topics": [
+            {
+              "name": "Poverty Measurement (Tendulkar, Rangarajan, MPI)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Global Hunger Index & India's Position",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Food Security \u2014 NFSA, PDS Reforms",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Nutritional Security \u2014 Fortification, Anemia",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Inequality \u2014 Oxfam Reports, Gini Coefficient",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "international_relations",
+      "name": "International Relations",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-II"
+      ],
+      "importance": 4,
+      "difficulty": 4,
+      "estimated_hours": 45,
+      "chapters": [
+        {
+          "id": "ir_neighborhood",
+          "name": "India & Neighborhood",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "India-China \u2014 Border Disputes, LAC, Trade",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "India-Pakistan \u2014 Kashmir, Cross-border Terrorism",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "India-Nepal, Bhutan, Myanmar Relations",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "India-Sri Lanka & Maldives",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "India-Bangladesh \u2014 Migration, Water Sharing",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "India-Afghanistan & Central Asia",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "ir_bilateral",
+          "name": "Bilateral Relations (Major Powers)",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "India-USA \u2014 Defense, Tech, Trade (iCET, BECA, LEMOA)",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "India-Russia \u2014 Energy, Defense, Strategic Partnership",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "India-EU \u2014 Trade, Climate, Connectivity",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "India-Japan \u2014 Infrastructure, Security",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "India-Middle East (UAE, Saudi, Israel)",
+              "hours": 2.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "ir_institutions",
+          "name": "International Institutions",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "UN \u2014 Structure, Reforms, India's UNSC Bid",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "WTO \u2014 Trade Disputes, Agriculture Subsidies",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "IMF, World Bank \u2014 Role, India's Engagement",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "WHO, FATF, ICJ \u2014 Functions & India",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Nuclear Order \u2014 NPT, CTBT, NSG, MTCR",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "ir_groupings",
+          "name": "Regional & Global Groupings",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "QUAD \u2014 Structure, Significance, Challenges",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "BRICS & New Development Bank",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "SCO \u2014 Purpose & India's Role",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "ASEAN & India's Act East Policy",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "G20 \u2014 India's Presidency & Legacy",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "BIMSTEC, I2U2, IPEF",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "ir_diaspora",
+          "name": "Indian Diaspora",
+          "importance": 3,
+          "difficulty": 2,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Diaspora as Soft Power",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Remittances & Economic Impact",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Challenges \u2014 Gulf Workers, Racism, Legal Issues",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "economy",
+      "name": "Indian Economy",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-III"
+      ],
+      "importance": 5,
+      "difficulty": 4,
+      "estimated_hours": 75,
+      "chapters": [
+        {
+          "id": "eco_planning",
+          "name": "Planning & Fiscal Policy",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 9,
+          "topics": [
+            {
+              "name": "Planning Commission \u2192 NITI Aayog",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Fiscal Policy \u2014 Revenue & Expenditure",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Taxation \u2014 GST, Direct/Indirect Taxes",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Centre-State Financial Relations & Fiscal Federalism",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "FRBM Act & Fiscal Discipline",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eco_banking",
+          "name": "Banking & Monetary Policy",
+          "importance": 5,
+          "difficulty": 5,
+          "estimated_hours": 13,
+          "topics": [
+            {
+              "name": "RBI \u2014 Functions, Monetary Policy Framework",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Repo, Reverse Repo, CRR, SLR \u2014 Mechanisms",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Inflation Targeting & MPC",
+              "hours": 1.5,
+              "importance": 5
+            },
+            {
+              "name": "NPAs & Banking Reforms (IBC, ARC, Bad Bank)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Digital Currency (CBDC) & Fintech",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Bond Yields, G-Secs & Money Markets",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Money Multiplier & Credit Creation",
+              "hours": 1,
+              "importance": 4
+            },
+            {
+              "name": "Priority Sector Lending, NABARD, RRBs",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eco_budget",
+          "name": "Budget & Inclusive Growth",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Budget Terminology (Revenue/Capital, Plan/Non-Plan)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Fiscal Deficit, Revenue Deficit, Primary Deficit",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Financial Inclusion (Jan Dhan, Mudra, Atal Pension)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Subsidies \u2014 Food, Fertilizer, Fuel (DBT)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Disinvestment & Privatization",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eco_agriculture",
+          "name": "Agriculture & Food Processing",
+          "importance": 5,
+          "difficulty": 3,
+          "estimated_hours": 15,
+          "topics": [
+            {
+              "name": "MSP \u2014 Mechanism, Debate, Swaminathan Committee",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "PDS \u2014 Issues & Reforms (One Nation One Ration Card)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Cropping Patterns & Crop Diversification",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Food Processing \u2014 Value Chain, Cold Chain, FPOs",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "E-Technology for Farmers (eNAM, PM-KISAN)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Irrigation \u2014 Micro-irrigation, Per Drop More Crop",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Agricultural Marketing Reforms",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Farm Distress \u2014 Causes & Solutions",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "eco_infra",
+          "name": "Infrastructure & Investment",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "PPP Models in Infrastructure",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "National Infrastructure Pipeline & PM Gati Shakti",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Roads, Railways, Ports, Airports",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Energy Infrastructure \u2014 Renewable Targets",
+              "hours": 2,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "eco_industry",
+          "name": "Industry & Liberalization",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "1991 Reforms \u2014 LPG Overview",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "MSME Sector \u2014 Definition, Challenges, Support",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Labor Codes (4 new codes)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Make in India, PLI Scheme, Startup India",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Employment & Unemployment \u2014 Periodic Labour Force Survey",
+              "hours": 1,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "eco_external",
+          "name": "External Sector",
+          "importance": 3,
+          "difficulty": 4,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "Balance of Payments \u2014 Current & Capital Account",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Forex Reserves \u2014 Composition & Management",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Capital Account Convertibility",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "FDI vs FPI \u2014 Policies & Trends",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Trade Agreements (FTA, CEPA, RCEP)",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Exchange Rate \u2014 Determination & Impact",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "environment",
+      "name": "Environment & Ecology",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-III"
+      ],
+      "importance": 5,
+      "difficulty": 4,
+      "estimated_hours": 57,
+      "chapters": [
+        {
+          "id": "env_basics",
+          "name": "Ecology Basics & Ecosystems",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Food Chains, Food Webs, Trophic Levels",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Ecological Pyramids (Number, Biomass, Energy)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Biogeochemical Cycles (Nitrogen, Carbon, Phosphorus)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Ecological Succession",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Biomes of the World",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "env_biodiversity",
+          "name": "Biodiversity",
+          "importance": 5,
+          "difficulty": 5,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "IUCN Red List Categories & India-specific Species",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "Biodiversity Hotspots",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Protected Areas \u2014 National Parks, Sanctuaries, Biosphere Reserves",
+              "hours": 3,
+              "importance": 5
+            },
+            {
+              "name": "Tiger Reserves & Project Tiger / Project Elephant",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Invasive Species & Human-Wildlife Conflict",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Species in News (yearly updates)",
+              "hours": 1.5,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "env_climate",
+          "name": "Climate Change",
+          "importance": 5,
+          "difficulty": 4,
+          "estimated_hours": 12,
+          "topics": [
+            {
+              "name": "UNFCCC Framework & COPs (Paris, Glasgow, Dubai)",
+              "hours": 2.5,
+              "importance": 5
+            },
+            {
+              "name": "IPCC Reports \u2014 Key Findings",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Carbon Markets & Emission Trading",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "India's Climate Commitments (NDCs, Net Zero 2070)",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Mitigation Strategies \u2014 Renewable Energy, Green Hydrogen",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Climate Finance & Loss & Damage",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "env_pollution",
+          "name": "Pollution & Environmental Acts",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Air Pollution \u2014 NAAQS, NCAP, GRAP",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Water Pollution \u2014 Eutrophication, River Cleaning",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Solid Waste & Plastic Waste Management Rules",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "EPA 1986, WPA 1972, Forest Conservation Act",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "NGT \u2014 Powers, Jurisdiction, Key Orders",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "E-Waste & Hazardous Waste Rules",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "env_eia",
+          "name": "Environmental Impact Assessment",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 4,
+          "topics": [
+            {
+              "name": "EIA Process & Notification",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Challenges & Reforms (2020 Draft)",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "env_conventions",
+          "name": "International Conventions",
+          "importance": 4,
+          "difficulty": 4,
+          "estimated_hours": 11,
+          "topics": [
+            {
+              "name": "CBD \u2014 Kunming-Montreal Framework",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "UNCCD \u2014 Desertification & Land Degradation",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "CITES \u2014 Trade in Endangered Species",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Ramsar Convention \u2014 Wetlands",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Stockholm, Rotterdam, Basel, Minamata Conventions",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Montreal Protocol \u2014 Ozone Layer",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Bonn Convention (CMS) & Others",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "science_tech",
+      "name": "Science & Technology",
+      "paper": [
+        "Prelims GS-I",
+        "Mains GS-III"
+      ],
+      "importance": 3,
+      "difficulty": 4,
+      "estimated_hours": 38,
+      "chapters": [
+        {
+          "id": "st_space",
+          "name": "Space Technology",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 7,
+          "topics": [
+            {
+              "name": "ISRO Missions (Chandrayaan, Gaganyaan, Aditya-L1)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Satellite Types & Orbits (GEO, LEO, MEO)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Launch Vehicles (PSLV, GSLV, SSLV)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Private Sector in Space (IN-SPACe, Agnikul, Skyroot)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "International Space Cooperation",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "st_biotech",
+          "name": "Biotechnology",
+          "importance": 4,
+          "difficulty": 4,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "CRISPR-Cas9 & Gene Editing",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "GM Crops \u2014 Bt Cotton, GM Mustard Debate",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "DNA Technology (Use & Application) Bill",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Vaccines \u2014 Types, mRNA, India's Vaccine Diplomacy",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Genome Sequencing & Personalized Medicine",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Stem Cells & Cloning",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "st_it",
+          "name": "IT, AI & Emerging Tech",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 7,
+          "topics": [
+            {
+              "name": "Artificial Intelligence \u2014 Applications, Ethics, Regulation",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Blockchain & Cryptocurrency",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Quantum Computing \u2014 Basics & India's Initiatives",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "5G/6G \u2014 Deployment & Implications",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Internet of Things & Cyber-Physical Systems",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        },
+        {
+          "id": "st_defence",
+          "name": "Defence & Nano Technology",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Missiles \u2014 Agni, BrahMos, Prithvi (Ballistic vs Cruise)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Submarine & Aircraft Carrier Programs",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Nanotechnology \u2014 Applications in Medicine, Materials",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Drone Technology & UAV Regulations",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "st_health",
+          "name": "Public Health & Diseases",
+          "importance": 4,
+          "difficulty": 2,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Viral Diseases (COVID, Mpox, Nipah, Zika)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Bacterial & Vector-borne Diseases (TB, Malaria, Dengue)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Immunity \u2014 Innate vs Adaptive, Herd Immunity",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Antimicrobial Resistance (AMR)",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Nutrition Science & Biofortification",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "st_ipr",
+          "name": "IPR Issues",
+          "importance": 2,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Patents \u2014 Process, Compulsory Licensing (Section 3d)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "GI Tags \u2014 Process & India's GIs",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "TRIPS Agreement & Doha Declaration",
+              "hours": 1,
+              "importance": 2
+            },
+            {
+              "name": "Copyright & Trade Secrets",
+              "hours": 1,
+              "importance": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "internal_security",
+      "name": "Internal Security",
+      "paper": [
+        "Mains GS-III"
+      ],
+      "importance": 3,
+      "difficulty": 3,
+      "estimated_hours": 32,
+      "chapters": [
+        {
+          "id": "is_extremism",
+          "name": "Development-Extremism Linkages",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 7,
+          "topics": [
+            {
+              "name": "Left Wing Extremism (Naxalism) \u2014 Causes, Spread, Response",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "Northeast Insurgency \u2014 Groups, Accords, AFSPA",
+              "hours": 2.5,
+              "importance": 4
+            },
+            {
+              "name": "J&K \u2014 Militancy, Article 370 Abrogation, Current Status",
+              "hours": 2,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "is_terrorism",
+          "name": "Terrorism & Organized Crime",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Terrorism-Crime Nexus",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Money Laundering \u2014 PMLA, FATF",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "NIA Act, UAPA \u2014 Provisions & Debates",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Narco-Terrorism & Drug Trafficking",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "is_cyber",
+          "name": "Cyber Security",
+          "importance": 5,
+          "difficulty": 4,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Critical Information Infrastructure Protection",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Social Media \u2014 Misinformation, Deepfakes, Regulation",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Data Protection (DPDP Act 2023)",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Cyber Warfare & State-sponsored Attacks",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Digital Fraud \u2014 UPI Scams, Phishing",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "is_border",
+          "name": "Border Management",
+          "importance": 3,
+          "difficulty": 3,
+          "estimated_hours": 6,
+          "topics": [
+            {
+              "name": "Border Fencing \u2014 Technology (CIBMS, Smart Fence)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Coastal Security \u2014 Maritime Challenges",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Drug Trafficking & Infiltration from Borders",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Illegal Immigration",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "is_forces",
+          "name": "Security Forces & Architecture",
+          "importance": 2,
+          "difficulty": 2,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "CAPFs \u2014 CRPF, BSF, CISF, ITBP, SSB",
+              "hours": 2,
+              "importance": 2
+            },
+            {
+              "name": "Chief of Defence Staff & Theatre Commands",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Defence Reforms (Shekatkar Committee)",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "disaster_management",
+      "name": "Disaster Management",
+      "paper": [
+        "Mains GS-III"
+      ],
+      "importance": 3,
+      "difficulty": 2,
+      "estimated_hours": 17,
+      "chapters": [
+        {
+          "id": "dm_types",
+          "name": "Disaster Types & Management",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Earthquakes \u2014 Zones, Preparedness",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Floods & Urban Flooding",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Cyclones \u2014 Naming, Tracking, Response",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Landslides \u2014 Causes, Vulnerable Zones",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "GLOF & Glacial Hazards",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Droughts & Heat Waves",
+              "hours": 1,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "dm_institutional",
+          "name": "Institutional Framework",
+          "importance": 3,
+          "difficulty": 2,
+          "estimated_hours": 4,
+          "topics": [
+            {
+              "name": "NDMA, SDMA, DDMA \u2014 Structure & Functions",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "NDRF & SDRF \u2014 Operations",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Sendai Framework for DRR (2015-2030)",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "dm_drr",
+          "name": "Disaster Risk Reduction",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 5,
+          "topics": [
+            {
+              "name": "Pre-Disaster Mitigation \u2014 Building Codes, Early Warning",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Community-Based Disaster Management",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Role of Technology (GIS, Remote Sensing, AI)",
+              "hours": 1.5,
+              "importance": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ethics",
+      "name": "Ethics, Integrity & Aptitude",
+      "paper": [
+        "Mains GS-IV"
+      ],
+      "importance": 5,
+      "difficulty": 4,
+      "estimated_hours": 75,
+      "chapters": [
+        {
+          "id": "eth_interface",
+          "name": "Ethics & Human Interface",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Essence & Determinants of Ethics",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Ethics in Private vs Public Relationships",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Human Values \u2014 Role of Family, Society, Education",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Dimensions of Ethics (Moral, Social, Professional)",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Consequences of Ethics in Human Actions",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eth_attitude",
+          "name": "Attitude & Emotional Intelligence",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Attitude \u2014 Content, Structure, Function",
+              "hours": 2,
+              "importance": 3
+            },
+            {
+              "name": "Moral Attitude & Political Attitude",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Social Influence & Persuasion",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Emotional Intelligence \u2014 Concept & Utilities (Daniel Goleman)",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "EI in Administration & Leadership",
+              "hours": 1,
+              "importance": 4
+            }
+          ]
+        },
+        {
+          "id": "eth_thinkers",
+          "name": "Thinkers & Philosophers",
+          "importance": 3,
+          "difficulty": 4,
+          "estimated_hours": 10,
+          "topics": [
+            {
+              "name": "Western \u2014 Socrates, Plato, Aristotle (Virtue Ethics)",
+              "hours": 1.5,
+              "importance": 3
+            },
+            {
+              "name": "Kant \u2014 Categorical Imperative, Deontology",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "J.S. Mill \u2014 Utilitarianism",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "John Rawls \u2014 Theory of Justice",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Indian \u2014 Gandhi (Satya, Ahimsa, Sarvodaya)",
+              "hours": 2,
+              "importance": 5
+            },
+            {
+              "name": "Kautilya \u2014 Arthashastra & Statecraft Ethics",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Vivekananda, Tagore, Ambedkar \u2014 Ethical Contributions",
+              "hours": 1,
+              "importance": 3
+            },
+            {
+              "name": "Ashoka \u2014 Dhamma & Governance Ethics",
+              "hours": 1,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eth_public_service",
+          "name": "Public Service Values & Ethics",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 8,
+          "topics": [
+            {
+              "name": "Integrity, Impartiality, Non-partisanship",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Objectivity, Dedication, Tolerance, Compassion",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Public vs Private Morality \u2014 Foundational Values of Civil Services",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Ethical Heritage of India \u2014 Relevance Today",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eth_probity",
+          "name": "Probity in Governance",
+          "importance": 4,
+          "difficulty": 3,
+          "estimated_hours": 9,
+          "topics": [
+            {
+              "name": "Concept of Public Service & Accountability",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "RTI & Transparency in Governance",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Code of Conduct vs Code of Ethics",
+              "hours": 1.5,
+              "importance": 4
+            },
+            {
+              "name": "Challenges of Corruption \u2014 Causes & Remedies",
+              "hours": 2,
+              "importance": 4
+            },
+            {
+              "name": "Citizen Charter & Work Culture Reform",
+              "hours": 2,
+              "importance": 3
+            }
+          ]
+        },
+        {
+          "id": "eth_case_studies",
+          "name": "Case Studies (Section B)",
+          "importance": 5,
+          "difficulty": 5,
+          "estimated_hours": 30,
+          "topics": [
+            {
+              "name": "Framework for Case Study Analysis (Stakeholder mapping, Ethical issues identification, Options evaluation)",
+              "hours": 5,
+              "importance": 5
+            },
+            {
+              "name": "Administrative Dilemmas (Duty vs Compassion, Rules vs Justice)",
+              "hours": 5,
+              "importance": 5
+            },
+            {
+              "name": "Personal vs Professional Ethics Conflicts",
+              "hours": 4,
+              "importance": 5
+            },
+            {
+              "name": "Corruption & Whistleblowing Scenarios",
+              "hours": 4,
+              "importance": 5
+            },
+            {
+              "name": "Environmental Ethics Dilemmas",
+              "hours": 3,
+              "importance": 4
+            },
+            {
+              "name": "Social Justice & Vulnerable Sections Dilemmas",
+              "hours": 3,
+              "importance": 4
+            },
+            {
+              "name": "Practice \u2014 Write 50+ Case Studies",
+              "hours": 6,
+              "importance": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

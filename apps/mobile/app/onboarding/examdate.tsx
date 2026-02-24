@@ -9,14 +9,15 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
 import { api } from '../../lib/api';
+import { useAuth } from '../../hooks/useAuth';
 import { theme } from '../../constants/theme';
 import { StrategyMode } from '../../types';
 
 export default function ExamDateScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     hours: string;
     isWorking: string;
@@ -37,10 +38,7 @@ export default function ExamDateScreen() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // For now, use a placeholder userId — in production this comes from auth
-      const userId = 'demo-user-' + Date.now();
-
-      await api.completeOnboarding(userId, {
+      await api.completeOnboarding({
         daily_hours: parseFloat(params.hours),
         is_working_professional: params.isWorking === 'true',
         attempt_number: params.attempt,
@@ -52,15 +50,9 @@ export default function ExamDateScreen() {
         name: name.trim(),
       });
 
-      await AsyncStorage.setItem('onboarding_completed', 'true');
-      await AsyncStorage.setItem('user_id', userId);
-      await AsyncStorage.setItem('strategy_mode', params.chosenMode);
-
       router.replace('/(tabs)');
     } catch {
-      // In demo mode, still navigate forward even if API fails
-      await AsyncStorage.setItem('onboarding_completed', 'true');
-      await AsyncStorage.setItem('strategy_mode', params.chosenMode);
+      // Still navigate forward if API fails
       router.replace('/(tabs)');
     } finally {
       setLoading(false);

@@ -1,0 +1,294 @@
+import { supabase } from '../lib/supabase.js';
+
+export async function calculateFatigueScore(userId: string): Promise<number> {
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('daily_hours')
+    .eq('id', userId)
+    .single();
+
+  const targetHours = profile?.daily_hours || 6;
+
+  // Get recent daily logs
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data: logs } = await supabase
+    .from('daily_logs')
+    .select('log_date, hours_studied, avg_difficulty')
+    .eq('user_id', userId)
+    .gte('log_date', sevenDaysAgo.toISOString().split('T')[0])
+    .order('log_date', { ascending: false });
+
+  const recentLogs = logs || [];
+
+  // Calculate consecutive study days
+  let consecutiveDays = 0;
+  const today = new Date();
+  for (let i = 0; i < 14; i++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dateStr = checkDate.toISOString().split('T')[0];
+    const log = recentLogs.find((l) => l.log_date === dateStr);
+    if (log && log.hours_studied > 0) {
+      consecutiveDays++;
+    } else {
+      break;
+    }
+  }
+
+  // Average difficulty last 3 days
+  const last3 = recentLogs.slice(0, 3);
+  const avgDifficulty3d = last3.length > 0
+    ? last3.reduce((s, l) => s + l.avg_difficulty, 0) / last3.length : 0;
+
+  // Total hours last 3 days
+  const hours3d = last3.reduce((s, l) => s + l.hours_studied, 0);
+
+  // Rest days in last 7
+  const restDays7 = 7 - recentLogs.filter((l) => l.hours_studied > 0).length;
+
+  // Fatigue formula
+  const fatigue = (consecutiveDays * 10) + (avgDifficulty3d * 8) + (hours3d / targetHours * 20) - (restDays7 * 15);
+
+  return Math.max(0, Math.min(100, Math.round(fatigue)));
+}
+
+export async function calculateBRI(userId: string) {
+  // Get latest velocity snapshot for stress signals
+  const { data: snapshot } = await supabase
+    .from('velocity_snapshots')
+    .select('stress_score, signal_velocity, signal_buffer, signal_confidence')
+    .eq('user_id', userId)
+    .order('snapshot_date', { ascending: false })
+    .limit(1)
+    .single();
+
+  // Get recent burnout snapshots for persistence
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const { data: recentBurnout } = await supabase
+    .from('burnout_snapshots')
+    .select('bri_score, stress_score: signal_stress')
+    .eq('user_id', userId)
+    .gte('snapshot_date', threeDaysAgo.toISOString().split('T')[0])
+    .order('snapshot_date', { ascending: false });
+
+  // Stress persistence: how long stress has been elevated
+  const stressPersistence = (recentBurnout || []).filter(
+    (b) => (b as any).stress_score > 0.5
+  ).length * 33; // normalize to ~0-100
+
+  // Buffer hemorrhage: rapid buffer decline
+  const { data: recentTx } = await supabase
+    .from('buffer_transactions')
+    .select('type, amount')
+    .eq('user_id', userId)
+    .order('valid_from', { ascending: false })
+    .limit(7);
+
+  const withdrawals = (recentTx || []).filter((t) => t.amount < 0);
+  const bufferHemorrhage = Math.min(100, withdrawals.length * 20);
+
+  // Velocity collapse
+  const velocitySignal = snapshot?.signal_velocity || 70;
+  const velocityCollapse = Math.max(0, 100 - velocitySignal);
+
+  // Engagement decay: check for declining study hours
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data: logs } = await supabase
+    .from('daily_logs')
+    .select('hours_studied')
+    .eq('user_id', userId)
+    .gte('log_date', sevenDaysAgo.toISOString().split('T')[0])
+    .order('log_date', { ascending: false });
+
+  const recent3 = (logs || []).slice(0, 3);
+  const prior3 = (logs || []).slice(3, 6);
+  const recentAvg = recent3.length > 0 ? recent3.reduce((s, l) => s + l.hours_studied, 0) / recent3.length : 0;
+  const priorAvg = prior3.length > 0 ? prior3.reduce((s, l) => s + l.hours_studied, 0) / prior3.length : 0;
+  const engagementDecay = priorAvg > 0 ? Math.max(0, (1 - recentAvg / priorAvg) * 100) : 0;
+
+  // BRI = 100 - weighted signals
+  const bri = 100 - (
+    stressPersistence * 0.30 +
+    bufferHemorrhage * 0.25 +
+    velocityCollapse * 0.25 +
+    engagementDecay * 0.20
+  );
+
+  return {
+    bri_score: Math.max(0, Math.min(100, Math.round(bri))),
+    signals: {
+      stress: stressPersistence,
+      buffer: bufferHemorrhage,
+      velocity: velocityCollapse,
+      engagement: engagementDecay,
+    },
+  };
+}
+
+export async function checkRecoveryTrigger(userId: string): Promise<boolean> {
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('burnout_threshold, recovery_mode_active')
+    .eq('id', userId)
+    .single();
+
+  if (!profile || profile.recovery_mode_active) return false;
+
+  const threshold = profile.burnout_threshold || 75;
+
+  // Check last 2 days of BRI
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+  const { data: snapshots } = await supabase
+    .from('burnout_snapshots')
+    .select('bri_score')
+    .eq('user_id', userId)
+    .gte('snapshot_date', twoDaysAgo.toISOString().split('T')[0])
+    .order('snapshot_date', { ascending: false })
+    .limit(2);
+
+  if (!snapshots || snapshots.length < 2) return false;
+
+  // Trigger if BRI > threshold for 2 consecutive days
+  return snapshots.every((s) => s.bri_score < (100 - threshold));
+}
+
+export async function activateRecoveryMode(userId: string) {
+  const { bri_score } = await calculateBRI(userId);
+
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 5);
+
+  await supabase
+    .from('user_profiles')
+    .update({
+      recovery_mode_active: true,
+      recovery_mode_start: new Date().toISOString().split('T')[0],
+      recovery_mode_end: endDate.toISOString().split('T')[0],
+    })
+    .eq('id', userId);
+
+  await supabase.from('recovery_log').insert({
+    user_id: userId,
+    trigger_bri: bri_score,
+  });
+
+  return {
+    recovery_mode_active: true,
+    recovery_mode_start: new Date().toISOString().split('T')[0],
+    recovery_mode_end: endDate.toISOString().split('T')[0],
+  };
+}
+
+export async function exitRecoveryMode(userId: string, reason: string) {
+  const { bri_score } = await calculateBRI(userId);
+
+  await supabase
+    .from('user_profiles')
+    .update({
+      recovery_mode_active: false,
+      recovery_mode_start: null,
+      recovery_mode_end: null,
+    })
+    .eq('id', userId);
+
+  // Update recovery log
+  const { data: log } = await supabase
+    .from('recovery_log')
+    .select('id')
+    .eq('user_id', userId)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (log) {
+    await supabase
+      .from('recovery_log')
+      .update({
+        ended_at: new Date().toISOString(),
+        exit_reason: reason,
+        bri_at_exit: bri_score,
+      })
+      .eq('id', log.id);
+  }
+
+  return {
+    recovery_mode_active: false,
+    ramp_up: { day1: 0.7, day2: 0.85, day3: 1.0 },
+  };
+}
+
+export async function getBurnoutData(userId: string) {
+  const fatigue = await calculateFatigueScore(userId);
+  const { bri_score, signals } = await calculateBRI(userId);
+
+  let status: string;
+  if (bri_score >= 80) status = 'low';
+  else if (bri_score >= 60) status = 'moderate';
+  else if (bri_score >= 40) status = 'high';
+  else status = 'critical';
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('recovery_mode_active, recovery_mode_start, recovery_mode_end')
+    .eq('id', userId)
+    .single();
+
+  // Get recovery day number
+  let recoveryDay: number | undefined;
+  if (profile?.recovery_mode_active && profile.recovery_mode_start) {
+    const start = new Date(profile.recovery_mode_start);
+    recoveryDay = Math.ceil((Date.now() - start.getTime()) / 86400000) + 1;
+  }
+
+  // Save burnout snapshot
+  const snapshotDate = new Date().toISOString().split('T')[0];
+  await supabase.from('burnout_snapshots').upsert({
+    user_id: userId,
+    snapshot_date: snapshotDate,
+    bri_score,
+    fatigue_score: fatigue,
+    signal_stress: signals.stress,
+    signal_buffer: signals.buffer,
+    signal_velocity: signals.velocity,
+    signal_engagement: signals.engagement,
+    status,
+    in_recovery: profile?.recovery_mode_active || false,
+  }, { onConflict: 'user_id,snapshot_date' });
+
+  // Check recovery trigger
+  const shouldRecover = await checkRecoveryTrigger(userId);
+  if (shouldRecover) {
+    await activateRecoveryMode(userId);
+  }
+
+  // Get 7-day history
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data: history } = await supabase
+    .from('burnout_snapshots')
+    .select('snapshot_date, bri_score, fatigue_score')
+    .eq('user_id', userId)
+    .gte('snapshot_date', sevenDaysAgo.toISOString().split('T')[0])
+    .order('snapshot_date', { ascending: true });
+
+  return {
+    bri_score,
+    fatigue_score: fatigue,
+    status,
+    in_recovery: profile?.recovery_mode_active || false,
+    recovery_day: recoveryDay,
+    recovery_end: profile?.recovery_mode_end,
+    signals,
+    history: history || [],
+  };
+}

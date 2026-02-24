@@ -9,33 +9,32 @@ interface StrategyData {
   current_mode: string;
 }
 
-export function useStrategy(userId: string | null) {
+export function useStrategy() {
   return useQuery<StrategyData>({
-    queryKey: ['strategy', userId],
-    queryFn: () => api.getStrategy(userId!) as Promise<StrategyData>,
-    enabled: !!userId,
+    queryKey: ['strategy'],
+    queryFn: () => api.getStrategy() as Promise<StrategyData>,
   });
 }
 
-export function useSwitchMode(userId: string | null) {
+export function useSwitchMode() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (mode: StrategyMode) => api.switchMode(userId!, mode),
+    mutationFn: (mode: StrategyMode) => api.switchMode(mode),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['strategy', userId] });
+      queryClient.invalidateQueries({ queryKey: ['strategy'] });
     },
   });
 }
 
-export function useCustomizeParams(userId: string | null) {
+export function useCustomizeParams() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: Partial<StrategyParams>) =>
-      api.customizeParams(userId!, params as Record<string, number>),
+      api.customizeParams(params as Record<string, number>),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['strategy', userId] });
+      queryClient.invalidateQueries({ queryKey: ['strategy'] });
     },
   });
 }

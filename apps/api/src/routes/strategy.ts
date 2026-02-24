@@ -3,21 +3,14 @@ import { getStrategy, switchMode, customizeParams } from '../services/strategy.j
 import { SwitchModePayload, CustomizePayload } from '../types/index.js';
 
 export async function strategyRoutes(app: FastifyInstance) {
-  // GET /api/strategy/:userId — Returns current mode + all params
-  app.get<{
-    Params: { userId: string };
-  }>('/api/strategy/:userId', async (request, reply) => {
-    const { userId } = request.params;
-    const result = await getStrategy(userId);
+  app.get('/api/strategy', async (request, reply) => {
+    const result = await getStrategy(request.userId);
     return reply.status(200).send(result);
   });
 
-  // POST /api/strategy/:userId/switch — Switch mode, repopulate params from defaults
   app.post<{
-    Params: { userId: string };
     Body: SwitchModePayload;
-  }>('/api/strategy/:userId/switch', async (request, reply) => {
-    const { userId } = request.params;
+  }>('/api/strategy/switch', async (request, reply) => {
     const { mode } = request.body;
 
     if (!mode) {
@@ -29,23 +22,20 @@ export async function strategyRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
     }
 
-    const result = await switchMode(userId, mode);
+    const result = await switchMode(request.userId, mode);
     return reply.status(200).send(result);
   });
 
-  // POST /api/strategy/:userId/customize — Merge individual param overrides
   app.post<{
-    Params: { userId: string };
     Body: CustomizePayload;
-  }>('/api/strategy/:userId/customize', async (request, reply) => {
-    const { userId } = request.params;
+  }>('/api/strategy/customize', async (request, reply) => {
     const { params } = request.body;
 
     if (!params || Object.keys(params).length === 0) {
       return reply.status(400).send({ error: 'params object is required and must not be empty' });
     }
 
-    const result = await customizeParams(userId, { params });
+    const result = await customizeParams(request.userId, { params });
     return reply.status(200).send(result);
   });
 }

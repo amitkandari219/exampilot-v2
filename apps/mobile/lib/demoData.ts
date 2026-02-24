@@ -1,0 +1,512 @@
+// Demo data generated from topic_weightage.json
+// Used for UI preview when no Supabase/API is configured
+
+export const demoStress = {
+  score: 68,
+  status: 'optimal' as const,
+  label: 'Optimal',
+  signals: { velocity: 72, buffer: 65, time: 60, confidence: 74 },
+  recommendation: 'You are on track. Keep up the steady pace and maintain your revision schedule.',
+  history: [
+    { date: '2026-02-18', score: 55 },
+    { date: '2026-02-19', score: 60 },
+    { date: '2026-02-20', score: 58 },
+    { date: '2026-02-21', score: 63 },
+    { date: '2026-02-22', score: 65 },
+    { date: '2026-02-23', score: 70 },
+    { date: '2026-02-24', score: 68 },
+  ],
+};
+
+export const demoVelocity = {
+  velocity_ratio: 1.08,
+  status: 'on_track' as const,
+  trend: 'up' as const,
+  projected_completion_date: '2026-05-15',
+  streak: 5,
+  actual_velocity_7d: 3.2,
+  actual_velocity_14d: 2.9,
+  required_velocity: 2.96,
+  weighted_completion_pct: 0.32,
+};
+
+export const demoBuffer = {
+  balance: 8.4,
+  capacity: 15,
+  transactions: [
+    { id: '1', type: 'deposit' as const, amount: 0.5, balance_after: 8.4, notes: 'Surplus from today', transaction_date: '2026-02-24' },
+    { id: '2', type: 'consistency_reward' as const, amount: 0.1, balance_after: 7.9, notes: '5-day streak bonus', transaction_date: '2026-02-23' },
+  ],
+};
+
+export const demoBurnout = {
+  bri_score: 28,
+  fatigue_score: 35,
+  status: 'low' as const,
+  in_recovery: false,
+  recovery_day: null as null | number,
+  signals: { stress_persistence: 25, buffer_hemorrhage: 15, velocity_collapse: 10, engagement_decay: 20 },
+  history: [
+    { date: '2026-02-18', bri_score: 30 },
+    { date: '2026-02-19', bri_score: 28 },
+    { date: '2026-02-20', bri_score: 32 },
+    { date: '2026-02-21', bri_score: 25 },
+    { date: '2026-02-22', bri_score: 22 },
+    { date: '2026-02-23', bri_score: 26 },
+    { date: '2026-02-24', bri_score: 28 },
+  ],
+};
+
+export const demoConfidence = {
+  "distribution": {
+    "fresh": 52,
+    "fading": 68,
+    "stale": 35,
+    "decayed": 0
+  },
+  "fastest_decaying": [
+    {
+      "topic_id": "c1000000-0000-0000-0000-000000000102",
+      "topic_name": "Elderly & PwD Welfare Schemes",
+      "confidence_score": 30,
+      "stability": 1.5
+    },
+    {
+      "topic_id": "c1000000-0000-0000-0000-000000000186",
+      "topic_name": "Submarine & Aircraft Carrier Programs",
+      "confidence_score": 30,
+      "stability": 1.5
+    },
+    {
+      "topic_id": "c1000000-0000-0000-0000-000000000195",
+      "topic_name": "Terrorism-Crime Nexus",
+      "confidence_score": 30,
+      "stability": 1.5
+    },
+    {
+      "topic_id": "c1000000-0000-0000-0000-000000000009",
+      "topic_name": "Painting Traditions (Miniature, Mughal, Rajput, Pahari)",
+      "confidence_score": 32,
+      "stability": 1.6
+    },
+    {
+      "topic_id": "c1000000-0000-0000-0000-00000000003f",
+      "topic_name": "Civil Disobedience Movement & Salt March",
+      "confidence_score": 32,
+      "stability": 1.6
+    }
+  ]
+};
+
+const today = new Date().toISOString().split('T')[0];
+
+export const demoPlan = {
+  id: 'demo-plan-1',
+  user_id: 'demo-user',
+  plan_date: today,
+  generated_at: new Date().toISOString(),
+  available_hours: 6,
+  is_regenerated: false,
+  is_light_day: false,
+  fatigue_score: 35,
+  energy_level: 'full' as const,
+  items: [
+  {
+    id: 'item-1',
+    plan_id: 'demo-plan-1',
+    topic_id: 'c1000000-0000-0000-0000-000000000001',
+    type: 'new' as const,
+    estimated_hours: 2,
+    priority_score: 90,
+    display_order: 1,
+    status: 'completed' as const,
+    completed_at: '2026-02-24T13:35:55.283Z',
+    actual_hours: 2,
+    topic: {
+      id: 'c1000000-0000-0000-0000-000000000001',
+      name: 'Temple Architecture — Nagara Style',
+      chapter_id: 'b1000000-0000-0000-0000-000000000001',
+      importance: 5,
+      difficulty: 3,
+      estimated_hours: 2,
+      display_order: 1,
+      pyq_frequency: 15,
+      pyq_weight: 4.8,
+      pyq_trend: 'stable' as const,
+      last_pyq_year: 2021,
+      chapter_name: 'Visual Arts (Architecture & Sculpture)',
+      subject_name: 'Indian Heritage & Culture',
+    },
+  },
+  {
+    id: 'item-2',
+    plan_id: 'demo-plan-1',
+    topic_id: 'c1000000-0000-0000-0000-000000000002',
+    type: 'revision' as const,
+    estimated_hours: 1.5,
+    priority_score: 85,
+    display_order: 2,
+    status: 'pending' as const,
+    completed_at: null,
+    actual_hours: null,
+    topic: {
+      id: 'c1000000-0000-0000-0000-000000000002',
+      name: 'Temple Architecture — Dravida Style',
+      chapter_id: 'b1000000-0000-0000-0000-000000000001',
+      importance: 4,
+      difficulty: 3,
+      estimated_hours: 1.5,
+      display_order: 2,
+      pyq_frequency: 12,
+      pyq_weight: 3.9,
+      pyq_trend: 'declining' as const,
+      last_pyq_year: 2022,
+      chapter_name: 'Visual Arts (Architecture & Sculpture)',
+      subject_name: 'Indian Heritage & Culture',
+    },
+  },
+  {
+    id: 'item-3',
+    plan_id: 'demo-plan-1',
+    topic_id: 'c1000000-0000-0000-0000-000000000004',
+    type: 'new' as const,
+    estimated_hours: 2,
+    priority_score: 80,
+    display_order: 3,
+    status: 'pending' as const,
+    completed_at: null,
+    actual_hours: null,
+    topic: {
+      id: 'c1000000-0000-0000-0000-000000000004',
+      name: 'Cave Architecture (Ajanta, Ellora, Elephanta)',
+      chapter_id: 'b1000000-0000-0000-0000-000000000001',
+      importance: 5,
+      difficulty: 3,
+      estimated_hours: 2,
+      display_order: 4,
+      pyq_frequency: 15,
+      pyq_weight: 4.8,
+      pyq_trend: 'stable' as const,
+      last_pyq_year: 2024,
+      chapter_name: 'Visual Arts (Architecture & Sculpture)',
+      subject_name: 'Indian Heritage & Culture',
+    },
+  },
+  {
+    id: 'item-4',
+    plan_id: 'demo-plan-1',
+    topic_id: 'c1000000-0000-0000-0000-000000000005',
+    type: 'decay_revision' as const,
+    estimated_hours: 1.5,
+    priority_score: 75,
+    display_order: 4,
+    status: 'pending' as const,
+    completed_at: null,
+    actual_hours: null,
+    topic: {
+      id: 'c1000000-0000-0000-0000-000000000005',
+      name: 'Buddhist & Jain Architecture',
+      chapter_id: 'b1000000-0000-0000-0000-000000000001',
+      importance: 4,
+      difficulty: 3,
+      estimated_hours: 1.5,
+      display_order: 5,
+      pyq_frequency: 12,
+      pyq_weight: 3.9,
+      pyq_trend: 'declining' as const,
+      last_pyq_year: 2025,
+      chapter_name: 'Visual Arts (Architecture & Sculpture)',
+      subject_name: 'Indian Heritage & Culture',
+    },
+  },
+  {
+    id: 'item-5',
+    plan_id: 'demo-plan-1',
+    topic_id: 'c1000000-0000-0000-0000-000000000008',
+    type: 'new' as const,
+    estimated_hours: 2,
+    priority_score: 70,
+    display_order: 5,
+    status: 'pending' as const,
+    completed_at: null,
+    actual_hours: null,
+    topic: {
+      id: 'c1000000-0000-0000-0000-000000000008',
+      name: 'Sculpture (Gandhara, Mathura, Amaravati schools)',
+      chapter_id: 'b1000000-0000-0000-0000-000000000001',
+      importance: 4,
+      difficulty: 3,
+      estimated_hours: 2,
+      display_order: 8,
+      pyq_frequency: 12,
+      pyq_weight: 3.9,
+      pyq_trend: 'declining' as const,
+      last_pyq_year: 2022,
+      chapter_name: 'Visual Arts (Architecture & Sculpture)',
+      subject_name: 'Indian Heritage & Culture',
+    },
+  },
+  {
+    id: 'item-6',
+    plan_id: 'demo-plan-1',
+    topic_id: 'c1000000-0000-0000-0000-00000000000a',
+    type: 'stretch' as const,
+    estimated_hours: 3,
+    priority_score: 65,
+    display_order: 6,
+    status: 'pending' as const,
+    completed_at: null,
+    actual_hours: null,
+    topic: {
+      id: 'c1000000-0000-0000-0000-00000000000a',
+      name: 'Classical Dance Forms (Bharatanatyam, Kathak, etc.)',
+      chapter_id: 'b1000000-0000-0000-0000-000000000002',
+      importance: 4,
+      difficulty: 4,
+      estimated_hours: 3,
+      display_order: 10,
+      pyq_frequency: 12,
+      pyq_weight: 4.4,
+      pyq_trend: 'stable' as const,
+      last_pyq_year: 2024,
+      chapter_name: 'Performing Arts',
+      subject_name: 'Indian Heritage & Culture',
+    },
+  }
+  ],
+};
+
+export const demoSyllabus = [
+  {
+    id: 'a1000000-0000-0000-0000-000000000001', name: 'Indian Heritage & Culture', papers: ["Prelims GS-I","Mains GS-I"], importance: 4, difficulty: 4, estimated_hours: 48, display_order: 1,
+    progress: { total_topics: 14, completed_topics: 5, weighted_completion: 0.24, avg_confidence: 54 },
+    chapters: [
+    {
+      id: 'b1000000-0000-0000-0000-000000000001', subject_id: 'a1000000-0000-0000-0000-000000000001', name: 'Visual Arts (Architecture & Sculpture)', importance: 5, difficulty: 3, estimated_hours: 14, display_order: 1,
+      progress: { total_topics: 5, completed_topics: 3, weighted_completion: 0.28, avg_confidence: 37 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000001', chapter_id: 'b1000000-0000-0000-0000-000000000001', name: 'Temple Architecture — Nagara Style', importance: 5, difficulty: 3, estimated_hours: 2, display_order: 1, pyq_frequency: 15, pyq_weight: 4.8, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000002', chapter_id: 'b1000000-0000-0000-0000-000000000001', name: 'Temple Architecture — Dravida Style', importance: 4, difficulty: 3, estimated_hours: 1.5, display_order: 2, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000003', chapter_id: 'b1000000-0000-0000-0000-000000000001', name: 'Temple Architecture — Vesara Style', importance: 3, difficulty: 3, estimated_hours: 1, display_order: 3, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 42, confidence_status: 'stale' as const, last_touched: '2026-02-21T13:35:41.053Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-000000000004', chapter_id: 'b1000000-0000-0000-0000-000000000001', name: 'Cave Architecture (Ajanta, Ellora, Elephanta)', importance: 5, difficulty: 3, estimated_hours: 2, display_order: 4, pyq_frequency: 15, pyq_weight: 4.8, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000005', chapter_id: 'b1000000-0000-0000-0000-000000000001', name: 'Buddhist & Jain Architecture', importance: 4, difficulty: 3, estimated_hours: 1.5, display_order: 5, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000002', subject_id: 'a1000000-0000-0000-0000-000000000001', name: 'Performing Arts', importance: 3, difficulty: 4, estimated_hours: 8, display_order: 2,
+      progress: { total_topics: 4, completed_topics: 0, weighted_completion: 0, avg_confidence: 76 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-00000000000a', chapter_id: 'b1000000-0000-0000-0000-000000000002', name: 'Classical Dance Forms (Bharatanatyam, Kathak, etc.)', importance: 4, difficulty: 4, estimated_hours: 3, display_order: 10, pyq_frequency: 12, pyq_weight: 4.4, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000000b', chapter_id: 'b1000000-0000-0000-0000-000000000002', name: 'Folk Dances of India (State-wise)', importance: 3, difficulty: 4, estimated_hours: 2, display_order: 11, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000000c', chapter_id: 'b1000000-0000-0000-0000-000000000002', name: 'Indian Music (Carnatic vs Hindustani)', importance: 3, difficulty: 4, estimated_hours: 2, display_order: 12, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'in_progress' as const, confidence_score: 76, confidence_status: 'fresh' as const, last_touched: '2026-02-12T13:35:41.054Z', revision_count: 0 } },
+      { id: 'c1000000-0000-0000-0000-00000000000d', chapter_id: 'b1000000-0000-0000-0000-000000000002', name: 'Theatre & Puppetry Traditions', importance: 2, difficulty: 4, estimated_hours: 1, display_order: 13, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000003', subject_id: 'a1000000-0000-0000-0000-000000000001', name: 'Religion & Philosophy', importance: 5, difficulty: 3, estimated_hours: 12, display_order: 3,
+      progress: { total_topics: 5, completed_topics: 2, weighted_completion: 0.31, avg_confidence: 72 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-00000000000e', chapter_id: 'b1000000-0000-0000-0000-000000000003', name: 'Vedic Religion & Upanishadic Philosophy', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 14, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000000f', chapter_id: 'b1000000-0000-0000-0000-000000000003', name: 'Six Schools of Indian Philosophy (Samkhya, Yoga, Vedanta, etc.)', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 15, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 77, confidence_status: 'fresh' as const, last_touched: '2026-02-23T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-000000000010', chapter_id: 'b1000000-0000-0000-0000-000000000003', name: 'Buddhism — Sects, Councils, Literature, Spread', importance: 5, difficulty: 3, estimated_hours: 3, display_order: 16, pyq_frequency: 15, pyq_weight: 5, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000011', chapter_id: 'b1000000-0000-0000-0000-000000000003', name: 'Jainism — Sects, Councils, Literature', importance: 5, difficulty: 3, estimated_hours: 2, display_order: 17, pyq_frequency: 15, pyq_weight: 4.8, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000012', chapter_id: 'b1000000-0000-0000-0000-000000000003', name: 'Bhakti Movement', importance: 4, difficulty: 3, estimated_hours: 1.5, display_order: 18, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'revised' as const, confidence_score: 66, confidence_status: 'fading' as const, last_touched: '2026-02-20T13:35:41.054Z', revision_count: 2 } }
+      ],
+    }
+    ],
+  },
+  {
+    id: 'a1000000-0000-0000-0000-000000000002', name: 'Modern Indian History', papers: ["Prelims GS-I","Mains GS-I"], importance: 5, difficulty: 3, estimated_hours: 78, display_order: 2,
+    progress: { total_topics: 15, completed_topics: 4, weighted_completion: 0.26, avg_confidence: 59 },
+    chapters: [
+    {
+      id: 'b1000000-0000-0000-0000-000000000007', subject_id: 'a1000000-0000-0000-0000-000000000002', name: 'Decline of Mughals & Advent of Europeans', importance: 2, difficulty: 2, estimated_hours: 5, display_order: 7,
+      progress: { total_topics: 5, completed_topics: 1, weighted_completion: 0.18, avg_confidence: 66 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-00000000001f', chapter_id: 'b1000000-0000-0000-0000-000000000007', name: 'Carnatic Wars', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 31, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000020', chapter_id: 'b1000000-0000-0000-0000-000000000007', name: 'Anglo-Mysore Wars', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 32, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000021', chapter_id: 'b1000000-0000-0000-0000-000000000007', name: 'Anglo-Maratha Wars', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 33, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'first_pass' as const, confidence_score: 66, confidence_status: 'fading' as const, last_touched: '2026-02-19T13:35:41.054Z', revision_count: 1 } },
+      { id: 'c1000000-0000-0000-0000-000000000022', chapter_id: 'b1000000-0000-0000-0000-000000000007', name: 'Battle of Plassey & Buxar', importance: 3, difficulty: 2, estimated_hours: 1, display_order: 34, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000023', chapter_id: 'b1000000-0000-0000-0000-000000000007', name: 'Consolidation of British Power', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 35, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000008', subject_id: 'a1000000-0000-0000-0000-000000000002', name: 'British Expansion & Economic Impact', importance: 5, difficulty: 3, estimated_hours: 10, display_order: 8,
+      progress: { total_topics: 5, completed_topics: 1, weighted_completion: 0.2, avg_confidence: 46 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000024', chapter_id: 'b1000000-0000-0000-0000-000000000008', name: 'Land Revenue Systems (Zamindari, Ryotwari, Mahalwari)', importance: 5, difficulty: 3, estimated_hours: 3, display_order: 36, pyq_frequency: 15, pyq_weight: 5, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'in_progress' as const, confidence_score: 45, confidence_status: 'fading' as const, last_touched: '2026-02-16T13:35:41.054Z', revision_count: 0 } },
+      { id: 'c1000000-0000-0000-0000-000000000025', chapter_id: 'b1000000-0000-0000-0000-000000000008', name: 'Commercialization of Agriculture', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 37, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000026', chapter_id: 'b1000000-0000-0000-0000-000000000008', name: 'Drain of Wealth Theory (Dadabhai Naoroji)', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 38, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000027', chapter_id: 'b1000000-0000-0000-0000-000000000008', name: 'Deindustrialization & Impact on Indian Economy', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 39, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 47, confidence_status: 'fading' as const, last_touched: '2026-02-13T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-000000000028', chapter_id: 'b1000000-0000-0000-0000-000000000008', name: 'British Education & Administrative Reforms', importance: 3, difficulty: 3, estimated_hours: 1, display_order: 40, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000009', subject_id: 'a1000000-0000-0000-0000-000000000002', name: 'Socio-Religious Reform Movements', importance: 5, difficulty: 3, estimated_hours: 8, display_order: 9,
+      progress: { total_topics: 5, completed_topics: 2, weighted_completion: 0.36, avg_confidence: 61 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000029', chapter_id: 'b1000000-0000-0000-0000-000000000009', name: 'Brahmo Samaj (Raja Ram Mohan Roy)', importance: 4, difficulty: 3, estimated_hours: 1.5, display_order: 41, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000002a', chapter_id: 'b1000000-0000-0000-0000-000000000009', name: 'Arya Samaj (Dayananda Saraswati)', importance: 4, difficulty: 3, estimated_hours: 1, display_order: 42, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'revised' as const, confidence_score: 64, confidence_status: 'fading' as const, last_touched: '2026-02-24T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-00000000002b', chapter_id: 'b1000000-0000-0000-0000-000000000009', name: 'Aligarh Movement & Muslim Reform', importance: 3, difficulty: 3, estimated_hours: 1, display_order: 43, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000002c', chapter_id: 'b1000000-0000-0000-0000-000000000009', name: 'Caste Reform (Jyotiba Phule, Periyar)', importance: 5, difficulty: 3, estimated_hours: 1.5, display_order: 44, pyq_frequency: 15, pyq_weight: 4.8, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000002d', chapter_id: 'b1000000-0000-0000-0000-000000000009', name: 'B.R. Ambedkar & Dalit Movement', importance: 5, difficulty: 3, estimated_hours: 1.5, display_order: 45, pyq_frequency: 15, pyq_weight: 4.8, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'first_pass' as const, confidence_score: 57, confidence_status: 'fading' as const, last_touched: '2026-02-21T13:35:41.054Z', revision_count: 1 } }
+      ],
+    }
+    ],
+  },
+  {
+    id: 'a1000000-0000-0000-0000-000000000003', name: 'Post-Independence India', papers: ["Mains GS-I"], importance: 2, difficulty: 2, estimated_hours: 17, display_order: 3,
+    progress: { total_topics: 8, completed_topics: 2, weighted_completion: 0.24, avg_confidence: 58 },
+    chapters: [
+    {
+      id: 'b1000000-0000-0000-0000-000000000011', subject_id: 'a1000000-0000-0000-0000-000000000003', name: 'Integration of Princely States', importance: 3, difficulty: 2, estimated_hours: 3, display_order: 17,
+      progress: { total_topics: 2, completed_topics: 0, weighted_completion: 0, avg_confidence: 39 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000054', chapter_id: 'b1000000-0000-0000-0000-000000000011', name: 'Sardar Patel & V.P. Menon\'s Role', importance: 3, difficulty: 2, estimated_hours: 1, display_order: 84, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'in_progress' as const, confidence_score: 39, confidence_status: 'stale' as const, last_touched: '2026-02-24T13:35:41.054Z', revision_count: 0 } },
+      { id: 'c1000000-0000-0000-0000-000000000055', chapter_id: 'b1000000-0000-0000-0000-000000000011', name: 'Operation Polo (Hyderabad), Junagadh, Kashmir Accession', importance: 3, difficulty: 2, estimated_hours: 2, display_order: 85, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000012', subject_id: 'a1000000-0000-0000-0000-000000000003', name: 'Reorganization of States', importance: 3, difficulty: 2, estimated_hours: 3, display_order: 18,
+      progress: { total_topics: 2, completed_topics: 1, weighted_completion: 0.5, avg_confidence: 59 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000056', chapter_id: 'b1000000-0000-0000-0000-000000000012', name: 'Linguistic Reorganization & SRC Commission', importance: 3, difficulty: 2, estimated_hours: 1.5, display_order: 86, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000057', chapter_id: 'b1000000-0000-0000-0000-000000000012', name: 'Formation of New States (Telangana, Jharkhand, etc.)', importance: 3, difficulty: 2, estimated_hours: 1.5, display_order: 87, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 59, confidence_status: 'fading' as const, last_touched: '2026-02-21T13:35:41.054Z', revision_count: 2 } }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000013', subject_id: 'a1000000-0000-0000-0000-000000000003', name: 'Land Reforms & Agrarian Changes', importance: 4, difficulty: 3, estimated_hours: 5, display_order: 19,
+      progress: { total_topics: 4, completed_topics: 1, weighted_completion: 0.28, avg_confidence: 77 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000058', chapter_id: 'b1000000-0000-0000-0000-000000000013', name: 'Zamindari Abolition', importance: 4, difficulty: 3, estimated_hours: 1.5, display_order: 88, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000059', chapter_id: 'b1000000-0000-0000-0000-000000000013', name: 'Bhoodan & Gramdan Movements (Vinoba Bhave)', importance: 3, difficulty: 3, estimated_hours: 1, display_order: 89, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000005a', chapter_id: 'b1000000-0000-0000-0000-000000000013', name: 'Green Revolution — Impact & Critique', importance: 4, difficulty: 3, estimated_hours: 1.5, display_order: 90, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'revised' as const, confidence_score: 77, confidence_status: 'fresh' as const, last_touched: '2026-02-18T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-00000000005b', chapter_id: 'b1000000-0000-0000-0000-000000000013', name: 'Land Ceiling & Cooperative Farming', importance: 3, difficulty: 3, estimated_hours: 1, display_order: 91, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null }
+      ],
+    }
+    ],
+  },
+  {
+    id: 'a1000000-0000-0000-0000-000000000004', name: 'World History (post-1750)', papers: ["Mains GS-I"], importance: 3, difficulty: 3, estimated_hours: 27, display_order: 4,
+    progress: { total_topics: 10, completed_topics: 3, weighted_completion: 0.27, avg_confidence: 54 },
+    chapters: [
+    {
+      id: 'b1000000-0000-0000-0000-000000000016', subject_id: 'a1000000-0000-0000-0000-000000000004', name: 'Industrial Revolution', importance: 2, difficulty: 2, estimated_hours: 3, display_order: 22,
+      progress: { total_topics: 3, completed_topics: 1, weighted_completion: 0.33, avg_confidence: 62 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000062', chapter_id: 'b1000000-0000-0000-0000-000000000016', name: 'Causes & Impact on Society', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 98, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000063', chapter_id: 'b1000000-0000-0000-0000-000000000016', name: 'Rise of Capitalism & Imperialism', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 99, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 62, confidence_status: 'fading' as const, last_touched: '2026-02-23T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-000000000064', chapter_id: 'b1000000-0000-0000-0000-000000000016', name: 'Labor Movements', importance: 2, difficulty: 2, estimated_hours: 1, display_order: 100, pyq_frequency: 6, pyq_weight: 2.1, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000017', subject_id: 'a1000000-0000-0000-0000-000000000004', name: 'American & French Revolutions', importance: 3, difficulty: 3, estimated_hours: 5, display_order: 23,
+      progress: { total_topics: 3, completed_topics: 1, weighted_completion: 0.33, avg_confidence: 33 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000065', chapter_id: 'b1000000-0000-0000-0000-000000000017', name: 'Enlightenment Ideas (Locke, Rousseau, Montesquieu)', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 101, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000066', chapter_id: 'b1000000-0000-0000-0000-000000000017', name: 'American Revolution & Bill of Rights', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 102, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'revised' as const, confidence_score: 33, confidence_status: 'stale' as const, last_touched: '2026-02-20T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-000000000067', chapter_id: 'b1000000-0000-0000-0000-000000000017', name: 'French Revolution — Causes, Course, Impact', importance: 3, difficulty: 3, estimated_hours: 2, display_order: 103, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000018', subject_id: 'a1000000-0000-0000-0000-000000000004', name: 'World Wars I & II', importance: 3, difficulty: 3, estimated_hours: 7, display_order: 24,
+      progress: { total_topics: 4, completed_topics: 1, weighted_completion: 0.23, avg_confidence: 48 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000068', chapter_id: 'b1000000-0000-0000-0000-000000000018', name: 'Causes of WWI & Alliance System', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 104, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000069', chapter_id: 'b1000000-0000-0000-0000-000000000018', name: 'Treaty of Versailles & League of Nations', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 105, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'first_pass' as const, confidence_score: 48, confidence_status: 'fading' as const, last_touched: '2026-02-17T13:35:41.054Z', revision_count: 1 } },
+      { id: 'c1000000-0000-0000-0000-00000000006a', chapter_id: 'b1000000-0000-0000-0000-000000000018', name: 'Rise of Fascism (Italy) & Nazism (Germany)', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 106, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000006b', chapter_id: 'b1000000-0000-0000-0000-000000000018', name: 'WWII — Causes, Key Events, UN Formation', importance: 3, difficulty: 3, estimated_hours: 2, display_order: 107, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null }
+      ],
+    }
+    ],
+  },
+  {
+    id: 'a1000000-0000-0000-0000-000000000005', name: 'Geography (Physical, Indian, World)', papers: ["Prelims GS-I","Mains GS-I"], importance: 5, difficulty: 4, estimated_hours: 95, display_order: 5,
+    progress: { total_topics: 15, completed_topics: 5, weighted_completion: 0.26, avg_confidence: 66 },
+    chapters: [
+    {
+      id: 'b1000000-0000-0000-0000-00000000001b', subject_id: 'a1000000-0000-0000-0000-000000000005', name: 'Geomorphology', importance: 3, difficulty: 4, estimated_hours: 14, display_order: 27,
+      progress: { total_topics: 5, completed_topics: 1, weighted_completion: 0.19, avg_confidence: 65 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000074', chapter_id: 'b1000000-0000-0000-0000-00000000001b', name: 'Interior of Earth & Seismic Waves', importance: 3, difficulty: 4, estimated_hours: 2, display_order: 116, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000075', chapter_id: 'b1000000-0000-0000-0000-00000000001b', name: 'Plate Tectonics & Continental Drift', importance: 4, difficulty: 4, estimated_hours: 2.5, display_order: 117, pyq_frequency: 12, pyq_weight: 4.4, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'first_pass' as const, confidence_score: 73, confidence_status: 'fresh' as const, last_touched: '2026-02-19T13:35:41.054Z', revision_count: 1 } },
+      { id: 'c1000000-0000-0000-0000-000000000076', chapter_id: 'b1000000-0000-0000-0000-00000000001b', name: 'Earthquakes — Types, Distribution, Zones', importance: 4, difficulty: 4, estimated_hours: 2, display_order: 118, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000077', chapter_id: 'b1000000-0000-0000-0000-00000000001b', name: 'Volcanoes — Types, Distribution', importance: 3, difficulty: 4, estimated_hours: 1.5, display_order: 119, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000078', chapter_id: 'b1000000-0000-0000-0000-00000000001b', name: 'Weathering & Erosion', importance: 3, difficulty: 4, estimated_hours: 2, display_order: 120, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'in_progress' as const, confidence_score: 57, confidence_status: 'fading' as const, last_touched: '2026-02-16T13:35:41.054Z', revision_count: 0 } }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-00000000001c', subject_id: 'a1000000-0000-0000-0000-000000000005', name: 'Climatology', importance: 5, difficulty: 4, estimated_hours: 18, display_order: 28,
+      progress: { total_topics: 5, completed_topics: 3, weighted_completion: 0.37, avg_confidence: 73 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-00000000007b', chapter_id: 'b1000000-0000-0000-0000-00000000001c', name: 'Atmosphere — Composition & Structure', importance: 4, difficulty: 4, estimated_hours: 2, display_order: 123, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 79, confidence_status: 'fresh' as const, last_touched: '2026-02-13T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-00000000007c', chapter_id: 'b1000000-0000-0000-0000-00000000001c', name: 'Insolation & Heat Budget', importance: 4, difficulty: 4, estimated_hours: 2, display_order: 124, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000007d', chapter_id: 'b1000000-0000-0000-0000-00000000001c', name: 'Pressure Belts & Wind Systems', importance: 5, difficulty: 4, estimated_hours: 2.5, display_order: 125, pyq_frequency: 15, pyq_weight: 5, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-00000000007e', chapter_id: 'b1000000-0000-0000-0000-00000000001c', name: 'Cyclones — Tropical & Temperate', importance: 5, difficulty: 4, estimated_hours: 2.5, display_order: 126, pyq_frequency: 15, pyq_weight: 5, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'revised' as const, confidence_score: 70, confidence_status: 'fresh' as const, last_touched: '2026-02-24T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-00000000007f', chapter_id: 'b1000000-0000-0000-0000-00000000001c', name: 'Indian Monsoon Mechanism', importance: 5, difficulty: 4, estimated_hours: 3, display_order: 127, pyq_frequency: 15, pyq_weight: 5, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-00000000001d', subject_id: 'a1000000-0000-0000-0000-000000000005', name: 'Oceanography', importance: 4, difficulty: 3, estimated_hours: 10, display_order: 29,
+      progress: { total_topics: 5, completed_topics: 1, weighted_completion: 0.25, avg_confidence: 67 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-000000000083', chapter_id: 'b1000000-0000-0000-0000-00000000001d', name: 'Ocean Floor Configuration', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 131, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000084', chapter_id: 'b1000000-0000-0000-0000-00000000001d', name: 'Ocean Currents — Major Gyres & Maps', importance: 4, difficulty: 3, estimated_hours: 2.5, display_order: 132, pyq_frequency: 12, pyq_weight: 4.4, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'in_progress' as const, confidence_score: 55, confidence_status: 'fading' as const, last_touched: '2026-02-18T13:35:41.054Z', revision_count: 0 } },
+      { id: 'c1000000-0000-0000-0000-000000000085', chapter_id: 'b1000000-0000-0000-0000-00000000001d', name: 'Salinity & Temperature Distribution', importance: 3, difficulty: 3, estimated_hours: 2, display_order: 133, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000086', chapter_id: 'b1000000-0000-0000-0000-00000000001d', name: 'Tides — Types & Mechanism', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 134, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-000000000087', chapter_id: 'b1000000-0000-0000-0000-00000000001d', name: 'Coral Reefs — Types, Threats (Env overlap)', importance: 4, difficulty: 3, estimated_hours: 2.5, display_order: 135, pyq_frequency: 12, pyq_weight: 4.4, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 79, confidence_status: 'fresh' as const, last_touched: '2026-02-15T13:35:41.054Z', revision_count: 2 } }
+      ],
+    }
+    ],
+  },
+  {
+    id: 'a1000000-0000-0000-0000-000000000006', name: 'Indian Society', papers: ["Mains GS-I"], importance: 4, difficulty: 3, estimated_hours: 47, display_order: 6,
+    progress: { total_topics: 14, completed_topics: 4, weighted_completion: 0.24, avg_confidence: 59 },
+    chapters: [
+    {
+      id: 'b1000000-0000-0000-0000-000000000022', subject_id: 'a1000000-0000-0000-0000-000000000006', name: 'Salient Features of Indian Society', importance: 4, difficulty: 3, estimated_hours: 7, display_order: 34,
+      progress: { total_topics: 4, completed_topics: 2, weighted_completion: 0.47, avg_confidence: 73 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-00000000009f', chapter_id: 'b1000000-0000-0000-0000-000000000022', name: 'Unity in Diversity', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 159, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 57, confidence_status: 'fading' as const, last_touched: '2026-02-19T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-0000000000a0', chapter_id: 'b1000000-0000-0000-0000-000000000022', name: 'Caste System — Evolution & Present Dynamics', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 160, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000a1', chapter_id: 'b1000000-0000-0000-0000-000000000022', name: 'Kinship, Joint Family & Nuclearization', importance: 3, difficulty: 3, estimated_hours: 2, display_order: 161, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000a2', chapter_id: 'b1000000-0000-0000-0000-000000000022', name: 'Multilingualism & Linguistic Diversity', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 162, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'revised' as const, confidence_score: 88, confidence_status: 'fresh' as const, last_touched: '2026-02-16T13:35:41.054Z', revision_count: 2 } }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000023', subject_id: 'a1000000-0000-0000-0000-000000000006', name: 'Role of Women & Women\'s Organizations', importance: 5, difficulty: 3, estimated_hours: 10, display_order: 35,
+      progress: { total_topics: 5, completed_topics: 1, weighted_completion: 0.19, avg_confidence: 68 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-0000000000a3', chapter_id: 'b1000000-0000-0000-0000-000000000023', name: 'Feminization of Agriculture & Workforce', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 163, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000a4', chapter_id: 'b1000000-0000-0000-0000-000000000023', name: 'Gender Inequality — Glass Ceiling, Pay Gap', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 164, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000a5', chapter_id: 'b1000000-0000-0000-0000-000000000023', name: 'Self-Help Groups (SHGs) & Microfinance', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 165, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'first_pass' as const, confidence_score: 68, confidence_status: 'fading' as const, last_touched: '2026-02-13T13:35:41.054Z', revision_count: 1 } },
+      { id: 'c1000000-0000-0000-0000-0000000000a6', chapter_id: 'b1000000-0000-0000-0000-000000000023', name: 'Women\'s Movements in India', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 166, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000a7', chapter_id: 'b1000000-0000-0000-0000-000000000023', name: 'Domestic Violence, Dowry, Trafficking — Laws & Impact', importance: 5, difficulty: 3, estimated_hours: 2, display_order: 167, pyq_frequency: 15, pyq_weight: 4.8, pyq_trend: 'declining' as const, last_pyq_year: 2025, user_progress: null }
+      ],
+    },
+    {
+      id: 'b1000000-0000-0000-0000-000000000024', subject_id: 'a1000000-0000-0000-0000-000000000006', name: 'Population & Urbanization', importance: 4, difficulty: 3, estimated_hours: 10, display_order: 36,
+      progress: { total_topics: 5, completed_topics: 1, weighted_completion: 0.2, avg_confidence: 60 },
+      topics: [
+      { id: 'c1000000-0000-0000-0000-0000000000a8', chapter_id: 'b1000000-0000-0000-0000-000000000024', name: 'Population Growth — Trends, Demographic Dividend', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 168, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2020, user_progress: { status: 'in_progress' as const, confidence_score: 56, confidence_status: 'fading' as const, last_touched: '2026-02-24T13:35:41.054Z', revision_count: 0 } },
+      { id: 'c1000000-0000-0000-0000-0000000000a9', chapter_id: 'b1000000-0000-0000-0000-000000000024', name: 'Aging Population & Dependency Ratio', importance: 3, difficulty: 3, estimated_hours: 1.5, display_order: 169, pyq_frequency: 9, pyq_weight: 3, pyq_trend: 'stable' as const, last_pyq_year: 2021, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000aa', chapter_id: 'b1000000-0000-0000-0000-000000000024', name: 'Urbanization — Trends, Challenges, Slums', importance: 4, difficulty: 3, estimated_hours: 2.5, display_order: 170, pyq_frequency: 12, pyq_weight: 4.4, pyq_trend: 'declining' as const, last_pyq_year: 2022, user_progress: null },
+      { id: 'c1000000-0000-0000-0000-0000000000ab', chapter_id: 'b1000000-0000-0000-0000-000000000024', name: 'Smart Cities Mission & Urban Governance', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 171, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'rising' as const, last_pyq_year: 2023, user_progress: { status: 'exam_ready' as const, confidence_score: 63, confidence_status: 'fading' as const, last_touched: '2026-02-21T13:35:41.054Z', revision_count: 2 } },
+      { id: 'c1000000-0000-0000-0000-0000000000ac', chapter_id: 'b1000000-0000-0000-0000-000000000024', name: 'Migration — Rural-Urban, Interstate, International', importance: 4, difficulty: 3, estimated_hours: 2, display_order: 172, pyq_frequency: 12, pyq_weight: 3.9, pyq_trend: 'stable' as const, last_pyq_year: 2024, user_progress: null }
+      ],
+    }
+    ],
+  }
+] as any[];
+
+export const demoRevisionsDue = {
+  overdue: [
+    { topic_id: 'c1000000-0000-0000-0000-000000000002', due: '2026-02-22', topics: { name: 'Temple Architecture — Dravida Style' } },
+  ],
+  today: [
+    { topic_id: 'c1000000-0000-0000-0000-00000000001f', due: '2026-02-24', topics: { name: 'Carnatic Wars' } },
+  ],
+  upcoming: [
+    { topic_id: 'c1000000-0000-0000-0000-000000000074', due: '2026-02-26', topics: { name: 'Interior of Earth & Seismic Waves' } },
+  ],
+};
