@@ -326,6 +326,21 @@ async function updateStreaks(userId: string, date: string) {
       .from('streaks')
       .update({ current_count: newCount, best_count: bestCount, last_active_date: date })
       .eq('id', streak.id);
+
+    // Award XP for streak milestones (non-critical)
+    try {
+      const milestones: Record<number, number> = { 7: 200, 14: 400, 30: 1000, 100: 2500 };
+      if (milestones[newCount]) {
+        const { awardXP } = await import('./gamification.js');
+        await awardXP(userId, {
+          triggerType: 'streak_milestone',
+          xpAmount: milestones[newCount],
+          metadata: { streak_days: newCount },
+        });
+      }
+    } catch {
+      // Gamification is non-critical
+    }
   } else {
     await supabase
       .from('streaks')

@@ -407,3 +407,50 @@ export interface RecalibrationResult {
     burnout_threshold: number;
   };
 }
+
+// Gamification types
+export type XPTriggerType = 'plan_item_new' | 'plan_item_revision' | 'plan_item_decay_revision' | 'plan_item_stretch' | 'fsrs_review_correct' | 'fsrs_review_incorrect' | 'streak_milestone' | 'recovery_completion' | 'badge_unlock';
+export type BadgeCategory = 'streak' | 'milestone' | 'study' | 'recovery' | 'special';
+
+export interface XPTransaction {
+  id: string;
+  user_id: string;
+  xp_amount: number;
+  trigger_type: XPTriggerType;
+  topic_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+export interface BadgeDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon_name: string;
+  category: BadgeCategory;
+  unlock_condition: Record<string, any>;
+  xp_reward: number;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  badge_slug: string;
+  unlocked_at: string;
+}
+
+export interface GamificationProfile {
+  xp_total: number;
+  current_level: number;
+  xp_for_next_level: number;
+  xp_progress_in_level: number;
+  xp_today: number;
+  recent_badges: Array<BadgeDefinition & { unlocked_at: string }>;
+  total_badges_unlocked: number;
+}
+
+export interface BadgeWithStatus extends BadgeDefinition {
+  unlocked: boolean;
+  unlocked_at: string | null;
+}

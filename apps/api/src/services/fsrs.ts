@@ -189,6 +189,16 @@ export async function recordReview(userId: string, topicId: string, rating: numb
     status: 'pending',
   });
 
+  // Award XP for FSRS review (non-critical)
+  try {
+    const { awardXP } = await import('./gamification.js');
+    const triggerType = rating >= 3 ? 'fsrs_review_correct' : 'fsrs_review_incorrect';
+    const xpAmount = rating >= 3 ? 50 : 20;
+    await awardXP(userId, { triggerType, xpAmount, topicId });
+  } catch {
+    // Gamification is non-critical
+  }
+
   return {
     card: updatedCard,
     next_due: updatedCard.due.toISOString(),

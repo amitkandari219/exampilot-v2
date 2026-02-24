@@ -134,6 +134,16 @@ export const api = {
   setAutoRecalibrate: (enabled: boolean) =>
     request('/api/recalibration/auto', { method: 'POST', body: JSON.stringify({ enabled }) }),
 
+  // Gamification
+  getGamificationProfile: () =>
+    request('/api/gamification'),
+
+  getBadges: () =>
+    request('/api/gamification/badges'),
+
+  getXPHistory: (limit = 50) =>
+    request(`/api/gamification/xp-history?limit=${limit}`),
+
   // Weekly Review
   getWeeklyReview: (weekEnd?: string) =>
     request(`/api/weekly-review${weekEnd ? `?weekEnd=${weekEnd}` : ''}`),

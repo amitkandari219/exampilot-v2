@@ -21,6 +21,7 @@ export function useRecordReview() {
       queryClient.invalidateQueries({ queryKey: ['revisions-due'] });
       queryClient.invalidateQueries({ queryKey: ['syllabus-progress'] });
       queryClient.invalidateQueries({ queryKey: ['confidence-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
     },
   });
 }

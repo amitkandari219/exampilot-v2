@@ -220,6 +220,14 @@ export async function exitRecoveryMode(userId: string, reason: string) {
       .eq('id', log.id);
   }
 
+  // Award XP for recovery completion (non-critical)
+  try {
+    const { awardXP } = await import('./gamification.js');
+    await awardXP(userId, { triggerType: 'recovery_completion' });
+  } catch {
+    // Gamification is non-critical
+  }
+
   return {
     recovery_mode_active: false,
     ramp_up: { day1: 0.7, day2: 0.85, day3: 1.0 },

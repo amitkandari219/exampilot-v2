@@ -7,6 +7,8 @@ import { StrategyCard } from '../../components/settings/StrategyCard';
 import { useAuth } from '../../hooks/useAuth';
 import { useActivateRecovery, useExitRecovery, useBurnout } from '../../hooks/useBurnout';
 import { useRecalibrationStatus, useTriggerRecalibration, useSetAutoRecalibrate } from '../../hooks/useRecalibration';
+import { useGamification, useBadges } from '../../hooks/useGamification';
+import { BadgeGrid } from '../../components/gamification/BadgeGrid';
 import { StrategyMode, StrategyParams } from '../../types';
 import { api } from '../../lib/api';
 
@@ -19,6 +21,8 @@ export default function SettingsScreen() {
   const { data: recalStatus } = useRecalibrationStatus();
   const triggerRecalibration = useTriggerRecalibration();
   const setAutoRecalibrate = useSetAutoRecalibrate();
+  const { data: gamification } = useGamification();
+  const { data: badges } = useBadges();
 
   const [mode, setMode] = useState<StrategyMode>('balanced');
   const [params, setParams] = useState<StrategyParams>(getDefaultParams('balanced'));
@@ -131,6 +135,27 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Settings</Text>
+
+        {gamification && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Level & Achievements</Text>
+            <View style={styles.paramRow}>
+              <Text style={styles.paramLabel}>Level</Text>
+              <Text style={styles.paramValue}>{gamification.current_level}</Text>
+            </View>
+            <View style={styles.paramRow}>
+              <Text style={styles.paramLabel}>Total XP</Text>
+              <Text style={styles.paramValue}>{gamification.xp_total.toLocaleString()}</Text>
+            </View>
+            <View style={styles.paramRow}>
+              <Text style={styles.paramLabel}>Badges Unlocked</Text>
+              <Text style={styles.paramValue}>{gamification.total_badges_unlocked}</Text>
+            </View>
+            {badges && badges.length > 0 && (
+              <BadgeGrid badges={badges} />
+            )}
+          </View>
+        )}
 
         <StrategyCard
           currentMode={mode}

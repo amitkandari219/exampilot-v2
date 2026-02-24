@@ -760,6 +760,38 @@ export const demoWeeklyReview = {
   buffer_balance_change: 1.2,
 };
 
+export const demoGamification = {
+  xp_total: 2750,
+  current_level: 4,
+  xp_for_next_level: 2000,
+  xp_progress_in_level: 750,
+  xp_today: 325,
+  recent_badges: [
+    { id: 'b1', slug: 'first_week', name: 'First Week', description: 'Maintain a 7-day study streak', icon_name: 'flame', category: 'streak' as const, unlock_condition: { streak_gte: 7 }, xp_reward: 200, unlocked_at: '2026-02-20T10:00:00.000Z' },
+    { id: 'b2', slug: 'first_topic', name: 'First Step', description: 'Complete your first topic', icon_name: 'footprints', category: 'study' as const, unlock_condition: { topics_completed_gte: 1 }, xp_reward: 50, unlocked_at: '2026-02-14T08:30:00.000Z' },
+    { id: 'b3', slug: 'early_bird', name: 'Early Bird', description: 'Complete your first study session', icon_name: 'sunrise', category: 'special' as const, unlock_condition: { first_session: true }, xp_reward: 100, unlocked_at: '2026-02-14T06:00:00.000Z' },
+  ],
+  total_badges_unlocked: 4,
+};
+
+export const demoBadges = [
+  { id: 'b1', slug: 'first_week', name: 'First Week', description: 'Maintain a 7-day study streak', icon_name: 'flame', category: 'streak' as const, unlock_condition: { streak_gte: 7 }, xp_reward: 200, unlocked: true, unlocked_at: '2026-02-20T10:00:00.000Z' },
+  { id: 'b2', slug: 'two_weeks', name: 'Two Weeks', description: 'Maintain a 14-day study streak', icon_name: 'flame', category: 'streak' as const, unlock_condition: { streak_gte: 14 }, xp_reward: 400, unlocked: false, unlocked_at: null },
+  { id: 'b3', slug: 'monthly', name: 'Monthly Grind', description: 'Maintain a 30-day study streak', icon_name: 'fire', category: 'streak' as const, unlock_condition: { streak_gte: 30 }, xp_reward: 1000, unlocked: false, unlocked_at: null },
+  { id: 'b4', slug: 'century', name: 'Century Club', description: 'Maintain a 100-day study streak', icon_name: 'crown', category: 'streak' as const, unlock_condition: { streak_gte: 100 }, xp_reward: 2500, unlocked: false, unlocked_at: null },
+  { id: 'b5', slug: 'first_topic', name: 'First Step', description: 'Complete your first topic', icon_name: 'footprints', category: 'study' as const, unlock_condition: { topics_completed_gte: 1 }, xp_reward: 50, unlocked: true, unlocked_at: '2026-02-14T08:30:00.000Z' },
+  { id: 'b6', slug: 'ten_topics', name: 'Getting Serious', description: 'Complete 10 topics', icon_name: 'books', category: 'study' as const, unlock_condition: { topics_completed_gte: 10 }, xp_reward: 200, unlocked: false, unlocked_at: null },
+  { id: 'b7', slug: 'fifty_topics', name: 'Half Century', description: 'Complete 50 topics', icon_name: 'trophy', category: 'study' as const, unlock_condition: { topics_completed_gte: 50 }, xp_reward: 500, unlocked: false, unlocked_at: null },
+  { id: 'b8', slug: 'hundred_topics', name: 'Centurion', description: 'Complete 100 topics', icon_name: 'medal', category: 'study' as const, unlock_condition: { topics_completed_gte: 100 }, xp_reward: 1000, unlocked: false, unlocked_at: null },
+  { id: 'b9', slug: 'xp_1000', name: 'XP Starter', description: 'Earn 1,000 total XP', icon_name: 'star', category: 'milestone' as const, unlock_condition: { xp_total_gte: 1000 }, xp_reward: 0, unlocked: true, unlocked_at: '2026-02-17T14:00:00.000Z' },
+  { id: 'b10', slug: 'xp_5000', name: 'XP Veteran', description: 'Earn 5,000 total XP', icon_name: 'stars', category: 'milestone' as const, unlock_condition: { xp_total_gte: 5000 }, xp_reward: 0, unlocked: false, unlocked_at: null },
+  { id: 'b11', slug: 'xp_10000', name: 'XP Master', description: 'Earn 10,000 total XP', icon_name: 'sparkles', category: 'milestone' as const, unlock_condition: { xp_total_gte: 10000 }, xp_reward: 0, unlocked: false, unlocked_at: null },
+  { id: 'b12', slug: 'resilient', name: 'Resilient', description: 'Complete a recovery period', icon_name: 'shield', category: 'recovery' as const, unlock_condition: { recovery_completed_gte: 1 }, xp_reward: 150, unlocked: false, unlocked_at: null },
+  { id: 'b13', slug: 'early_bird', name: 'Early Bird', description: 'Complete your first study session', icon_name: 'sunrise', category: 'special' as const, unlock_condition: { first_session: true }, xp_reward: 100, unlocked: true, unlocked_at: '2026-02-14T06:00:00.000Z' },
+  { id: 'b14', slug: 'night_owl', name: 'Night Owl', description: 'Study 7+ hours in a single day', icon_name: 'moon', category: 'special' as const, unlock_condition: { daily_hours_gte: 7 }, xp_reward: 150, unlocked: false, unlocked_at: null },
+  { id: 'b15', slug: 'perfect_week', name: 'Perfect Week', description: 'Complete 100% of plan items for 7 consecutive days', icon_name: 'check-circle', category: 'special' as const, unlock_condition: { perfect_week: true }, xp_reward: 500, unlocked: false, unlocked_at: null },
+];
+
 export const demoRevisionsDue = {
   overdue: [
     { topic_id: 'c1000000-0000-0000-0000-000000000002', due: '2026-02-22', topics: { name: 'Temple Architecture — Dravida Style' } },

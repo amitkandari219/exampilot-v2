@@ -310,6 +310,15 @@ export async function completePlanItem(userId: string, itemId: string, actualHou
       .limit(1);
   }
 
+  // Award XP for plan item completion (non-critical)
+  try {
+    const { awardXP } = await import('./gamification.js');
+    const triggerType = `plan_item_${item.type}` as any;
+    await awardXP(userId, { triggerType, topicId: item.topic_id });
+  } catch {
+    // Gamification is non-critical
+  }
+
   return { status: 'completed', new_topic_status: newStatus };
 }
 

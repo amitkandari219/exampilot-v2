@@ -21,6 +21,7 @@ export function useCompletePlanItem() {
       queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
       queryClient.invalidateQueries({ queryKey: ['velocity'] });
       queryClient.invalidateQueries({ queryKey: ['syllabus-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
     },
   });
 }

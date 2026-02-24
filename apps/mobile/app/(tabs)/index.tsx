@@ -10,6 +10,8 @@ import { useBurnout } from '../../hooks/useBurnout';
 import { useDailyPlan } from '../../hooks/usePlanner';
 import { useConfidenceOverview } from '../../hooks/useFSRS';
 import { useWeaknessOverview } from '../../hooks/useWeakness';
+import { useGamification } from '../../hooks/useGamification';
+import { XPProgressCard } from '../../components/gamification/XPProgressCard';
 import { StressThermometer } from '../../components/dashboard/StressThermometer';
 import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
@@ -27,6 +29,7 @@ export default function DashboardScreen() {
   const { data: plan } = useDailyPlan();
   const { data: confidence } = useConfidenceOverview();
   const { data: weakness } = useWeaknessOverview();
+  const { data: gamification } = useGamification();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
@@ -47,6 +50,12 @@ export default function DashboardScreen() {
             />
           )}
         </View>
+
+        {gamification && (
+          <View style={styles.section}>
+            <XPProgressCard profile={gamification} />
+          </View>
+        )}
 
         {stress && (
           <View style={styles.section}>
