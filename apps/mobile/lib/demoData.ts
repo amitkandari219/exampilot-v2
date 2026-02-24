@@ -903,6 +903,39 @@ export const demoMockAnalytics = {
   recommendation: 'Good progress. Target your weakest topics to push above 60%.',
 };
 
+// Current Affairs demo data
+export const demoCAStats = {
+  streak: { current_streak: 23, best_streak: 31, last_active_date: today },
+  today_logged: true,
+  today_log: {
+    id: 'ca-1',
+    user_id: 'demo-user',
+    log_date: today,
+    completed: true,
+    hours_spent: 1.5,
+    notes: null,
+    created_at: new Date().toISOString(),
+    tags: [],
+  },
+  total_hours: 180,
+  total_days_logged: 145,
+  subject_distribution: [
+    { subject_id: 's1', subject_name: 'Polity', count: 38, percentage: 25 },
+    { subject_id: 's2', subject_name: 'Economy', count: 45, percentage: 30 },
+    { subject_id: 's3', subject_name: 'Environment', count: 30, percentage: 20 },
+    { subject_id: 's4', subject_name: 'Science & Tech', count: 12, percentage: 8 },
+    { subject_id: 's5', subject_name: 'Others', count: 25, percentage: 17 },
+  ],
+  monthly_heatmap: Array.from({ length: 25 }, (_, i) => ({
+    date: `2026-02-${String(i + 1).padStart(2, '0')}`,
+    completed: Math.random() > 0.15,
+  })),
+};
+
+export const demoCASubjectGaps = [
+  { subject_id: 's4', subject_name: 'Science & Tech', tag_count: 12, percentage: 8, alert: 'Science & Tech barely covered in your CA - look for related articles' },
+];
+
 export const demoMockTopicHistory = {
   topic_id: 'c1000000-0000-0000-0000-000000000084',
   topic_name: 'Ocean Currents — Major Gyres & Maps',

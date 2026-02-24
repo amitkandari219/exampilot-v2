@@ -17,6 +17,8 @@ import { MockScoreTrendChart } from '../../components/mock/MockScoreTrendChart';
 import { SubjectAccuracyGrid } from '../../components/mock/SubjectAccuracyGrid';
 import { WeakestTopicsAlert } from '../../components/mock/WeakestTopicsAlert';
 import { MockEntrySheet } from '../../components/mock/MockEntrySheet';
+import { useCAStats, useCASubjectGaps } from '../../hooks/useCurrentAffairs';
+import { CAStatsCard } from '../../components/ca/CAStatsCard';
 
 export default function ProgressScreen() {
   const { data: subjects, isLoading: syllabusLoading } = useSyllabusProgress();
@@ -27,6 +29,8 @@ export default function ProgressScreen() {
   const { data: weeklyReview } = useWeeklyReview();
   const { data: benchmark } = useBenchmark();
   const { data: mockAnalytics } = useMockAnalytics();
+  const { data: caStats } = useCAStats();
+  const { data: caGaps } = useCASubjectGaps();
   const [showMockEntry, setShowMockEntry] = useState(false);
 
   // Calculate overall progress
@@ -121,6 +125,12 @@ export default function ProgressScreen() {
         {subjects && subjects.length > 0 && (
           <View style={styles.section}>
             <SubjectProgressGrid subjects={subjects} />
+          </View>
+        )}
+
+        {caStats && (
+          <View style={styles.section}>
+            <CAStatsCard stats={caStats} gaps={caGaps} />
           </View>
         )}
 

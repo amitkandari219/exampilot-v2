@@ -180,4 +180,12 @@ export const api = {
   // Simulator
   runSimulation: (scenario: { type: string; params: Record<string, any> }) =>
     request('/api/simulator/run', { method: 'POST', body: JSON.stringify(scenario) }),
+
+  // Current Affairs
+  logCA: (body: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[] }) =>
+    request('/api/ca/log', { method: 'POST', body: JSON.stringify(body) }),
+  getCAStats: (month?: string) =>
+    request(`/api/ca/stats${month ? `?month=${month}` : ''}`),
+  getCASubjectGaps: () =>
+    request('/api/ca/subject-gaps'),
 };

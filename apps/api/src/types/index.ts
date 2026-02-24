@@ -524,6 +524,50 @@ export interface SimulationResult {
   delta: SimulationDelta;
 }
 
+// Current Affairs types
+export interface CADailyLog {
+  id: string;
+  user_id: string;
+  log_date: string;
+  completed: boolean;
+  hours_spent: number;
+  notes: string | null;
+  created_at: string;
+  tags?: CATag[];
+}
+
+export interface CATag {
+  id: string;
+  ca_log_id: string;
+  subject_id: string;
+  tag_text: string | null;
+  subject_name?: string;
+}
+
+export interface CAStreak {
+  current_streak: number;
+  best_streak: number;
+  last_active_date: string | null;
+}
+
+export interface CAStats {
+  streak: CAStreak;
+  today_logged: boolean;
+  today_log: CADailyLog | null;
+  total_hours: number;
+  total_days_logged: number;
+  subject_distribution: Array<{ subject_id: string; subject_name: string; count: number; percentage: number }>;
+  monthly_heatmap: Array<{ date: string; completed: boolean }>;
+}
+
+export interface CASubjectGap {
+  subject_id: string;
+  subject_name: string;
+  tag_count: number;
+  percentage: number;
+  alert: string | null;
+}
+
 // Fastify request augmentation
 declare module 'fastify' {
   interface FastifyRequest {

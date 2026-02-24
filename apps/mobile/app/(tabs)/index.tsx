@@ -12,8 +12,10 @@ import { useConfidenceOverview } from '../../hooks/useFSRS';
 import { useWeaknessOverview } from '../../hooks/useWeakness';
 import { useGamification } from '../../hooks/useGamification';
 import { useBenchmark } from '../../hooks/useBenchmark';
+import { useCAStats } from '../../hooks/useCurrentAffairs';
 import { XPProgressCard } from '../../components/gamification/XPProgressCard';
 import { BenchmarkScoreCard } from '../../components/benchmark/BenchmarkScoreCard';
+import { CADashboardCard } from '../../components/ca/CADashboardCard';
 import { StressThermometer } from '../../components/dashboard/StressThermometer';
 import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
@@ -33,6 +35,7 @@ export default function DashboardScreen() {
   const { data: weakness } = useWeaknessOverview();
   const { data: gamification } = useGamification();
   const { data: benchmark } = useBenchmark();
+  const { data: caStats } = useCAStats();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
@@ -63,6 +66,12 @@ export default function DashboardScreen() {
         {benchmark && (
           <View style={styles.section}>
             <BenchmarkScoreCard profile={benchmark} compact />
+          </View>
+        )}
+
+        {caStats && (
+          <View style={styles.section}>
+            <CADashboardCard stats={caStats} />
           </View>
         )}
 
