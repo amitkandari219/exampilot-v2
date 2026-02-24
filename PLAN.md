@@ -6,7 +6,7 @@
 COMPLETED                          REMAINING
 ─────────                          ─────────
 F1  Onboarding & Strategy    ✅    F13 Mock Test Integration  ✅
-F2  PYQ Intelligence         ✅    F14 Prelims/Mains Toggle
+F2  PYQ Intelligence         ✅    F14 Prelims/Mains Toggle  ✅
 F3  Living Syllabus Map      ✅    F15 "What If" Simulator
 F4  Velocity Engine + Buffer ✅    F16 Current Affairs Tracker
 F5  Confidence Decay (FSRS)  ✅    F18 Strategic Benchmark  ✅
@@ -60,7 +60,7 @@ F17 Gamification Layer       ✅
 | Feature | Status | Depends On | Description |
 |---------|--------|------------|-------------|
 | **F13** Mock Test Integration | Done | F3 | Mock test scores feed accuracy data back to FSRS — 9 new files, 8 modified, ~950 LOC |
-| **F14** Prelims/Mains Toggle | Pending | F3, F8 | Switch syllabus and planner between exam modes |
+| **F14** Prelims/Mains Toggle | Done | F3, F8 | Switch exam mode (prelims/mains/post_prelims) with velocity deadline + planner priority boost — 0 new files, 7 modified, ~143 LOC |
 | **F15** "What If" Simulator | Pending | F4 | Project scenarios (what if I skip 3 days, change strategy, etc.) |
 | **F16** Current Affairs Tracker | Pending | F1 | Fully independent — own data model, own UI |
 | **F17** Gamification Layer | Done | F4, F8 | XP, levels, badges — 6 new files, 13 modified, ~900 LOC |
@@ -93,7 +93,7 @@ Legend: ✅ = done │ ⏳ = pending │ 🔒 = blocked
 
 F1 ✅ ───┬──► F2 ✅ ──► F3 ✅ ──┬──► F13 ✅
          │                      │
-         │                      └──► F14 ⏳ (also needs F8)
+         │                      └──► F14 ✅ (also needs F8)
          │
          ├──► F5 ✅ ──► F6 ✅
          │
@@ -200,7 +200,7 @@ Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │
 | ~~1~~ | ~~**F17** Gamification~~ | ~~A~~ | ~~Done~~ ✅ |
 | 1 | **F16** Current Affairs | B | Independent, can parallelize with everything |
 | ~~2~~ | ~~**F13** Mock Test Integration~~ | ~~C~~ | ~~Done~~ ✅ |
-| 2 | **F14** Prelims/Mains Toggle | C | Unblocked, configuration feature |
+| ~~2~~ | ~~**F14** Prelims/Mains Toggle~~ | ~~C~~ | ~~Done~~ ✅ |
 | 2 | **F15** "What If" Simulator | C | Unblocked, can parallelize with F13/F14 |
 | ~~3~~ | ~~**F18** Strategic Benchmark~~ | ~~A~~ | ~~Done~~ ✅ |
 | ~~4~~ | ~~**F12b** Weekly Review (Enhanced)~~ | ~~A~~ | ~~Done~~ ✅ |
@@ -216,7 +216,7 @@ Reference: Completed features averaged ~260 LOC backend, ~310 LOC frontend per f
 | **F12a** Weekly Review (Min) | M | SQL, service, route, hook, components, screen | 5+6 | ~700 | ✅ Done — 5 new files, 6 modified, ~700 LOC |
 | **F12b** Weekly Review (Enh) | S | Service mod, component mods | 2-3 | 150-250 | ✅ Done — 1 new file, 5 modified, ~196 LOC |
 | **F13** Mock Test Integration | L | SQL, service, route, hook, components, screen | 7-9 | 800-1,000 | ✅ Done — 9 new files, 8 modified, ~950 LOC |
-| **F14** Prelims/Mains Toggle | S | Service mod, route, hook, component | 3-4 | 300-450 | Config update + planner/syllabus filtering; minimal new UI |
+| **F14** Prelims/Mains Toggle | S | Service mod, route, hook, component | 3-4 | 300-450 | ✅ Done — 0 new files, 7 modified, ~143 LOC |
 | **F15** "What If" Simulator | M | Service, route, hook, components | 5-6 | 700-900 | Projection math (Monte Carlo); interactive chart UI |
 | **F16** Current Affairs | M | SQL, service, route, hook, components, screen | 6-7 | 550-700 | Standalone data model; news feed + topic tagging UI |
 | **F17** Gamification Layer | L | SQL, service, route, hook, components | 7-9 | 900-1,150 | XP calculations, badge unlock logic, streak animations |
