@@ -792,6 +792,35 @@ export const demoBadges = [
   { id: 'b15', slug: 'perfect_week', name: 'Perfect Week', description: 'Complete 100% of plan items for 7 consecutive days', icon_name: 'check-circle', category: 'special' as const, unlock_condition: { perfect_week: true }, xp_reward: 500, unlocked: false, unlocked_at: null },
 ];
 
+export const demoBenchmark = {
+  composite_score: 65,
+  status: 'on_track' as const,
+  components: {
+    coverage: 62,
+    confidence: 65,
+    weakness: 55,
+    consistency: 72,
+    velocity: 83,
+  },
+  trend: 'improving',
+  trend_delta: 4,
+  recommendations: [
+    'Several topics are in critical or weak zones. Prioritize targeted study on your weakest areas.',
+    'Focus on completing more topics — especially high PYQ-weight ones to boost coverage.',
+  ],
+  snapshot_date: today,
+};
+
+export const demoBenchmarkHistory = [
+  { snapshot_date: '2026-02-19', composite_score: 55, status: 'needs_work' as const },
+  { snapshot_date: '2026-02-20', composite_score: 57, status: 'needs_work' as const },
+  { snapshot_date: '2026-02-21', composite_score: 59, status: 'needs_work' as const },
+  { snapshot_date: '2026-02-22', composite_score: 61, status: 'on_track' as const },
+  { snapshot_date: '2026-02-23', composite_score: 62, status: 'on_track' as const },
+  { snapshot_date: '2026-02-24', composite_score: 64, status: 'on_track' as const },
+  { snapshot_date: '2026-02-25', composite_score: 65, status: 'on_track' as const },
+];
+
 export const demoRevisionsDue = {
   overdue: [
     { topic_id: 'c1000000-0000-0000-0000-000000000002', due: '2026-02-22', topics: { name: 'Temple Architecture — Dravida Style' } },

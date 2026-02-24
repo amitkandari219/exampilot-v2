@@ -144,6 +144,13 @@ export const api = {
   getXPHistory: (limit = 50) =>
     request(`/api/gamification/xp-history?limit=${limit}`),
 
+  // Benchmark
+  getBenchmark: () =>
+    request('/api/benchmark'),
+
+  getBenchmarkHistory: (days = 30) =>
+    request(`/api/benchmark/history?days=${days}`),
+
   // Weekly Review
   getWeeklyReview: (weekEnd?: string) =>
     request(`/api/weekly-review${weekEnd ? `?weekEnd=${weekEnd}` : ''}`),

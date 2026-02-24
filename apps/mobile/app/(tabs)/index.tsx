@@ -11,7 +11,9 @@ import { useDailyPlan } from '../../hooks/usePlanner';
 import { useConfidenceOverview } from '../../hooks/useFSRS';
 import { useWeaknessOverview } from '../../hooks/useWeakness';
 import { useGamification } from '../../hooks/useGamification';
+import { useBenchmark } from '../../hooks/useBenchmark';
 import { XPProgressCard } from '../../components/gamification/XPProgressCard';
+import { BenchmarkScoreCard } from '../../components/benchmark/BenchmarkScoreCard';
 import { StressThermometer } from '../../components/dashboard/StressThermometer';
 import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
@@ -30,6 +32,7 @@ export default function DashboardScreen() {
   const { data: confidence } = useConfidenceOverview();
   const { data: weakness } = useWeaknessOverview();
   const { data: gamification } = useGamification();
+  const { data: benchmark } = useBenchmark();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
@@ -54,6 +57,12 @@ export default function DashboardScreen() {
         {gamification && (
           <View style={styles.section}>
             <XPProgressCard profile={gamification} />
+          </View>
+        )}
+
+        {benchmark && (
+          <View style={styles.section}>
+            <BenchmarkScoreCard profile={benchmark} compact />
           </View>
         )}
 

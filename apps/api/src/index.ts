@@ -15,6 +15,7 @@ import { weaknessRoutes } from './routes/weakness.js';
 import { recalibrationRoutes } from './routes/recalibration.js';
 import { weeklyReviewRoutes } from './routes/weeklyReview.js';
 import { gamificationRoutes } from './routes/gamification.js';
+import { benchmarkRoutes } from './routes/benchmark.js';
 
 const app = Fastify({ logger: true });
 
@@ -36,6 +37,7 @@ async function start() {
   await app.register(recalibrationRoutes);
   await app.register(weeklyReviewRoutes);
   await app.register(gamificationRoutes);
+  await app.register(benchmarkRoutes);
 
   app.get('/health', async () => ({ status: 'ok' }));
 

@@ -8,7 +8,9 @@ import { ProgressRing } from '../../components/progress/ProgressRing';
 import { SubjectProgressGrid } from '../../components/progress/SubjectProgressGrid';
 import { HistoryChart } from '../../components/progress/HistoryChart';
 import { WeeklyReviewCard } from '../../components/weekly/WeeklyReviewCard';
+import { BenchmarkScoreCard } from '../../components/benchmark/BenchmarkScoreCard';
 import { useWeeklyReview } from '../../hooks/useWeeklyReview';
+import { useBenchmark } from '../../hooks/useBenchmark';
 
 export default function ProgressScreen() {
   const { data: subjects, isLoading: syllabusLoading } = useSyllabusProgress();
@@ -17,6 +19,7 @@ export default function ProgressScreen() {
   const { data: buffer } = useBuffer();
   const { data: stress } = useStress();
   const { data: weeklyReview } = useWeeklyReview();
+  const { data: benchmark } = useBenchmark();
 
   // Calculate overall progress
   let totalGravity = 0;
@@ -80,6 +83,12 @@ export default function ProgressScreen() {
             <StatBox label="Velocity" value={`${velocity.velocity_ratio.toFixed(2)}x`} />
             <StatBox label="Buffer" value={`${(buffer?.balance || 0).toFixed(1)}d`} />
             <StatBox label="Streak" value={`${velocity.streak?.current_count || 0}d`} />
+          </View>
+        )}
+
+        {benchmark && (
+          <View style={styles.section}>
+            <BenchmarkScoreCard profile={benchmark} />
           </View>
         )}
 

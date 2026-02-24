@@ -284,6 +284,14 @@ export async function processEndOfDay(userId: string, date: string) {
   } catch {
     // Recalibration is non-critical — don't fail end-of-day processing
   }
+
+  // Calculate benchmark readiness score
+  try {
+    const { calculateBenchmark } = await import('./benchmark.js');
+    await calculateBenchmark(userId);
+  } catch {
+    // Benchmark is non-critical
+  }
 }
 
 async function updateStreaks(userId: string, date: string) {

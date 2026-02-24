@@ -369,6 +369,33 @@ export interface BadgeWithStatus extends BadgeDefinition {
   unlocked_at: string | null;
 }
 
+// Benchmark types
+export type BenchmarkStatus = 'exam_ready' | 'on_track' | 'needs_work' | 'at_risk';
+
+export interface BenchmarkComponents {
+  coverage: number;
+  confidence: number;
+  weakness: number;
+  consistency: number;
+  velocity: number;
+}
+
+export interface BenchmarkProfile {
+  composite_score: number;
+  status: BenchmarkStatus;
+  components: BenchmarkComponents;
+  trend: string;
+  trend_delta: number;
+  recommendations: string[];
+  snapshot_date: string;
+}
+
+export interface BenchmarkHistoryPoint {
+  snapshot_date: string;
+  composite_score: number;
+  status: BenchmarkStatus;
+}
+
 // Fastify request augmentation
 declare module 'fastify' {
   interface FastifyRequest {
