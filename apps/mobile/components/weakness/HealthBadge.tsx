@@ -30,6 +30,7 @@ export function HealthBadge({ score, category }: HealthBadgeProps) {
 
   return (
     <View style={[styles.badge, { backgroundColor: color + '20' }]}>
+      <Text style={styles.label}>H</Text>
       <View style={[styles.dot, { backgroundColor: color }]} />
       <Text style={[styles.score, { color }]}>{score}</Text>
     </View>
@@ -49,6 +50,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  label: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
   },
   score: {
     fontSize: theme.fontSize.xs,

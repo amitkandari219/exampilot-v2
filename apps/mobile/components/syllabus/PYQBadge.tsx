@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
 
 interface PYQBadgeProps {
@@ -21,6 +21,7 @@ export function PYQBadge({ weight }: PYQBadgeProps) {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.label}>PYQ</Text>
       {[1, 2, 3, 4, 5].map((level) => {
         const isFilled = level <= clampedWeight;
         return (
@@ -45,6 +46,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+  },
+  label: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+    marginRight: 1,
   },
   dot: {
     width: 6,
