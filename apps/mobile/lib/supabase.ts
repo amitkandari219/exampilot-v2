@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const rawUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const rawKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const isDemoMode = !rawUrl || !rawUrl.startsWith('https://');
+export const isDemoMode = !rawUrl || (!rawUrl.startsWith('https://') && !rawUrl.startsWith('http://'));
 
 const supabaseUrl = isDemoMode ? 'https://demo.supabase.co' : rawUrl;
 const supabaseAnonKey = isDemoMode

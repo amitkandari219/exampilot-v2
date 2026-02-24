@@ -3,21 +3,26 @@
 ## 18 Features Across 5 Phases
 
 ```
-COMPLETED                          REMAINING
-─────────                          ─────────
-F1  Onboarding & Strategy    ✅    F13 Mock Test Integration  ✅
-F2  PYQ Intelligence         ✅    F14 Prelims/Mains Toggle  ✅
-F3  Living Syllabus Map      ✅    F15 "What If" Simulator
-F4  Velocity Engine + Buffer ✅    F16 Current Affairs Tracker
-F5  Confidence Decay (FSRS)  ✅    F18 Strategic Benchmark  ✅
-F6  Spaced Repetition        ✅    F12b Weekly Review (Enhanced) ✅
+COMPLETED (17/18)                  REMAINING (1/18)
+─────────────────                  ────────────────
+F1  Onboarding & Strategy    ✅    F16 Current Affairs Tracker
+F2  PYQ Intelligence         ✅
+F3  Living Syllabus Map      ✅
+F4  Velocity Engine + Buffer ✅
+F5  Confidence Decay (FSRS)  ✅
+F6  Spaced Repetition        ✅
 F7  Stress Thermometer       ✅
 F8  Smart Daily Planner      ✅
 F9  Weakness Radar           ✅
 F10 Recalibration Engine     ✅
 F11 Burnout Guardian         ✅
 F12a Weekly Review (Minimal) ✅
+F12b Weekly Review (Enhanced)✅
+F13 Mock Test Integration    ✅
+F14 Prelims/Mains Toggle    ✅
+F15 "What If" Simulator     ✅
 F17 Gamification Layer       ✅
+F18 Strategic Benchmark      ✅
 ```
 
 ---
@@ -61,7 +66,7 @@ F17 Gamification Layer       ✅
 |---------|--------|------------|-------------|
 | **F13** Mock Test Integration | Done | F3 | Mock test scores feed accuracy data back to FSRS — 9 new files, 8 modified, ~950 LOC |
 | **F14** Prelims/Mains Toggle | Done | F3, F8 | Switch exam mode (prelims/mains/post_prelims) with velocity deadline + planner priority boost — 0 new files, 7 modified, ~143 LOC |
-| **F15** "What If" Simulator | Pending | F4 | Project scenarios (what if I skip 3 days, change strategy, etc.) |
+| **F15** "What If" Simulator | Done | F4 | Read-only projection engine with 5 scenarios — 6 new files, 5 modified, ~835 LOC |
 | **F16** Current Affairs Tracker | Pending | F1 | Fully independent — own data model, own UI |
 | **F17** Gamification Layer | Done | F4, F8 | XP, levels, badges — 6 new files, 13 modified, ~900 LOC |
 | **F18** Strategic Benchmark | Done | F4, F17 | Weighted exam-readiness score — 5 new files, 8 modified, ~620 LOC |
@@ -101,7 +106,7 @@ F1 ✅ ───┬──► F2 ✅ ──► F3 ✅ ──┬──► F13 ✅
          │            │
          │            ├──► F7 ✅
          │            │
-         │            ├──► F15 ⏳
+         │            ├──► F15 ✅
          │            │
          │            ├──► F17 ✅ ──► F18 ✅
          │            │               │
@@ -120,20 +125,20 @@ F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ---
 
-## What's Built (Phase 1-4 + F12a + F17)
+## What's Built (Phase 1-5 partial: 17/18 features)
 
-### Files Created/Modified: ~113 files, ~13,700 lines
+### Files Created/Modified: ~140 files, ~17,300 lines
 
 | Layer | Count | Details |
 |-------|-------|---------|
-| SQL Migrations | 12 | 004_persona_extensions through 015_gamification |
+| SQL Migrations | 16 | 004_persona_extensions through 019_benchmark |
 | API Middleware | 1 | auth.ts (Bearer token validation) |
-| API Services | 11 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration, weeklyReview, gamification |
-| API Routes | 13 | 11 new + 2 modified (onboarding, strategy) |
+| API Services | 15 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration, weeklyReview, gamification, mockTest, examMode, benchmark, simulator |
+| API Routes | 17 | 15 new + 2 modified (onboarding, strategy) |
 | Mobile Auth | 4 | login, signup, _layout, useAuth hook |
-| Mobile Hooks | 12 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration, useWeeklyReview, useGamification |
-| Mobile Components | 27 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), weekly (1), gamification (2), common (1) |
-| Mobile Screens | 5 | Dashboard, Syllabus, Planner, Progress, Settings |
+| Mobile Hooks | 16 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration, useWeeklyReview, useGamification, useMockTest, useExamMode, useBenchmark, useSimulator |
+| Mobile Components | 35 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), weekly (2), gamification (2), mockTest (3), benchmark (2), simulator (2), common (1) |
+| Mobile Screens | 6 | Dashboard, Syllabus, Planner, Progress, Settings, Simulator |
 | Types | 2 | API + mobile shared types |
 | Demo Data | 1 | Generated from 466-topic topic_weightage.json |
 
@@ -163,47 +168,24 @@ F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ## Recommended Build Order (Phase 5)
 
-### Build Tracks (can run concurrently)
+### Remaining (1 feature)
 
 ```
-Track A (Core Sequential):
-  F12a ✅ ──► F17 ✅ ──► F18 ✅ ──► F12b ✅
-                          │          │
-                         Done       Needs
-                                   F12a✅+F17✅+F18✅
-
-Track B (Independent):
-  F16 ◄── Can start anytime, zero shared deps
-
-Track C (Unblocked Batch — parallelizable):
-  F13, F14, F15 ◄── All unblocked, no ordering
+F16 ⏳ Current Affairs Tracker ◄── depends on F1 ✅ (independent)
 ```
 
-### Visual Timeline
+### Completed Tracks
 
 ```
-Week     1       2       3       4       5
-       ┌───────┬───────┬───────┬───────┬───────┐
-Trk A  │ F17   │ F17   │F18+12b│F18+12b│       │
-       ├───────┼───────┼───────┼───────┼───────┤
-Trk B  │ F16   │ F16   │       │       │       │
-       ├───────┼───────┼───────┼───────┼───────┤
-Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │
-       └───────┴───────┴───────┴───────┴───────┘
+Track A ✅: F12a ──► F17 ──► F18 ──► F12b  (all done)
+Track C ✅: F13, F14, F15                    (all done)
 ```
 
 ### Detailed Order with Rationale
 
-| Priority | Feature | Track | Why |
-|----------|---------|-------|-----|
-| ~~1~~ | ~~**F12a** Weekly Review (Minimal)~~ | ~~A~~ | ~~Done~~ ✅ |
-| ~~1~~ | ~~**F17** Gamification~~ | ~~A~~ | ~~Done~~ ✅ |
-| 1 | **F16** Current Affairs | B | Independent, can parallelize with everything |
-| ~~2~~ | ~~**F13** Mock Test Integration~~ | ~~C~~ | ~~Done~~ ✅ |
-| ~~2~~ | ~~**F14** Prelims/Mains Toggle~~ | ~~C~~ | ~~Done~~ ✅ |
-| 2 | **F15** "What If" Simulator | C | Unblocked, can parallelize with F13/F14 |
-| ~~3~~ | ~~**F18** Strategic Benchmark~~ | ~~A~~ | ~~Done~~ ✅ |
-| ~~4~~ | ~~**F12b** Weekly Review (Enhanced)~~ | ~~A~~ | ~~Done~~ ✅ |
+| Priority | Feature | Status | Why |
+|----------|---------|--------|-----|
+| 1 | **F16** Current Affairs | Pending | Independent, standalone data model + UI |
 
 ---
 
@@ -217,12 +199,13 @@ Reference: Completed features averaged ~260 LOC backend, ~310 LOC frontend per f
 | **F12b** Weekly Review (Enh) | S | Service mod, component mods | 2-3 | 150-250 | ✅ Done — 1 new file, 5 modified, ~196 LOC |
 | **F13** Mock Test Integration | L | SQL, service, route, hook, components, screen | 7-9 | 800-1,000 | ✅ Done — 9 new files, 8 modified, ~950 LOC |
 | **F14** Prelims/Mains Toggle | S | Service mod, route, hook, component | 3-4 | 300-450 | ✅ Done — 0 new files, 7 modified, ~143 LOC |
-| **F15** "What If" Simulator | M | Service, route, hook, components | 5-6 | 700-900 | Projection math (Monte Carlo); interactive chart UI |
+| **F15** "What If" Simulator | M | Service, route, hook, components | 5-6 | 700-900 | ✅ Done — 6 new files, 5 modified, ~835 LOC |
 | **F16** Current Affairs | M | SQL, service, route, hook, components, screen | 6-7 | 550-700 | Standalone data model; news feed + topic tagging UI |
-| **F17** Gamification Layer | L | SQL, service, route, hook, components | 7-9 | 900-1,150 | XP calculations, badge unlock logic, streak animations |
+| **F17** Gamification Layer | L | SQL, service, route, hook, components | 7-9 | 900-1,150 | ✅ Done — 6 new files, 13 modified, ~900 LOC |
 | **F18** Strategic Benchmark | L | SQL, service, route, hook, components | 7-8 | 850-1,100 | ✅ Done — 5 new files, 8 modified, ~620 LOC |
 | | | | | | |
-| **TOTAL** | | | **42-52** | **4,650-6,100** | ~5,400 LOC midpoint estimate |
+| **DONE** | | | **~140** | **~17,300** | Actual totals across 17 completed features |
+| **REMAINING** | | | **~6-7** | **~550-700** | F16 (550-700) |
 
 ### Layers Key
 - **SQL**: Migration file for new tables

@@ -15,7 +15,11 @@ export async function simulatorRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'params object is required' });
     }
 
-    const result = await runSimulation(request.userId, { type: body.type, params: body.params });
-    return reply.status(200).send(result);
+    try {
+      const result = await runSimulation(request.userId, { type: body.type, params: body.params });
+      return reply.status(200).send(result);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message || 'Simulation failed' });
+    }
   });
 }
