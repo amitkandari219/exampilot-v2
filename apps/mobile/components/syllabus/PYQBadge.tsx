@@ -20,28 +20,33 @@ export function PYQBadge({ weight }: PYQBadgeProps) {
   const clampedWeight = Math.max(1, Math.min(5, Math.round(weight)));
 
   return (
-    <View style={styles.container}>
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        {[1, 2, 3, 4, 5].map((level) => {
+          const isFilled = level <= clampedWeight;
+          return (
+            <View
+              key={level}
+              style={[
+                styles.dot,
+                {
+                  backgroundColor: isFilled ? DOT_COLORS[level] : EMPTY_COLOR,
+                  borderColor: isFilled ? DOT_COLORS[level] : theme.colors.border,
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
       <Text style={styles.label}>PYQ</Text>
-      {[1, 2, 3, 4, 5].map((level) => {
-        const isFilled = level <= clampedWeight;
-        return (
-          <View
-            key={level}
-            style={[
-              styles.dot,
-              {
-                backgroundColor: isFilled ? DOT_COLORS[level] : EMPTY_COLOR,
-                borderColor: isFilled ? DOT_COLORS[level] : theme.colors.border,
-              },
-            ]}
-          />
-        );
-      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    alignItems: 'center',
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -49,9 +54,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '600',
     color: theme.colors.textMuted,
-    marginRight: 1,
+    marginTop: 2,
   },
   dot: {
     width: 6,

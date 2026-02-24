@@ -61,6 +61,12 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {weakness && (
+          <View style={styles.section}>
+            <WeaknessRadarCard data={weakness} />
+          </View>
+        )}
+
         {velocity && (
           <View style={styles.section}>
             <VelocityCard
@@ -80,12 +86,6 @@ export default function DashboardScreen() {
               capacity={buffer.capacity}
               lastTransaction={buffer.transactions?.[0] || null}
             />
-          </View>
-        )}
-
-        {weakness && (
-          <View style={styles.section}>
-            <WeaknessRadarCard data={weakness} />
           </View>
         )}
 

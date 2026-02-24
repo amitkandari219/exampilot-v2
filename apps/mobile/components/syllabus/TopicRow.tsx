@@ -68,26 +68,25 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
         <PYQBadge weight={topic.pyq_weight} />
       </View>
 
-      <View style={styles.bottomRow}>
+      <View style={styles.middleRow}>
         <View style={[styles.statusPill, { backgroundColor: pillColors.bg }]}>
           <Text style={[styles.statusText, { color: pillColors.text }]}>
             {statusLabel(status)}
           </Text>
         </View>
-
-        {progress && progress.confidence_score > 0 && (
-          <View style={styles.confidenceContainer}>
-            <ConfidenceMeter
-              score={progress.confidence_score}
-              status={progress.confidence_status}
-            />
-          </View>
-        )}
-
         {progress?.last_touched && (
           <Text style={styles.dateText}>{formatDate(progress.last_touched)}</Text>
         )}
       </View>
+
+      {progress && progress.confidence_score > 0 && (
+        <View style={styles.confidenceRow}>
+          <ConfidenceMeter
+            score={progress.confidence_score}
+            status={progress.confidence_status}
+          />
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -112,28 +111,26 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginRight: theme.spacing.sm,
   },
-  bottomRow: {
+  middleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.xs,
   },
   statusPill: {
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 2,
     borderRadius: theme.borderRadius.sm,
-    marginTop: 2,
   },
   statusText: {
     fontSize: theme.fontSize.xs,
     fontWeight: '600',
   },
-  confidenceContainer: {
-    flex: 1,
-    minWidth: 80,
+  confidenceRow: {
+    marginTop: theme.spacing.xs,
   },
   dateText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.textMuted,
-    marginTop: 4,
   },
 });

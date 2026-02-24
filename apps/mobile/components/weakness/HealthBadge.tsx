@@ -29,15 +29,20 @@ export function HealthBadge({ score, category }: HealthBadgeProps) {
   const color = CATEGORY_COLORS[cat];
 
   return (
-    <View style={[styles.badge, { backgroundColor: color + '20' }]}>
-      <Text style={styles.label}>H</Text>
-      <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={[styles.score, { color }]}>{score}</Text>
+    <View style={styles.wrapper}>
+      <View style={[styles.badge, { backgroundColor: color + '20' }]}>
+        <View style={[styles.dot, { backgroundColor: color }]} />
+        <Text style={[styles.score, { color }]}>{score}</Text>
+      </View>
+      <Text style={styles.label}>Health</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    alignItems: 'center',
+  },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -53,8 +58,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '600',
     color: theme.colors.textMuted,
+    marginTop: 2,
   },
   score: {
     fontSize: theme.fontSize.xs,

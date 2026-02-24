@@ -53,7 +53,8 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
               <View style={[styles.dot, { backgroundColor: CATEGORY_COLORS[t.category] }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.weakName} numberOfLines={1}>{t.topic_name}</Text>
-                <Text style={styles.weakMeta}>{t.subject_name} - {t.recommendation}</Text>
+                <Text style={styles.weakSubject}>{t.subject_name}</Text>
+                <Text style={styles.weakRec} numberOfLines={2}>{t.recommendation}</Text>
               </View>
               <Text style={[styles.weakScore, { color: CATEGORY_COLORS[t.category] }]}>
                 {t.health_score}
@@ -138,10 +139,16 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     color: theme.colors.text,
   },
-  weakMeta: {
+  weakSubject: {
     fontSize: 10,
     color: theme.colors.textMuted,
     marginTop: 1,
+  },
+  weakRec: {
+    fontSize: 10,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   weakScore: {
     fontSize: theme.fontSize.sm,
