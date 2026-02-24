@@ -20,25 +20,30 @@ export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
   const barColor = STATUS_COLORS[status];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>C</Text>
-      <View style={styles.barBackground}>
-        <View
-          style={[
-            styles.barFill,
-            {
-              width: `${clampedScore}%`,
-              backgroundColor: barColor,
-            },
-          ]}
-        />
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        <View style={styles.barBackground}>
+          <View
+            style={[
+              styles.barFill,
+              {
+                width: `${clampedScore}%`,
+                backgroundColor: barColor,
+              },
+            ]}
+          />
+        </View>
+        <Text style={[styles.scoreText, { color: barColor }]}>{clampedScore}</Text>
       </View>
-      <Text style={[styles.scoreText, { color: barColor }]}>{clampedScore}</Text>
+      <Text style={styles.label}>Confidence</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flexDirection: 'column',
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -46,8 +51,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '600',
     color: theme.colors.textMuted,
+    marginTop: 2,
   },
   barBackground: {
     flex: 1,
