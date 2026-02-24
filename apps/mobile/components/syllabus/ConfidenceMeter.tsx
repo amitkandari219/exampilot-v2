@@ -21,6 +21,7 @@ export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.label}>C</Text>
       <View style={styles.barBackground}>
         <View
           style={[
@@ -42,6 +43,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+  },
+  label: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
   },
   barBackground: {
     flex: 1,
