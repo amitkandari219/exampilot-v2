@@ -62,6 +62,9 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
         <Text style={styles.topicName} numberOfLines={1}>
           {topic.name}
         </Text>
+        {progress && progress.health_score > 0 && (
+          <HealthBadge score={progress.health_score} />
+        )}
         <PYQBadge weight={topic.pyq_weight} />
       </View>
 
@@ -79,10 +82,6 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
               status={progress.confidence_status}
             />
           </View>
-        )}
-
-        {progress && progress.health_score > 0 && (
-          <HealthBadge score={progress.health_score} />
         )}
 
         {progress?.last_touched && (
