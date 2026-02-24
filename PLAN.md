@@ -5,15 +5,17 @@
 ```
 COMPLETED                          REMAINING
 ─────────                          ─────────
-F1  Onboarding & Strategy    ✅    F9  Weakness Radar
-F2  PYQ Intelligence         ✅    F10 Recalibration Engine
-F3  Living Syllabus Map      ✅    F12 Weekly Review
-F4  Velocity Engine + Buffer ✅    F13 Mock Test Integration
-F5  Confidence Decay (FSRS)  ✅    F14 Prelims/Mains Toggle
-F6  Spaced Repetition        ✅    F15 "What If" Simulator
-F7  Stress Thermometer       ✅    F16 Current Affairs Tracker
-F8  Smart Daily Planner      ✅    F17 Gamification Layer
-F11 Burnout Guardian         ✅    F18 Strategic Benchmark
+F1  Onboarding & Strategy    ✅    F12 Weekly Review
+F2  PYQ Intelligence         ✅    F13 Mock Test Integration
+F3  Living Syllabus Map      ✅    F14 Prelims/Mains Toggle
+F4  Velocity Engine + Buffer ✅    F15 "What If" Simulator
+F5  Confidence Decay (FSRS)  ✅    F16 Current Affairs Tracker
+F6  Spaced Repetition        ✅    F17 Gamification Layer
+F7  Stress Thermometer       ✅    F18 Strategic Benchmark
+F8  Smart Daily Planner      ✅
+F9  Weakness Radar           ✅
+F10 Recalibration Engine     ✅
+F11 Burnout Guardian         ✅
 ```
 
 ---
@@ -48,61 +50,87 @@ F11 Burnout Guardian         ✅    F18 Strategic Benchmark
 |---------|--------|------------|
 | **F7** Stress Thermometer | Done | F4, F5 |
 | **F8** Smart Daily Planner | Done | F4, F5, F6, F11 |
+| **F9** Weakness Radar | Done | F3, F5 |
+| **F10** Recalibration Engine | Done | F4, F7, F9 |
 
-### Phase 5 — Engagement & Polish (NOT STARTED)
+### Phase 5 — Engagement & Polish
 
 | Feature | Status | Depends On | Description |
 |---------|--------|------------|-------------|
-| **F9** Weakness Radar | Pending | F3, F5 | Health scoring per topic/chapter, identifies weak areas |
-| **F10** Recalibration Engine | Pending | F4, F7 | Auto-adjust persona params based on performance |
 | **F13** Mock Test Integration | Pending | F3 | Mock test scores feed accuracy data back to FSRS |
 | **F14** Prelims/Mains Toggle | Pending | F3, F8 | Switch syllabus and planner between exam modes |
 | **F15** "What If" Simulator | Pending | F4 | Project scenarios (what if I skip 3 days, change strategy, etc.) |
 | **F16** Current Affairs Tracker | Pending | F1 | Fully independent — own data model, own UI |
 | **F17** Gamification Layer | Pending | F4, F8 | Badges, XP, streaks, leaderboard |
 | **F18** Strategic Benchmark | Pending | F4, F17 | Blocked by F17 — weighted exam-readiness score |
-| **F12** Weekly Review | Pending | F4, F5, F7, F8, F9, F11, F17 | Final aggregator — blocked by F9 and F17 |
+| **F12a** Weekly Review (Minimal) | Pending | F4, F5, F7, F8, F9, F11 | Core weekly summary — hard dependencies only |
+| **F12b** Weekly Review (Enhanced) | Pending | F12a, F17 | Adds gamification data + benchmark integration |
+
+#### F12 Dependency Analysis
+
+| Dependency | Classification | Rationale |
+|------------|---------------|-----------|
+| **F4** Velocity Engine | **Hard** | Velocity ratio & trend are core weekly metrics |
+| **F5** Confidence Decay | **Hard** | Confidence distribution is a key review metric |
+| **F7** Stress Thermometer | **Hard** | Stress trend is essential for weekly health check |
+| **F8** Smart Daily Planner | **Hard** | Plan completion rate drives the weekly summary |
+| **F9** Weakness Radar | **Hard** | Weak topic count/movement is a core insight |
+| **F11** Burnout Guardian | **Hard** | BRI trend and recovery status are critical context |
+| **F17** Gamification Layer | **Soft** | XP earned, badges unlocked are nice-to-have enrichment |
+
+**Before:** F12 depends on F4, F5, F7, F8, F9, F11, F17 (7 deps, blocked by F17)
+**After:** F12a depends on F4, F5, F7, F8, F9, F11 (6 hard deps, all done — **unblocked now**)
+         F12b depends on F12a, F17 (adds gamification data after F17 ships)
 
 ---
 
 ## Dependency Graph
 
 ```
-F1 ──► F2 ──► F3 ──► F9 (pending) ──► F12 (blocked)
-  │         │         │
-  │         │         ├──► F13 (pending)
-  │         │         └──► F14 (pending)
-  │         │
-  │         └──► F4 ──► F7 ──► F10 (pending)
-  │                │
-  │                ├──► F11
-  │                ├──► F15 (pending)
-  │                └──► F17 (pending) ──► F18 (blocked)
-  │                                         │
-  │                                         └──► F12 (blocked)
-  │
-  ├──► F5 ──► F6
-  │
-  └──► F16 (pending, independent)
+Legend: ✅ = done │ ⏳ = pending │ 🔒 = blocked
 
-F8 (integrates F4, F5, F6, F11)
+F1 ✅ ───┬──► F2 ✅ ──► F3 ✅ ──┬──► F13 ⏳
+         │                      │
+         │                      └──► F14 ⏳ (also needs F8)
+         │
+         ├──► F5 ✅ ──► F6 ✅
+         │
+         ├──► F4 ✅ ──┬──► F11 ✅
+         │            │
+         │            ├──► F7 ✅
+         │            │
+         │            ├──► F15 ⏳
+         │            │
+         │            ├──► F17 ⏳ ──► F18 🔒
+         │            │               │
+         │            │               └──► F12b 🔒
+         │            │
+         │            └──► F8 ✅
+         │
+         └──► F16 ⏳ (independent)
+
+F9 ✅ ◄── F3 ✅ + F5 ✅
+F10 ✅ ◄── F4 ✅ + F7 ✅ + F9 ✅
+F8 ✅ ◄── F4 ✅ + F5 ✅ + F6 ✅ + F11 ✅
+F12a ⏳ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
+            + F9 ✅ + F11 ✅ (all done)
 ```
 
 ---
 
 ## What's Built (Phase 1-4)
 
-### Files Created/Modified: 78 files, 11,372 lines
+### Files Created/Modified: 89 files, ~12,300 lines
 
 | Layer | Count | Details |
 |-------|-------|---------|
-| SQL Migrations | 8 | 004_persona_extensions through 011_daily_plans |
+| SQL Migrations | 10 | 004_persona_extensions through 013_recalibration |
 | API Middleware | 1 | auth.ts (Bearer token validation) |
-| API Services | 7 | pyq, syllabus, fsrs, velocity, burnout, stress, planner |
-| API Routes | 9 | 7 new + 2 modified (onboarding, strategy) |
+| API Services | 9 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration |
+| API Routes | 11 | 9 new + 2 modified (onboarding, strategy) |
 | Mobile Auth | 4 | login, signup, _layout, useAuth hook |
-| Mobile Hooks | 8 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner |
-| Mobile Components | 20 | syllabus (8), planner (5), dashboard (4), progress (3), common (1) |
+| Mobile Hooks | 10 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration |
+| Mobile Components | 24 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), common (1) |
 | Mobile Screens | 5 | Dashboard, Syllabus, Planner, Progress, Settings |
 | Types | 2 | API + mobile shared types |
 | Demo Data | 1 | Generated from 466-topic topic_weightage.json |
@@ -121,26 +149,161 @@ F8 (integrates F4, F5, F6, F11)
 | BRI (Burnout) | `100 - (stress_persist(0.30) + buffer_hemo(0.25) + velocity_collapse(0.25) + engagement(0.20))` |
 | Fatigue | `(consec_days*10) + (avg_diff_3d*8) + (hours_3d/target*20) - (rest_days_7*15)` |
 | Planner Priority | `(pyq_weight*4) + (importance*2) + (urgency*2) + decay + freshness + variety` |
+| Health Score | `confidence(0.40) + revision(0.25) + effort(0.20) + stability(0.15)` |
+| Recalibration | Rule-based adjustments with ±20% mode drift limit, 3-day cooldown |
 
 ### Append-Only Temporal Tables
 
-`persona_snapshots`, `fsrs_review_logs`, `confidence_snapshots`, `velocity_snapshots`, `daily_logs`, `buffer_transactions`, `burnout_snapshots`, `status_changes`
+`persona_snapshots`, `fsrs_review_logs`, `confidence_snapshots`, `velocity_snapshots`, `daily_logs`, `buffer_transactions`, `burnout_snapshots`, `status_changes`, `weakness_snapshots`, `recalibration_log`
 
 ---
 
 ## Recommended Build Order (Phase 5)
 
-All remaining features except F12 and F18 are **unblocked**:
+### Build Tracks (can run concurrently)
 
-| Priority | Feature | Why |
-|----------|---------|-----|
-| 1 | **F9** Weakness Radar | Quick win, unblocks F12 |
-| 2 | **F16** Current Affairs | Independent, can parallelize with anything |
-| 3 | **F13** Mock Test Integration | Feeds accuracy data back to FSRS |
-| 4 | **F17** Gamification | Unblocks F18 and F12 |
-| 5 | **F10** Recalibration + **F14** Toggle + **F15** Simulator | All unblocked, can parallelize |
-| 6 | **F18** Strategic Benchmark | Needs F17 |
-| 7 | **F12** Weekly Review | Final aggregator, build last |
+```
+Track A (Core Sequential):
+  F12a ──► F17 ──► F18 ──► F12b
+  │         │       │        │
+  Unblocked Unblocked Needs  Needs
+  (all deps (all deps F17    F12a+F17
+   done)     done)
+
+Track B (Independent):
+  F16 ◄── Can start anytime, zero shared deps
+
+Track C (Unblocked Batch — parallelizable):
+  F13, F14, F15 ◄── All unblocked, no ordering
+```
+
+### Visual Timeline
+
+```
+Week     1       2       3       4       5       6
+       ┌───────┬───────┬───────┬───────┬───────┬───────┐
+Trk A  │ F12a  │ F12a  │ F17   │ F17   │F18+12b│F18+12b│
+       ├───────┼───────┼───────┼───────┼───────┼───────┤
+Trk B  │ F16   │ F16   │       │       │       │       │
+       ├───────┼───────┼───────┼───────┼───────┼───────┤
+Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │       │
+       └───────┴───────┴───────┴───────┴───────┴───────┘
+```
+
+### Detailed Order with Rationale
+
+| Priority | Feature | Track | Why |
+|----------|---------|-------|-----|
+| 1 | **F12a** Weekly Review (Minimal) | A | All deps done — quick win, high user value |
+| 1 | **F16** Current Affairs | B | Independent, can parallelize with everything |
+| 2 | **F13** Mock Test Integration | C | Unblocked, feeds accuracy data to FSRS |
+| 2 | **F14** Prelims/Mains Toggle | C | Unblocked, configuration feature |
+| 2 | **F15** "What If" Simulator | C | Unblocked, can parallelize with F13/F14 |
+| 3 | **F17** Gamification | A | Unblocks F18 and F12b |
+| 4 | **F18** Strategic Benchmark | A | Needs F17 |
+| 5 | **F12b** Weekly Review (Enhanced) | A | Final enhancement, adds gamification data |
+
+---
+
+## Phase 5 Scope Estimates
+
+Reference: Completed features averaged ~260 LOC backend, ~310 LOC frontend per feature.
+
+| Feature | Size | Layers | Est. Files | Est. LOC | Notes |
+|---------|------|--------|-----------|----------|-------|
+| **F12a** Weekly Review (Min) | M | SQL, service, route, hook, components, screen | 5-6 | 400-550 | Aggregates 6 data sources; read-heavy, no new algorithms |
+| **F12b** Weekly Review (Enh) | S | Service mod, component mods | 2-3 | 150-250 | Adds gamification metrics to existing F12a views |
+| **F13** Mock Test Integration | L | SQL, service, route, hook, components, screen | 7-9 | 800-1,000 | New tables for tests/attempts/answers; accuracy feeds back to FSRS |
+| **F14** Prelims/Mains Toggle | S | Service mod, route, hook, component | 3-4 | 300-450 | Config update + planner/syllabus filtering; minimal new UI |
+| **F15** "What If" Simulator | M | Service, route, hook, components | 5-6 | 700-900 | Projection math (Monte Carlo); interactive chart UI |
+| **F16** Current Affairs | M | SQL, service, route, hook, components, screen | 6-7 | 550-700 | Standalone data model; news feed + topic tagging UI |
+| **F17** Gamification Layer | L | SQL, service, route, hook, components | 7-9 | 900-1,150 | XP calculations, badge unlock logic, streak animations |
+| **F18** Strategic Benchmark | L | SQL, service, route, hook, components | 7-8 | 850-1,100 | Percentile ranking, cohort comparison, complex analytics |
+| | | | | | |
+| **TOTAL** | | | **42-52** | **4,650-6,100** | ~5,400 LOC midpoint estimate |
+
+### Layers Key
+- **SQL**: Migration file for new tables
+- **Service**: API business logic (`apps/api/src/services/`)
+- **Route**: API endpoint handler (`apps/api/src/routes/`)
+- **Hook**: React Query hook (`apps/mobile/hooks/`)
+- **Components**: UI components (`apps/mobile/components/`)
+- **Screen**: Tab or modal screen (`apps/mobile/app/`)
+
+---
+
+## Testing & QA Strategy
+
+### Critical Path Unit Tests
+
+| # | Algorithm | File | What to Test | Priority |
+|---|-----------|------|-------------|----------|
+| 1 | **FSRS Retrievability** | `apps/api/src/services/fsrs.ts` | Zero elapsed days (R=1), large elapsed (R→0), negative stability guard, accuracy_factor boundaries | P0 |
+| 2 | **Velocity Ratio** | `apps/api/src/services/velocity.ts` | Zero days remaining (÷0 guard), no daily logs (velocity=0), ratio boundaries (ahead/on_track/behind/at_risk) | P0 |
+| 3 | **BRI Score** | `apps/api/src/services/burnout.ts` | All signals at 0 (BRI=100), all at 100 (BRI=0), recovery mode trigger at threshold, recovery exit | P0 |
+| 4 | **Stress Score** | `apps/api/src/services/stress.ts` | All signals at 0 vs 100, weighted sum = exact expected output, status label boundaries | P0 |
+| 5 | **Planner Priority** | `apps/api/src/services/planner.ts` | High-gravity topic ranks first, decay revision > new topic, light day reduces load, stretch items excluded at low energy | P0 |
+| 6 | **Buffer Deposit/Withdrawal** | `apps/api/src/services/velocity.ts` | Zero-day penalty, surplus capped at 20%, deficit floored at -5, balance never negative, consistency reward at streak % 7 | P1 |
+| 7 | **Health Score** | `apps/api/src/services/weakness.ts` | Component weights sum to 1.0, score range 0-100, category boundaries (critical<25, weak<45, moderate<65, strong<80, exam_ready≥80) | P1 |
+| 8 | **Recalibration Rules** | `apps/api/src/services/recalibration.ts` | Each adjustment rule triggers correctly, mode drift ±20% enforced, cooldown blocks re-run, recovery mode skips, bounds clamped | P1 |
+| 9 | **Topic Gravity** | `apps/api/src/services/pyq.ts` | pyq_weight=0 → gravity=0, all factors at max → expected product, floating point precision | P1 |
+| 10 | **Fatigue Formula** | `apps/api/src/services/burnout.ts` | Fresh user (0 consecutive days, 0 difficulty) → low fatigue, max consecutive days + high difficulty → high fatigue, rest days reduce score | P1 |
+
+### API Integration Tests
+
+| Route | Happy Path | Auth Failure | Edge Cases |
+|-------|-----------|-------------|-----------|
+| `GET /api/strategy` | Returns mode + params for valid user | 401 without Bearer token | New user with no onboarding returns defaults |
+| `POST /api/onboarding` | Creates profile, returns persona params | 401 | Duplicate onboarding (idempotent?) |
+| `GET /api/syllabus` | Returns subjects > chapters > topics tree | 401 | Empty progress (all untouched) |
+| `POST /api/fsrs/review/:topicId` | Updates FSRS card, returns new schedule | 401 | Invalid topicId (404), rating out of range |
+| `GET /api/velocity` | Returns velocity_ratio, status, trend | 401 | No daily logs (first day), exam_date in past |
+| `GET /api/burnout` | Returns BRI, fatigue, recovery status | 401 | No burnout snapshots yet |
+| `GET /api/stress` | Returns score, signals, recommendation | 401 | No velocity snapshots (defaults) |
+| `GET /api/daily-plan` | Returns plan with items, topic details | 401 | No plan for date (generate on fly?), all topics completed |
+| `GET /api/weakness/overview` | Returns summary + weakest topics | 401 | No progress data (empty overview) |
+| `POST /api/recalibration/trigger` | Returns applied/no_change/skipped | 401 | Cooldown active, recovery mode, <5 data points |
+| `GET /api/recalibration` | Returns status + last entry | 401 | Never recalibrated (nulls) |
+
+### Mobile E2E Smoke Tests
+
+- [ ] **Onboarding → Dashboard**: Complete 7 onboarding screens → land on dashboard with correct strategy mode and persona params displayed
+- [ ] **Study Flow**: Mark topic as studied → FSRS confidence updates → planner re-prioritizes next day's plan
+- [ ] **Revision Cycle**: Complete a topic → wait for FSRS due date → revision appears in planner → mark revised → confidence refreshes
+- [ ] **Burnout Recovery**: Study intensely (high fatigue) → BRI drops → recovery mode activates → planner shows light day → exit recovery
+- [ ] **Recalibration**: Settings → toggle auto-recalibrate on → after processEndOfDay → persona params adjust → settings reflects new values
+- [ ] **Weakness Tracking**: Dashboard shows weakness radar card → tap weakest topic → health detail sheet opens with component breakdown
+- [ ] **Strategy Switch**: Settings → change mode from balanced to aggressive → params update → planner adjusts topic load
+
+### Testing Tools
+
+#### API Testing
+- [ ] **Test Runner**: [Vitest](https://vitest.dev/) — fast, TypeScript-native, compatible with Fastify
+- [ ] **HTTP Testing**: `fastify.inject()` for integration tests (no real server needed)
+- [ ] **Supabase Strategy**: Use a dedicated test project with seeded data; alternatively, mock Supabase client with `vi.mock()` for unit tests
+- [ ] **Structure**: `apps/api/src/__tests__/` mirroring `services/` and `routes/`
+
+#### Mobile Testing
+- [ ] **E2E Framework**: [Maestro](https://maestro.mobile.dev/) — YAML-based, works with Expo SDK 52, no native build required for web tests
+- [ ] **Component Testing**: React Native Testing Library + Jest for isolated component tests
+- [ ] **Structure**: `apps/mobile/__tests__/` for component tests, `e2e/` for Maestro flows
+
+#### CI Pipeline (GitHub Actions)
+```yaml
+# Suggested workflow structure:
+jobs:
+  api-lint-typecheck:
+    - npx tsc --noEmit -p apps/api/tsconfig.json
+  api-unit-tests:
+    - npx vitest run --project api
+  mobile-lint-typecheck:
+    - npx tsc --noEmit -p apps/mobile/tsconfig.json
+  mobile-bundle-check:
+    - npx expo export --platform web
+  # Future:
+  # api-integration-tests (needs Supabase test instance)
+  # mobile-e2e (needs Maestro + Expo dev server)
+```
 
 ---
 
