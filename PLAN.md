@@ -10,7 +10,7 @@ F2  PYQ Intelligence         ✅    F14 Prelims/Mains Toggle
 F3  Living Syllabus Map      ✅    F15 "What If" Simulator
 F4  Velocity Engine + Buffer ✅    F16 Current Affairs Tracker
 F5  Confidence Decay (FSRS)  ✅    F18 Strategic Benchmark  ✅
-F6  Spaced Repetition        ✅    F12b Weekly Review (Enhanced)
+F6  Spaced Repetition        ✅    F12b Weekly Review (Enhanced) ✅
 F7  Stress Thermometer       ✅
 F8  Smart Daily Planner      ✅
 F9  Weakness Radar           ✅
@@ -66,7 +66,7 @@ F17 Gamification Layer       ✅
 | **F17** Gamification Layer | Done | F4, F8 | XP, levels, badges — 6 new files, 13 modified, ~900 LOC |
 | **F18** Strategic Benchmark | Done | F4, F17 | Weighted exam-readiness score — 5 new files, 8 modified, ~620 LOC |
 | **F12a** Weekly Review (Minimal) | Done | F4, F5, F7, F8, F9, F11 | Core weekly summary — hard dependencies only |
-| **F12b** Weekly Review (Enhanced) | Pending | F12a, F17 | Adds gamification data + benchmark integration |
+| **F12b** Weekly Review (Enhanced) | Done | F12a, F17 | Adds gamification data + benchmark integration — 1 new file, 5 modified, ~196 LOC |
 
 #### F12 Dependency Analysis
 
@@ -105,7 +105,7 @@ F1 ✅ ───┬──► F2 ✅ ──► F3 ✅ ──┬──► F13 ⏳
          │            │
          │            ├──► F17 ✅ ──► F18 ✅
          │            │               │
-         │            │               └──► F12b ⏳
+         │            │               └──► F12b ✅
          │            │
          │            └──► F8 ✅
          │
@@ -167,7 +167,7 @@ F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ```
 Track A (Core Sequential):
-  F12a ✅ ──► F17 ✅ ──► F18 ✅ ──► F12b
+  F12a ✅ ──► F17 ✅ ──► F18 ✅ ──► F12b ✅
                           │          │
                          Done       Needs
                                    F12a✅+F17✅+F18✅
@@ -203,7 +203,7 @@ Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │
 | 2 | **F14** Prelims/Mains Toggle | C | Unblocked, configuration feature |
 | 2 | **F15** "What If" Simulator | C | Unblocked, can parallelize with F13/F14 |
 | ~~3~~ | ~~**F18** Strategic Benchmark~~ | ~~A~~ | ~~Done~~ ✅ |
-| 4 | **F12b** Weekly Review (Enhanced) | A | Final enhancement, adds gamification data |
+| ~~4~~ | ~~**F12b** Weekly Review (Enhanced)~~ | ~~A~~ | ~~Done~~ ✅ |
 
 ---
 
@@ -214,7 +214,7 @@ Reference: Completed features averaged ~260 LOC backend, ~310 LOC frontend per f
 | Feature | Size | Layers | Est. Files | Est. LOC | Notes |
 |---------|------|--------|-----------|----------|-------|
 | **F12a** Weekly Review (Min) | M | SQL, service, route, hook, components, screen | 5+6 | ~700 | ✅ Done — 5 new files, 6 modified, ~700 LOC |
-| **F12b** Weekly Review (Enh) | S | Service mod, component mods | 2-3 | 150-250 | Adds gamification metrics to existing F12a views |
+| **F12b** Weekly Review (Enh) | S | Service mod, component mods | 2-3 | 150-250 | ✅ Done — 1 new file, 5 modified, ~196 LOC |
 | **F13** Mock Test Integration | L | SQL, service, route, hook, components, screen | 7-9 | 800-1,000 | New tables for tests/attempts/answers; accuracy feeds back to FSRS |
 | **F14** Prelims/Mains Toggle | S | Service mod, route, hook, component | 3-4 | 300-450 | Config update + planner/syllabus filtering; minimal new UI |
 | **F15** "What If" Simulator | M | Service, route, hook, components | 5-6 | 700-900 | Projection math (Monte Carlo); interactive chart UI |
