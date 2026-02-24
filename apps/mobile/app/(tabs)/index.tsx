@@ -66,6 +66,18 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        <TouchableOpacity
+          style={styles.simulatorButton}
+          onPress={() => router.push('/simulator')}
+          activeOpacity={0.7}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.simulatorTitle}>What If Simulator</Text>
+            <Text style={styles.simulatorSubtitle}>Project hypothetical scenarios</Text>
+          </View>
+          <Text style={styles.simulatorArrow}>&rsaquo;</Text>
+        </TouchableOpacity>
+
         {stress && (
           <View style={styles.section}>
             <StressThermometer
@@ -270,6 +282,31 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'capitalize',
+  },
+  simulatorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  simulatorTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  simulatorSubtitle: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  simulatorArrow: {
+    fontSize: theme.fontSize.xl,
+    color: theme.colors.textMuted,
+    marginLeft: theme.spacing.sm,
   },
   loadingSection: {
     alignItems: 'center',

@@ -482,6 +482,48 @@ export interface MockTopicHistory {
   history: Array<{ test_date: string; questions: number; correct: number; accuracy: number }>;
 }
 
+// Simulation types
+export type SimulationScenarioType = 'skip_days' | 'change_hours' | 'change_strategy' | 'change_exam_date' | 'defer_topics';
+
+export interface SimulationScenario {
+  type: SimulationScenarioType;
+  params: Record<string, any>;
+}
+
+export interface SimulationSnapshot {
+  velocity_ratio: number;
+  status: VelocityStatus;
+  actual_velocity: number;
+  required_velocity: number;
+  days_remaining: number;
+  projected_completion_date: string | null;
+  weighted_completion_pct: number;
+  buffer_balance: number;
+  buffer_capacity: number;
+  buffer_max: number;
+  daily_hours: number;
+  strategy_mode: StrategyMode;
+  exam_date: string;
+  total_gravity: number;
+  completed_gravity: number;
+  remaining_gravity: number;
+}
+
+export interface SimulationDelta {
+  velocity_ratio_change: number;
+  status_change: string;
+  days_remaining_change: number;
+  completion_date_shift_days: number | null;
+  buffer_balance_change: number;
+}
+
+export interface SimulationResult {
+  scenario: SimulationScenario;
+  baseline: SimulationSnapshot;
+  projected: SimulationSnapshot;
+  delta: SimulationDelta;
+}
+
 // Fastify request augmentation
 declare module 'fastify' {
   interface FastifyRequest {

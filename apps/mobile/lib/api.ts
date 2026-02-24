@@ -176,4 +176,8 @@ export const api = {
 
   getMockTopicHistory: (topicId: string) =>
     request(`/api/mocks/topic/${topicId}/history`),
+
+  // Simulator
+  runSimulation: (scenario: { type: string; params: Record<string, any> }) =>
+    request('/api/simulator/run', { method: 'POST', body: JSON.stringify(scenario) }),
 };
