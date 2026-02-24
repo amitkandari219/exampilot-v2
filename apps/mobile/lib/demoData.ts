@@ -499,6 +499,91 @@ export const demoSyllabus = [
   }
 ] as any[];
 
+export const demoWeakness = {
+  summary: {
+    critical: 3,
+    weak: 8,
+    moderate: 22,
+    strong: 15,
+    exam_ready: 7,
+  },
+  weakest_topics: [
+    {
+      subject_id: 'a1000000-0000-0000-0000-000000000004',
+      subject_name: 'World History (post-1750)',
+      chapter_id: 'b1000000-0000-0000-0000-000000000017',
+      chapter_name: 'American & French Revolutions',
+      topic_id: 'c1000000-0000-0000-0000-000000000066',
+      topic_name: 'American Revolution & Bill of Rights',
+      health_score: 18,
+      category: 'critical' as const,
+      recommendation: 'Urgent: This topic needs immediate attention. Start with a focused study session.',
+    },
+    {
+      subject_id: 'a1000000-0000-0000-0000-000000000003',
+      subject_name: 'Post-Independence India',
+      chapter_id: 'b1000000-0000-0000-0000-000000000011',
+      chapter_name: 'Integration of Princely States',
+      topic_id: 'c1000000-0000-0000-0000-000000000054',
+      topic_name: "Sardar Patel & V.P. Menon's Role",
+      health_score: 22,
+      category: 'critical' as const,
+      recommendation: 'Urgent: This topic needs immediate attention. Start with a focused study session.',
+    },
+    {
+      subject_id: 'a1000000-0000-0000-0000-000000000002',
+      subject_name: 'Modern Indian History',
+      chapter_id: 'b1000000-0000-0000-0000-000000000008',
+      chapter_name: 'British Expansion & Economic Impact',
+      topic_id: 'c1000000-0000-0000-0000-000000000024',
+      topic_name: 'Land Revenue Systems (Zamindari, Ryotwari, Mahalwari)',
+      health_score: 28,
+      category: 'weak' as const,
+      recommendation: 'Low confidence — do a quick revision and attempt practice questions.',
+    },
+  ],
+  by_subject: [
+    {
+      subject_id: 'a1000000-0000-0000-0000-000000000004',
+      subject_name: 'World History (post-1750)',
+      weak_count: 2,
+      critical_count: 1,
+      topics: [
+        {
+          subject_id: 'a1000000-0000-0000-0000-000000000004',
+          subject_name: 'World History (post-1750)',
+          chapter_id: 'b1000000-0000-0000-0000-000000000017',
+          chapter_name: 'American & French Revolutions',
+          topic_id: 'c1000000-0000-0000-0000-000000000066',
+          topic_name: 'American Revolution & Bill of Rights',
+          health_score: 18,
+          category: 'critical' as const,
+          recommendation: 'Urgent: This topic needs immediate attention. Start with a focused study session.',
+        },
+      ],
+    },
+    {
+      subject_id: 'a1000000-0000-0000-0000-000000000003',
+      subject_name: 'Post-Independence India',
+      weak_count: 1,
+      critical_count: 1,
+      topics: [
+        {
+          subject_id: 'a1000000-0000-0000-0000-000000000003',
+          subject_name: 'Post-Independence India',
+          chapter_id: 'b1000000-0000-0000-0000-000000000011',
+          chapter_name: 'Integration of Princely States',
+          topic_id: 'c1000000-0000-0000-0000-000000000054',
+          topic_name: "Sardar Patel & V.P. Menon's Role",
+          health_score: 22,
+          category: 'critical' as const,
+          recommendation: 'Urgent: This topic needs immediate attention. Start with a focused study session.',
+        },
+      ],
+    },
+  ],
+};
+
 export const demoRevisionsDue = {
   overdue: [
     { topic_id: 'c1000000-0000-0000-0000-000000000002', due: '2026-02-22', topics: { name: 'Temple Architecture — Dravida Style' } },

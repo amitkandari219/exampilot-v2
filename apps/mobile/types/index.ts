@@ -20,6 +20,8 @@ export type PlanItemStatus = 'pending' | 'completed' | 'skipped' | 'deferred';
 
 export type BurnoutStatus = 'low' | 'moderate' | 'high' | 'critical';
 
+export type HealthCategory = 'critical' | 'weak' | 'moderate' | 'strong' | 'exam_ready';
+
 export interface StrategyParams {
   revision_frequency: number;
   daily_new_topics: number;
@@ -256,4 +258,49 @@ export interface ConfidenceOverview {
     confidence_score: number;
     stability: number;
   }>;
+}
+
+export interface WeakArea {
+  subject_id: string;
+  subject_name: string;
+  chapter_id: string;
+  chapter_name: string;
+  topic_id: string;
+  topic_name: string;
+  health_score: number;
+  category: HealthCategory;
+  recommendation: string;
+}
+
+export interface WeaknessOverview {
+  summary: {
+    critical: number;
+    weak: number;
+    moderate: number;
+    strong: number;
+    exam_ready: number;
+  };
+  weakest_topics: WeakArea[];
+  by_subject: Array<{
+    subject_id: string;
+    subject_name: string;
+    weak_count: number;
+    critical_count: number;
+    topics: WeakArea[];
+  }>;
+}
+
+export interface TopicHealthDetail {
+  topic_id: string;
+  topic_name: string;
+  health_score: number;
+  category: HealthCategory;
+  components: {
+    confidence: number;
+    revision: number;
+    effort: number;
+    stability: number;
+  };
+  recommendation: string;
+  trend: Array<{ date: string; score: number }>;
 }

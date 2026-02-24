@@ -4,6 +4,7 @@ import { theme } from '../../constants/theme';
 import type { TopicWithProgress, TopicStatus } from '../../types';
 import { PYQBadge } from './PYQBadge';
 import { ConfidenceMeter } from './ConfidenceMeter';
+import { HealthBadge } from '../weakness/HealthBadge';
 
 interface TopicRowProps {
   topic: TopicWithProgress;
@@ -78,6 +79,10 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
               status={progress.confidence_status}
             />
           </View>
+        )}
+
+        {progress && progress.health_score > 0 && (
+          <HealthBadge score={progress.health_score} />
         )}
 
         {progress?.last_touched && (

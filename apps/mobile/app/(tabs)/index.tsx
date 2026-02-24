@@ -9,10 +9,12 @@ import { useBuffer } from '../../hooks/useVelocity';
 import { useBurnout } from '../../hooks/useBurnout';
 import { useDailyPlan } from '../../hooks/usePlanner';
 import { useConfidenceOverview } from '../../hooks/useFSRS';
+import { useWeaknessOverview } from '../../hooks/useWeakness';
 import { StressThermometer } from '../../components/dashboard/StressThermometer';
 import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
 import { BurnoutIndicator } from '../../components/dashboard/BurnoutIndicator';
+import { WeaknessRadarCard } from '../../components/weakness/WeaknessRadarCard';
 import { ConfidenceStatus } from '../../types';
 
 export default function DashboardScreen() {
@@ -24,6 +26,7 @@ export default function DashboardScreen() {
   const { data: burnout } = useBurnout();
   const { data: plan } = useDailyPlan();
   const { data: confidence } = useConfidenceOverview();
+  const { data: weakness } = useWeaknessOverview();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
@@ -77,6 +80,12 @@ export default function DashboardScreen() {
               capacity={buffer.capacity}
               lastTransaction={buffer.transactions?.[0] || null}
             />
+          </View>
+        )}
+
+        {weakness && (
+          <View style={styles.section}>
+            <WeaknessRadarCard data={weakness} />
           </View>
         )}
 
