@@ -5,17 +5,18 @@
 ```
 COMPLETED                          REMAINING
 ─────────                          ─────────
-F1  Onboarding & Strategy    ✅    F12 Weekly Review
-F2  PYQ Intelligence         ✅    F13 Mock Test Integration
-F3  Living Syllabus Map      ✅    F14 Prelims/Mains Toggle
-F4  Velocity Engine + Buffer ✅    F15 "What If" Simulator
-F5  Confidence Decay (FSRS)  ✅    F16 Current Affairs Tracker
-F6  Spaced Repetition        ✅    F17 Gamification Layer
-F7  Stress Thermometer       ✅    F18 Strategic Benchmark
+F1  Onboarding & Strategy    ✅    F13 Mock Test Integration
+F2  PYQ Intelligence         ✅    F14 Prelims/Mains Toggle
+F3  Living Syllabus Map      ✅    F15 "What If" Simulator
+F4  Velocity Engine + Buffer ✅    F16 Current Affairs Tracker
+F5  Confidence Decay (FSRS)  ✅    F17 Gamification Layer
+F6  Spaced Repetition        ✅    F18 Strategic Benchmark
+F7  Stress Thermometer       ✅    F12b Weekly Review (Enhanced)
 F8  Smart Daily Planner      ✅
 F9  Weakness Radar           ✅
 F10 Recalibration Engine     ✅
 F11 Burnout Guardian         ✅
+F12a Weekly Review (Minimal) ✅
 ```
 
 ---
@@ -63,7 +64,7 @@ F11 Burnout Guardian         ✅
 | **F16** Current Affairs Tracker | Pending | F1 | Fully independent — own data model, own UI |
 | **F17** Gamification Layer | Pending | F4, F8 | Badges, XP, streaks, leaderboard |
 | **F18** Strategic Benchmark | Pending | F4, F17 | Blocked by F17 — weighted exam-readiness score |
-| **F12a** Weekly Review (Minimal) | Pending | F4, F5, F7, F8, F9, F11 | Core weekly summary — hard dependencies only |
+| **F12a** Weekly Review (Minimal) | Done | F4, F5, F7, F8, F9, F11 | Core weekly summary — hard dependencies only |
 | **F12b** Weekly Review (Enhanced) | Pending | F12a, F17 | Adds gamification data + benchmark integration |
 
 #### F12 Dependency Analysis
@@ -112,25 +113,25 @@ F1 ✅ ───┬──► F2 ✅ ──► F3 ✅ ──┬──► F13 ⏳
 F9 ✅ ◄── F3 ✅ + F5 ✅
 F10 ✅ ◄── F4 ✅ + F7 ✅ + F9 ✅
 F8 ✅ ◄── F4 ✅ + F5 ✅ + F6 ✅ + F11 ✅
-F12a ⏳ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
+F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
             + F9 ✅ + F11 ✅ (all done)
 ```
 
 ---
 
-## What's Built (Phase 1-4)
+## What's Built (Phase 1-4 + F12a)
 
-### Files Created/Modified: 89 files, ~12,300 lines
+### Files Created/Modified: ~94 files, ~12,800 lines
 
 | Layer | Count | Details |
 |-------|-------|---------|
-| SQL Migrations | 10 | 004_persona_extensions through 013_recalibration |
+| SQL Migrations | 11 | 004_persona_extensions through 014_weekly_reviews |
 | API Middleware | 1 | auth.ts (Bearer token validation) |
-| API Services | 9 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration |
-| API Routes | 11 | 9 new + 2 modified (onboarding, strategy) |
+| API Services | 10 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration, weeklyReview |
+| API Routes | 12 | 10 new + 2 modified (onboarding, strategy) |
 | Mobile Auth | 4 | login, signup, _layout, useAuth hook |
-| Mobile Hooks | 10 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration |
-| Mobile Components | 24 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), common (1) |
+| Mobile Hooks | 11 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration, useWeeklyReview |
+| Mobile Components | 25 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), weekly (1), common (1) |
 | Mobile Screens | 5 | Dashboard, Syllabus, Planner, Progress, Settings |
 | Types | 2 | API + mobile shared types |
 | Demo Data | 1 | Generated from 466-topic topic_weightage.json |
@@ -154,7 +155,7 @@ F12a ⏳ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ### Append-Only Temporal Tables
 
-`persona_snapshots`, `fsrs_review_logs`, `confidence_snapshots`, `velocity_snapshots`, `daily_logs`, `buffer_transactions`, `burnout_snapshots`, `status_changes`, `weakness_snapshots`, `recalibration_log`
+`persona_snapshots`, `fsrs_review_logs`, `confidence_snapshots`, `velocity_snapshots`, `daily_logs`, `buffer_transactions`, `burnout_snapshots`, `status_changes`, `weakness_snapshots`, `recalibration_log`, `weekly_reviews`
 
 ---
 
@@ -164,11 +165,11 @@ F12a ⏳ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ```
 Track A (Core Sequential):
-  F12a ──► F17 ──► F18 ──► F12b
-  │         │       │        │
-  Unblocked Unblocked Needs  Needs
-  (all deps (all deps F17    F12a+F17
-   done)     done)
+  F12a ✅ ──► F17 ──► F18 ──► F12b
+               │       │        │
+            Unblocked  Needs    Needs
+            (all deps  F17     F12a✅+F17
+              done)
 
 Track B (Independent):
   F16 ◄── Can start anytime, zero shared deps
@@ -180,28 +181,28 @@ Track C (Unblocked Batch — parallelizable):
 ### Visual Timeline
 
 ```
-Week     1       2       3       4       5       6
-       ┌───────┬───────┬───────┬───────┬───────┬───────┐
-Trk A  │ F12a  │ F12a  │ F17   │ F17   │F18+12b│F18+12b│
-       ├───────┼───────┼───────┼───────┼───────┼───────┤
-Trk B  │ F16   │ F16   │       │       │       │       │
-       ├───────┼───────┼───────┼───────┼───────┼───────┤
-Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │       │
-       └───────┴───────┴───────┴───────┴───────┴───────┘
+Week     1       2       3       4       5
+       ┌───────┬───────┬───────┬───────┬───────┐
+Trk A  │ F17   │ F17   │F18+12b│F18+12b│       │
+       ├───────┼───────┼───────┼───────┼───────┤
+Trk B  │ F16   │ F16   │       │       │       │
+       ├───────┼───────┼───────┼───────┼───────┤
+Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │
+       └───────┴───────┴───────┴───────┴───────┘
 ```
 
 ### Detailed Order with Rationale
 
 | Priority | Feature | Track | Why |
 |----------|---------|-------|-----|
-| 1 | **F12a** Weekly Review (Minimal) | A | All deps done — quick win, high user value |
+| ~~1~~ | ~~**F12a** Weekly Review (Minimal)~~ | ~~A~~ | ~~Done~~ ✅ |
 | 1 | **F16** Current Affairs | B | Independent, can parallelize with everything |
+| 1 | **F17** Gamification | A | Unblocks F18 and F12b |
 | 2 | **F13** Mock Test Integration | C | Unblocked, feeds accuracy data to FSRS |
 | 2 | **F14** Prelims/Mains Toggle | C | Unblocked, configuration feature |
 | 2 | **F15** "What If" Simulator | C | Unblocked, can parallelize with F13/F14 |
-| 3 | **F17** Gamification | A | Unblocks F18 and F12b |
-| 4 | **F18** Strategic Benchmark | A | Needs F17 |
-| 5 | **F12b** Weekly Review (Enhanced) | A | Final enhancement, adds gamification data |
+| 3 | **F18** Strategic Benchmark | A | Needs F17 |
+| 4 | **F12b** Weekly Review (Enhanced) | A | Final enhancement, adds gamification data |
 
 ---
 
@@ -211,7 +212,7 @@ Reference: Completed features averaged ~260 LOC backend, ~310 LOC frontend per f
 
 | Feature | Size | Layers | Est. Files | Est. LOC | Notes |
 |---------|------|--------|-----------|----------|-------|
-| **F12a** Weekly Review (Min) | M | SQL, service, route, hook, components, screen | 5-6 | 400-550 | Aggregates 6 data sources; read-heavy, no new algorithms |
+| **F12a** Weekly Review (Min) | M | SQL, service, route, hook, components, screen | 5+6 | ~700 | ✅ Done — 5 new files, 6 modified, ~700 LOC |
 | **F12b** Weekly Review (Enh) | S | Service mod, component mods | 2-3 | 150-250 | Adds gamification metrics to existing F12a views |
 | **F13** Mock Test Integration | L | SQL, service, route, hook, components, screen | 7-9 | 800-1,000 | New tables for tests/attempts/answers; accuracy feeds back to FSRS |
 | **F14** Prelims/Mains Toggle | S | Service mod, route, hook, component | 3-4 | 300-450 | Config update + planner/syllabus filtering; minimal new UI |
@@ -274,6 +275,7 @@ Reference: Completed features averaged ~260 LOC backend, ~310 LOC frontend per f
 - [ ] **Recalibration**: Settings → toggle auto-recalibrate on → after processEndOfDay → persona params adjust → settings reflects new values
 - [ ] **Weakness Tracking**: Dashboard shows weakness radar card → tap weakest topic → health detail sheet opens with component breakdown
 - [ ] **Strategy Switch**: Settings → change mode from balanced to aggressive → params update → planner adjusts topic load
+- [ ] **Weekly Review**: Progress tab → WeeklyReviewCard renders with highlights, metrics, grid, and deltas → demo mode shows demo data
 
 ### Testing Tools
 
