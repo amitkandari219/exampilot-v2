@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
 import type { TopicWithProgress, TopicStatus } from '../../types';
 import { PYQBadge } from './PYQBadge';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { HealthBadge } from '../weakness/HealthBadge';
+import { HealthDetailSheet } from '../weakness/HealthDetailSheet';
 
 interface TopicRowProps {
   topic: TopicWithProgress;
@@ -52,6 +53,7 @@ function statusLabel(status: TopicStatus): string {
 }
 
 export function TopicRow({ topic, onPress }: TopicRowProps) {
+  const [healthSheetVisible, setHealthSheetVisible] = useState(false);
   const progress = topic.user_progress;
   const status: TopicStatus = progress?.status ?? 'untouched';
   const pillColors = STATUS_PILL_COLORS[status];
@@ -63,7 +65,10 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
           {topic.name}
         </Text>
         {progress && progress.health_score > 0 && (
-          <HealthBadge score={progress.health_score} />
+          <HealthBadge
+            score={progress.health_score}
+            onPress={() => setHealthSheetVisible(true)}
+          />
         )}
         <PYQBadge weight={topic.pyq_weight} />
       </View>
@@ -87,6 +92,13 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
           />
         </View>
       )}
+
+      <HealthDetailSheet
+        visible={healthSheetVisible}
+        topicId={topic.id}
+        topicName={topic.name}
+        onClose={() => setHealthSheetVisible(false)}
+      />
     </TouchableOpacity>
   );
 }

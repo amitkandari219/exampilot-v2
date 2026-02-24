@@ -584,6 +584,47 @@ export const demoWeakness = {
   ],
 };
 
+function healthCategory(score: number) {
+  if (score >= 80) return 'exam_ready' as const;
+  if (score >= 65) return 'strong' as const;
+  if (score >= 45) return 'moderate' as const;
+  if (score >= 25) return 'weak' as const;
+  return 'critical' as const;
+}
+
+function makeHealth(id: string, name: string, score: number, components: { confidence: number; revision: number; effort: number; stability: number }, recommendation: string) {
+  return { topic_id: id, topic_name: name, health_score: score, category: healthCategory(score), components, recommendation, trend: [] as { date: string; score: number }[] };
+}
+
+export const demoTopicHealth: Record<string, ReturnType<typeof makeHealth>> = {
+  'c1000000-0000-0000-0000-000000000003': makeHealth('c1000000-0000-0000-0000-000000000003', 'Temple Architecture — Vesara Style', 38, { confidence: 42, revision: 20, effort: 50, stability: 30 }, 'Revise core concepts and attempt previous-year questions on Vesara style.'),
+  'c1000000-0000-0000-0000-00000000000c': makeHealth('c1000000-0000-0000-0000-00000000000c', 'Indian Music (Carnatic vs Hindustani)', 50, { confidence: 55, revision: 40, effort: 60, stability: 45 }, 'Focus on distinguishing features of Carnatic and Hindustani traditions.'),
+  'c1000000-0000-0000-0000-00000000000f': makeHealth('c1000000-0000-0000-0000-00000000000f', 'Six Schools of Indian Philosophy', 82, { confidence: 85, revision: 80, effort: 78, stability: 88 }, 'Strong grasp. Quick revision of Samkhya and Vedanta distinctions will keep you exam-ready.'),
+  'c1000000-0000-0000-0000-000000000012': makeHealth('c1000000-0000-0000-0000-000000000012', 'Bhakti Movement', 62, { confidence: 65, revision: 55, effort: 70, stability: 58 }, 'Review regional Bhakti saints and their contributions for a confidence boost.'),
+  'c1000000-0000-0000-0000-000000000021': makeHealth('c1000000-0000-0000-0000-000000000021', 'Anglo-Maratha Wars', 45, { confidence: 50, revision: 35, effort: 55, stability: 40 }, 'Revise key treaties and battles. Practice timeline-based questions.'),
+  'c1000000-0000-0000-0000-000000000024': makeHealth('c1000000-0000-0000-0000-000000000024', 'Land Revenue Systems', 28, { confidence: 30, revision: 15, effort: 40, stability: 25 }, 'Weak area. Create comparison tables for Zamindari, Ryotwari, and Mahalwari systems.'),
+  'c1000000-0000-0000-0000-000000000027': makeHealth('c1000000-0000-0000-0000-000000000027', 'Deindustrialization & Impact on Indian Economy', 42, { confidence: 45, revision: 30, effort: 55, stability: 38 }, 'Revise economic impact data and connect to modern implications.'),
+  'c1000000-0000-0000-0000-00000000002a': makeHealth('c1000000-0000-0000-0000-00000000002a', 'Arya Samaj (Dayananda Saraswati)', 68, { confidence: 72, revision: 60, effort: 75, stability: 65 }, 'Good foundation. Quick revision of reform contributions will solidify this.'),
+  'c1000000-0000-0000-0000-00000000002d': makeHealth('c1000000-0000-0000-0000-00000000002d', 'B.R. Ambedkar & Dalit Movement', 35, { confidence: 38, revision: 25, effort: 45, stability: 32 }, 'Needs attention. Study Ambedkar\'s constitutional contributions and key movements.'),
+  'c1000000-0000-0000-0000-000000000054': makeHealth('c1000000-0000-0000-0000-000000000054', "Sardar Patel & V.P. Menon's Role", 22, { confidence: 25, revision: 10, effort: 35, stability: 18 }, 'Urgent: Start with integration of Hyderabad, Junagadh, and Kashmir cases.'),
+  'c1000000-0000-0000-0000-000000000057': makeHealth('c1000000-0000-0000-0000-000000000057', 'Formation of New States', 55, { confidence: 60, revision: 45, effort: 62, stability: 52 }, 'Review SRC report and recent state reorganizations for complete coverage.'),
+  'c1000000-0000-0000-0000-00000000005a': makeHealth('c1000000-0000-0000-0000-00000000005a', 'Green Revolution — Impact & Critique', 75, { confidence: 78, revision: 70, effort: 80, stability: 72 }, 'Strong. Brush up on critiques and second Green Revolution for completeness.'),
+  'c1000000-0000-0000-0000-000000000063': makeHealth('c1000000-0000-0000-0000-000000000063', 'Rise of Capitalism & Imperialism', 58, { confidence: 62, revision: 50, effort: 65, stability: 55 }, 'Connect mercantilism to industrial capitalism. Practice essay-type answers.'),
+  'c1000000-0000-0000-0000-000000000066': makeHealth('c1000000-0000-0000-0000-000000000066', 'American Revolution & Bill of Rights', 18, { confidence: 20, revision: 8, effort: 30, stability: 15 }, 'Critical: Immediate revision needed. Focus on key causes, events, and constitutional impact.'),
+  'c1000000-0000-0000-0000-000000000069': makeHealth('c1000000-0000-0000-0000-000000000069', 'Treaty of Versailles & League of Nations', 32, { confidence: 35, revision: 22, effort: 42, stability: 28 }, 'Revise the 14 Points, treaty terms, and reasons for League failure.'),
+  'c1000000-0000-0000-0000-000000000075': makeHealth('c1000000-0000-0000-0000-000000000075', 'Plate Tectonics & Continental Drift', 52, { confidence: 58, revision: 42, effort: 60, stability: 48 }, 'Practice diagram-based questions on plate boundaries and movement types.'),
+  'c1000000-0000-0000-0000-000000000078': makeHealth('c1000000-0000-0000-0000-000000000078', 'Weathering & Erosion', 30, { confidence: 32, revision: 18, effort: 42, stability: 28 }, 'Weak: Revise types of weathering with examples. Draw process diagrams.'),
+  'c1000000-0000-0000-0000-00000000007b': makeHealth('c1000000-0000-0000-0000-00000000007b', 'Atmosphere — Composition & Structure', 85, { confidence: 88, revision: 82, effort: 85, stability: 86 }, 'Excellent. Maintain with periodic quick reviews of atmospheric layers.'),
+  'c1000000-0000-0000-0000-00000000007e': makeHealth('c1000000-0000-0000-0000-00000000007e', 'Cyclones — Tropical & Temperate', 72, { confidence: 75, revision: 65, effort: 78, stability: 70 }, 'Good. Compare tropical vs temperate cyclone characteristics for completeness.'),
+  'c1000000-0000-0000-0000-000000000084': makeHealth('c1000000-0000-0000-0000-000000000084', 'Ocean Currents — Major Gyres & Maps', 33, { confidence: 36, revision: 20, effort: 45, stability: 30 }, 'Practice map-based identification of major currents and their climate effects.'),
+  'c1000000-0000-0000-0000-000000000087': makeHealth('c1000000-0000-0000-0000-000000000087', 'Coral Reefs — Types, Threats', 88, { confidence: 90, revision: 85, effort: 88, stability: 90 }, 'Exam-ready. Light revision of reef conservation policies before exam.'),
+  'c1000000-0000-0000-0000-00000000009f': makeHealth('c1000000-0000-0000-0000-00000000009f', 'Unity in Diversity', 53, { confidence: 58, revision: 42, effort: 62, stability: 50 }, 'Focus on constitutional provisions and recent examples for essay answers.'),
+  'c1000000-0000-0000-0000-0000000000a2': makeHealth('c1000000-0000-0000-0000-0000000000a2', 'Multilingualism & Linguistic Diversity', 90, { confidence: 92, revision: 88, effort: 90, stability: 91 }, 'Top form. Maintain awareness of Eighth Schedule and language policy debates.'),
+  'c1000000-0000-0000-0000-0000000000a5': makeHealth('c1000000-0000-0000-0000-0000000000a5', 'Self-Help Groups (SHGs) & Microfinance', 46, { confidence: 50, revision: 38, effort: 55, stability: 42 }, 'Study NABARD and SHG-Bank linkage models. Include recent scheme updates.'),
+  'c1000000-0000-0000-0000-0000000000a8': makeHealth('c1000000-0000-0000-0000-0000000000a8', 'Population Growth — Trends, Demographic Dividend', 34, { confidence: 38, revision: 22, effort: 45, stability: 30 }, 'Revise Census data trends and demographic dividend window for India.'),
+  'c1000000-0000-0000-0000-0000000000ab': makeHealth('c1000000-0000-0000-0000-0000000000ab', 'Smart Cities Mission & Urban Governance', 60, { confidence: 65, revision: 50, effort: 68, stability: 58 }, 'Review mission progress and key urban governance reforms like 74th Amendment.'),
+};
+
 export const demoRevisionsDue = {
   overdue: [
     { topic_id: 'c1000000-0000-0000-0000-000000000002', due: '2026-02-22', topics: { name: 'Temple Architecture — Dravida Style' } },

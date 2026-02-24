@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
 import type { HealthCategory } from '../../types';
 
 interface HealthBadgeProps {
   score: number;
   category?: HealthCategory;
+  onPress?: () => void;
 }
 
 const CATEGORY_COLORS: Record<HealthCategory, string> = {
@@ -16,6 +17,14 @@ const CATEGORY_COLORS: Record<HealthCategory, string> = {
   exam_ready: theme.colors.primary,
 };
 
+const CATEGORY_LABELS: Record<HealthCategory, string> = {
+  critical: 'Critical',
+  weak: 'Weak',
+  moderate: 'Moderate',
+  strong: 'Strong',
+  exam_ready: 'Ready',
+};
+
 function getCategory(score: number): HealthCategory {
   if (score >= 80) return 'exam_ready';
   if (score >= 65) return 'strong';
@@ -24,17 +33,27 @@ function getCategory(score: number): HealthCategory {
   return 'critical';
 }
 
-export function HealthBadge({ score, category }: HealthBadgeProps) {
+export function HealthBadge({ score, category, onPress }: HealthBadgeProps) {
   const cat = category || getCategory(score);
   const color = CATEGORY_COLORS[cat];
 
-  return (
+  const content = (
     <View style={[styles.badge, { backgroundColor: color + '20' }]}>
-      <Text style={styles.label}>H</Text>
+      <Text style={[styles.label, { color }]}>{CATEGORY_LABELS[cat]}</Text>
       <View style={[styles.dot, { backgroundColor: color }]} />
       <Text style={[styles.score, { color }]}>{score}</Text>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
@@ -58,6 +77,5 @@ const styles = StyleSheet.create({
   label: {
     fontSize: theme.fontSize.xxs,
     fontWeight: '600',
-    color: theme.colors.textMuted,
   },
 });

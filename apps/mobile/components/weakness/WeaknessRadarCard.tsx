@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
+import { HealthDetailSheet } from './HealthDetailSheet';
 import type { WeaknessOverview, HealthCategory } from '../../types';
 
 interface WeaknessRadarCardProps {
@@ -16,6 +17,7 @@ const CATEGORY_COLORS: Record<HealthCategory, string> = {
 };
 
 export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
+  const [selectedTopic, setSelectedTopic] = useState<{ id: string; name: string } | null>(null);
   const { summary, weakest_topics } = data;
   const alertCount = summary.critical + summary.weak;
   const top3 = weakest_topics.slice(0, 3);
@@ -49,7 +51,12 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
         <View style={styles.weakestSection}>
           <Text style={styles.weakestTitle}>Weakest Topics</Text>
           {top3.map((t) => (
-            <View key={t.topic_id} style={styles.weakItem}>
+            <TouchableOpacity
+              key={t.topic_id}
+              style={styles.weakItem}
+              activeOpacity={0.7}
+              onPress={() => setSelectedTopic({ id: t.topic_id, name: t.topic_name })}
+            >
               <View style={[styles.dot, { backgroundColor: CATEGORY_COLORS[t.category] }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.weakName} numberOfLines={1}>{t.topic_name}</Text>
@@ -59,9 +66,18 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
               <Text style={[styles.weakScore, { color: CATEGORY_COLORS[t.category] }]}>
                 {t.health_score}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
+      )}
+
+      {selectedTopic && (
+        <HealthDetailSheet
+          visible={!!selectedTopic}
+          topicId={selectedTopic.id}
+          topicName={selectedTopic.name}
+          onClose={() => setSelectedTopic(null)}
+        />
       )}
     </View>
   );
