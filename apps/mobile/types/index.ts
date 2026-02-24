@@ -339,6 +339,57 @@ export interface RecalibrationStatus {
   last_entry: RecalibrationLogEntry | null;
 }
 
+export interface WeeklyReviewSummary {
+  id: string;
+  user_id: string;
+  week_end_date: string;
+  week_start_date: string;
+  generated_at: string;
+  // Study metrics
+  total_hours: number;
+  topics_completed: number;
+  gravity_completed: number;
+  avg_hours_per_day: number;
+  subjects_touched: number;
+  // Velocity
+  avg_velocity_ratio: number;
+  velocity_trend: string | null;
+  completion_pct_start: number;
+  completion_pct_end: number;
+  // Confidence
+  confidence_distribution: Record<string, number>;
+  topics_improved: number;
+  topics_decayed: number;
+  // Stress & Burnout
+  avg_stress: number;
+  avg_bri: number;
+  fatigue_trend: string | null;
+  recovery_days: number;
+  // Planner
+  plan_completion_rate: number;
+  plan_total_items: number;
+  plan_completed_items: number;
+  plan_new_count: number;
+  plan_revision_count: number;
+  // Weakness
+  weakness_distribution: Record<string, number>;
+  critical_count_change: number;
+  weak_count_change: number;
+  // Buffer
+  buffer_balance_start: number;
+  buffer_balance_end: number;
+  zero_day_count: number;
+  // Streak
+  current_streak: number;
+  best_streak: number;
+  // Highlights
+  highlights: string[];
+  valid_from: string;
+  // Derived
+  completion_pct_change: number;
+  buffer_balance_change: number;
+}
+
 export interface RecalibrationResult {
   status: 'applied' | 'no_change' | 'skipped';
   skipped_reason?: string;

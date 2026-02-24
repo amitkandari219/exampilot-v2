@@ -133,4 +133,14 @@ export const api = {
 
   setAutoRecalibrate: (enabled: boolean) =>
     request('/api/recalibration/auto', { method: 'POST', body: JSON.stringify({ enabled }) }),
+
+  // Weekly Review
+  getWeeklyReview: (weekEnd?: string) =>
+    request(`/api/weekly-review${weekEnd ? `?weekEnd=${weekEnd}` : ''}`),
+
+  getWeeklyReviewHistory: (limit = 8) =>
+    request(`/api/weekly-review/history?limit=${limit}`),
+
+  generateWeeklyReview: (weekEnd?: string) =>
+    request('/api/weekly-review/generate', { method: 'POST', body: JSON.stringify({ weekEnd }) }),
 };

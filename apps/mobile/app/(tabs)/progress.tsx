@@ -7,6 +7,8 @@ import { useStress } from '../../hooks/useStress';
 import { ProgressRing } from '../../components/progress/ProgressRing';
 import { SubjectProgressGrid } from '../../components/progress/SubjectProgressGrid';
 import { HistoryChart } from '../../components/progress/HistoryChart';
+import { WeeklyReviewCard } from '../../components/weekly/WeeklyReviewCard';
+import { useWeeklyReview } from '../../hooks/useWeeklyReview';
 
 export default function ProgressScreen() {
   const { data: subjects, isLoading: syllabusLoading } = useSyllabusProgress();
@@ -14,6 +16,7 @@ export default function ProgressScreen() {
   const { data: velocityHistory } = useVelocityHistory(30);
   const { data: buffer } = useBuffer();
   const { data: stress } = useStress();
+  const { data: weeklyReview } = useWeeklyReview();
 
   // Calculate overall progress
   let totalGravity = 0;
@@ -77,6 +80,12 @@ export default function ProgressScreen() {
             <StatBox label="Velocity" value={`${velocity.velocity_ratio.toFixed(2)}x`} />
             <StatBox label="Buffer" value={`${(buffer?.balance || 0).toFixed(1)}d`} />
             <StatBox label="Streak" value={`${velocity.streak?.current_count || 0}d`} />
+          </View>
+        )}
+
+        {weeklyReview && (
+          <View style={styles.section}>
+            <WeeklyReviewCard review={weeklyReview} />
           </View>
         )}
 
