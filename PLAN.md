@@ -9,14 +9,15 @@ F1  Onboarding & Strategy    ✅    F13 Mock Test Integration
 F2  PYQ Intelligence         ✅    F14 Prelims/Mains Toggle
 F3  Living Syllabus Map      ✅    F15 "What If" Simulator
 F4  Velocity Engine + Buffer ✅    F16 Current Affairs Tracker
-F5  Confidence Decay (FSRS)  ✅    F17 Gamification Layer
-F6  Spaced Repetition        ✅    F18 Strategic Benchmark
-F7  Stress Thermometer       ✅    F12b Weekly Review (Enhanced)
+F5  Confidence Decay (FSRS)  ✅    F18 Strategic Benchmark
+F6  Spaced Repetition        ✅    F12b Weekly Review (Enhanced)
+F7  Stress Thermometer       ✅
 F8  Smart Daily Planner      ✅
 F9  Weakness Radar           ✅
 F10 Recalibration Engine     ✅
 F11 Burnout Guardian         ✅
 F12a Weekly Review (Minimal) ✅
+F17 Gamification Layer       ✅
 ```
 
 ---
@@ -62,8 +63,8 @@ F12a Weekly Review (Minimal) ✅
 | **F14** Prelims/Mains Toggle | Pending | F3, F8 | Switch syllabus and planner between exam modes |
 | **F15** "What If" Simulator | Pending | F4 | Project scenarios (what if I skip 3 days, change strategy, etc.) |
 | **F16** Current Affairs Tracker | Pending | F1 | Fully independent — own data model, own UI |
-| **F17** Gamification Layer | Pending | F4, F8 | Badges, XP, streaks, leaderboard |
-| **F18** Strategic Benchmark | Pending | F4, F17 | Blocked by F17 — weighted exam-readiness score |
+| **F17** Gamification Layer | Done | F4, F8 | XP, levels, badges — 6 new files, 13 modified, ~900 LOC |
+| **F18** Strategic Benchmark | Pending | F4, F17 | Unblocked — weighted exam-readiness score |
 | **F12a** Weekly Review (Minimal) | Done | F4, F5, F7, F8, F9, F11 | Core weekly summary — hard dependencies only |
 | **F12b** Weekly Review (Enhanced) | Pending | F12a, F17 | Adds gamification data + benchmark integration |
 
@@ -102,9 +103,9 @@ F1 ✅ ───┬──► F2 ✅ ──► F3 ✅ ──┬──► F13 ⏳
          │            │
          │            ├──► F15 ⏳
          │            │
-         │            ├──► F17 ⏳ ──► F18 🔒
+         │            ├──► F17 ✅ ──► F18 ⏳
          │            │               │
-         │            │               └──► F12b 🔒
+         │            │               └──► F12b ⏳
          │            │
          │            └──► F8 ✅
          │
@@ -119,19 +120,19 @@ F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ---
 
-## What's Built (Phase 1-4 + F12a)
+## What's Built (Phase 1-4 + F12a + F17)
 
-### Files Created/Modified: ~94 files, ~12,800 lines
+### Files Created/Modified: ~113 files, ~13,700 lines
 
 | Layer | Count | Details |
 |-------|-------|---------|
-| SQL Migrations | 11 | 004_persona_extensions through 014_weekly_reviews |
+| SQL Migrations | 12 | 004_persona_extensions through 015_gamification |
 | API Middleware | 1 | auth.ts (Bearer token validation) |
-| API Services | 10 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration, weeklyReview |
-| API Routes | 12 | 10 new + 2 modified (onboarding, strategy) |
+| API Services | 11 | pyq, syllabus, fsrs, velocity, burnout, stress, planner, weakness, recalibration, weeklyReview, gamification |
+| API Routes | 13 | 11 new + 2 modified (onboarding, strategy) |
 | Mobile Auth | 4 | login, signup, _layout, useAuth hook |
-| Mobile Hooks | 11 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration, useWeeklyReview |
-| Mobile Components | 25 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), weekly (1), common (1) |
+| Mobile Hooks | 12 | useAuth, usePyqStats, useSyllabus, useFSRS, useVelocity, useBurnout, useStress, usePlanner, useWeakness, useRecalibration, useWeeklyReview, useGamification |
+| Mobile Components | 27 | syllabus (8), planner (5), dashboard (4), progress (3), weakness (4), weekly (1), gamification (2), common (1) |
 | Mobile Screens | 5 | Dashboard, Syllabus, Planner, Progress, Settings |
 | Types | 2 | API + mobile shared types |
 | Demo Data | 1 | Generated from 466-topic topic_weightage.json |
@@ -152,10 +153,11 @@ F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 | Planner Priority | `(pyq_weight*4) + (importance*2) + (urgency*2) + decay + freshness + variety` |
 | Health Score | `confidence(0.40) + revision(0.25) + effort(0.20) + stability(0.15)` |
 | Recalibration | Rule-based adjustments with ±20% mode drift limit, 3-day cooldown |
+| XP Level | `level = floor(sqrt(2 * xp_total / 500)) + 1`, 500*N XP per level |
 
 ### Append-Only Temporal Tables
 
-`persona_snapshots`, `fsrs_review_logs`, `confidence_snapshots`, `velocity_snapshots`, `daily_logs`, `buffer_transactions`, `burnout_snapshots`, `status_changes`, `weakness_snapshots`, `recalibration_log`, `weekly_reviews`
+`persona_snapshots`, `fsrs_review_logs`, `confidence_snapshots`, `velocity_snapshots`, `daily_logs`, `buffer_transactions`, `burnout_snapshots`, `status_changes`, `weakness_snapshots`, `recalibration_log`, `weekly_reviews`, `xp_transactions`, `user_badges`
 
 ---
 
@@ -165,11 +167,10 @@ F12a ✅ ◄── F4 ✅ + F5 ✅ + F7 ✅ + F8 ✅
 
 ```
 Track A (Core Sequential):
-  F12a ✅ ──► F17 ──► F18 ──► F12b
-               │       │        │
-            Unblocked  Needs    Needs
-            (all deps  F17     F12a✅+F17
-              done)
+  F12a ✅ ──► F17 ✅ ──► F18 ──► F12b
+                          │        │
+                        Unblocked  Needs
+                        (F17 done) F12a✅+F17✅
 
 Track B (Independent):
   F16 ◄── Can start anytime, zero shared deps
@@ -196,8 +197,8 @@ Trk C  │ F13   │F13│F14│ F14   │ F15   │ F15   │
 | Priority | Feature | Track | Why |
 |----------|---------|-------|-----|
 | ~~1~~ | ~~**F12a** Weekly Review (Minimal)~~ | ~~A~~ | ~~Done~~ ✅ |
+| ~~1~~ | ~~**F17** Gamification~~ | ~~A~~ | ~~Done~~ ✅ |
 | 1 | **F16** Current Affairs | B | Independent, can parallelize with everything |
-| 1 | **F17** Gamification | A | Unblocks F18 and F12b |
 | 2 | **F13** Mock Test Integration | C | Unblocked, feeds accuracy data to FSRS |
 | 2 | **F14** Prelims/Mains Toggle | C | Unblocked, configuration feature |
 | 2 | **F15** "What If" Simulator | C | Unblocked, can parallelize with F13/F14 |
