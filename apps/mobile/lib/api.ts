@@ -44,6 +44,9 @@ export const api = {
   customizeParams: (params: Record<string, number>) =>
     request('/api/strategy/customize', { method: 'POST', body: JSON.stringify({ params }) }),
 
+  switchExamMode: (examMode: string) =>
+    request('/api/strategy/exam-mode', { method: 'POST', body: JSON.stringify({ examMode }) }),
+
   // PYQ
   getPyqStats: () =>
     request('/api/pyq-stats'),

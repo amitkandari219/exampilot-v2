@@ -9,7 +9,8 @@ import { useActivateRecovery, useExitRecovery, useBurnout } from '../../hooks/us
 import { useRecalibrationStatus, useTriggerRecalibration, useSetAutoRecalibrate } from '../../hooks/useRecalibration';
 import { useGamification, useBadges } from '../../hooks/useGamification';
 import { BadgeGrid } from '../../components/gamification/BadgeGrid';
-import { StrategyMode, StrategyParams } from '../../types';
+import { StrategyMode, StrategyParams, ExamMode } from '../../types';
+import { useSwitchExamMode } from '../../hooks/useStrategy';
 import { api } from '../../lib/api';
 
 export default function SettingsScreen() {
@@ -23,8 +24,10 @@ export default function SettingsScreen() {
   const setAutoRecalibrate = useSetAutoRecalibrate();
   const { data: gamification } = useGamification();
   const { data: badges } = useBadges();
+  const switchExamMode = useSwitchExamMode();
 
   const [mode, setMode] = useState<StrategyMode>('balanced');
+  const [examMode, setExamMode] = useState<ExamMode>('mains');
   const [params, setParams] = useState<StrategyParams>(getDefaultParams('balanced'));
   const [personaParams, setPersonaParams] = useState<Record<string, number>>({});
 
@@ -39,9 +42,21 @@ export default function SettingsScreen() {
           fsrs_target_retention: data.fsrs_target_retention || 0.9,
           burnout_threshold: data.burnout_threshold || 75,
         });
+        if (data.current_mode) setExamMode(data.current_mode);
       }
     }).catch(() => {});
   }, []);
+
+  const examModeDescriptions: Record<ExamMode, string> = {
+    prelims: 'MCQ focus. Velocity targets prelims date.',
+    mains: 'Full GS syllabus with answer writing focus.',
+    post_prelims: 'Intensive mains prep after clearing prelims.',
+  };
+
+  const handleExamModeChange = (newMode: ExamMode) => {
+    setExamMode(newMode);
+    switchExamMode.mutate(newMode);
+  };
 
   const handleModeChange = async (newMode: StrategyMode) => {
     setMode(newMode);
@@ -156,6 +171,25 @@ export default function SettingsScreen() {
             )}
           </View>
         )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Exam Mode</Text>
+          <View style={styles.examModeToggle}>
+            {(['prelims', 'mains', 'post_prelims'] as ExamMode[]).map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[styles.examModeButton, examMode === m && styles.examModeButtonActive]}
+                onPress={() => handleExamModeChange(m)}
+                disabled={switchExamMode.isPending}
+              >
+                <Text style={[styles.examModeButtonText, examMode === m && styles.examModeButtonTextActive]}>
+                  {m === 'post_prelims' ? 'Post-Prelims' : m.charAt(0).toUpperCase() + m.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.examModeDesc}>{examModeDescriptions[examMode]}</Text>
+        </View>
 
         <StrategyCard
           currentMode={mode}
@@ -351,6 +385,38 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: theme.fontSize.sm,
     fontWeight: '600' as const,
+  },
+  examModeToggle: {
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.xs,
+  },
+  examModeButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  examModeButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  examModeButtonText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: '600' as const,
+    color: theme.colors.textSecondary,
+  },
+  examModeButtonTextActive: {
+    color: theme.colors.background,
+  },
+  examModeDesc: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.sm,
+    textAlign: 'center' as const,
   },
   signOutButton: {
     backgroundColor: theme.colors.error + '20',

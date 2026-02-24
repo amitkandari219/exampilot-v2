@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { StrategyMode, StrategyParams } from '../types';
+import { StrategyMode, StrategyParams, ExamMode } from '../types';
 
 interface StrategyData {
   strategy_mode: StrategyMode;
   strategy_params: StrategyParams;
   daily_hours: number;
-  current_mode: string;
+  current_mode: ExamMode;
 }
 
 export function useStrategy() {
@@ -35,6 +35,19 @@ export function useCustomizeParams() {
       api.customizeParams(params as Record<string, number>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['strategy'] });
+    },
+  });
+}
+
+export function useSwitchExamMode() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (examMode: ExamMode) => api.switchExamMode(examMode),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['strategy'] });
+      queryClient.invalidateQueries({ queryKey: ['velocity'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
     },
   });
 }

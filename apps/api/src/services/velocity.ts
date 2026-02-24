@@ -5,7 +5,7 @@ export async function calculateVelocity(userId: string) {
   // Get user profile
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('exam_date, buffer_capacity, daily_hours, strategy_params')
+    .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date')
     .eq('id', userId)
     .single();
 
@@ -14,7 +14,9 @@ export async function calculateVelocity(userId: string) {
   }
 
   const now = new Date();
-  const examDate = new Date(profile.exam_date);
+  const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
+    ? profile.prelims_date : profile.exam_date;
+  const examDate = new Date(targetDate);
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
 
   // Get all topics with their gravity
@@ -133,13 +135,15 @@ export async function calculateVelocity(userId: string) {
 export async function updateBuffer(userId: string, date: string) {
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('buffer_balance, buffer_capacity, exam_date')
+    .select('buffer_balance, buffer_capacity, exam_date, current_mode, prelims_date')
     .eq('id', userId)
     .single();
 
   if (!profile) throw new Error('Profile not found');
 
-  const examDate = new Date(profile.exam_date);
+  const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
+    ? profile.prelims_date : profile.exam_date;
+  const examDate = new Date(targetDate);
   const now = new Date(date);
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
   const maxBuffer = daysRemaining * (profile.buffer_capacity || 0.15);
@@ -375,13 +379,15 @@ export async function getVelocityHistory(userId: string, days: number) {
 export async function getBufferDetails(userId: string) {
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('buffer_balance, buffer_capacity, exam_date')
+    .select('buffer_balance, buffer_capacity, exam_date, current_mode, prelims_date')
     .eq('id', userId)
     .single();
 
   if (!profile) throw new Error('Profile not found');
 
-  const examDate = new Date(profile.exam_date);
+  const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
+    ? profile.prelims_date : profile.exam_date;
+  const examDate = new Date(targetDate);
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
   const balanceDays = profile.buffer_balance || 0;
 

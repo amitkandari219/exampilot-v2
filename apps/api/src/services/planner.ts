@@ -77,7 +77,7 @@ export async function generateDailyPlan(userId: string, date: string) {
   // Get eligible topics
   const { data: allTopics } = await supabase
     .from('topics')
-    .select('*, chapters!inner(subject_id, name, subjects!inner(name))')
+    .select('*, chapters!inner(subject_id, name, subjects!inner(name, papers))')
     .order('pyq_weight', { ascending: false });
 
   const { data: userProgress } = await supabase
@@ -122,7 +122,10 @@ export async function generateDailyPlan(userId: string, date: string) {
     const mockBoost = (mockAccuracy != null && mockAccuracy < 0.3) ? 3
       : (mockAccuracy != null && mockAccuracy < 0.5) ? 2 : 0;
 
-    const priority = (t.pyq_weight * 4) + (t.importance * 2) + (urgency * 2) + decayBoost + freshness + mockBoost;
+    const subjectPapers: string[] = (t as any).chapters?.subjects?.papers || [];
+    const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? 3 : 0;
+
+    const priority = (t.pyq_weight * 4) + (t.importance * 2) + (urgency * 2) + decayBoost + freshness + mockBoost + prelimsBoost;
 
     return { topic: t, priority, type: 'new' as const };
   });
@@ -130,11 +133,15 @@ export async function generateDailyPlan(userId: string, date: string) {
   // Score revision topics
   const revisionItems = (allTopics || [])
     .filter((t) => revisionTopicIds.has(t.id))
-    .map((t) => ({
-      topic: t,
-      priority: (t.pyq_weight * 4) + (t.importance * 2) + 5, // revision bonus
-      type: 'revision' as const,
-    }));
+    .map((t) => {
+      const subjectPapers: string[] = (t as any).chapters?.subjects?.papers || [];
+      const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? 3 : 0;
+      return {
+        topic: t,
+        priority: (t.pyq_weight * 4) + (t.importance * 2) + 5 + prelimsBoost, // revision bonus + prelims boost
+        type: 'revision' as const,
+      };
+    });
 
   // Combine and sort
   const allItems = [...revisionItems, ...scoredTopics].sort((a, b) => b.priority - a.priority);

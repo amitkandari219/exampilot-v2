@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase.js';
-import { StrategyMode, StrategyParams, OnboardingPayload, CustomizePayload, PersonaParams } from '../types/index.js';
+import { StrategyMode, StrategyParams, OnboardingPayload, CustomizePayload, PersonaParams, ExamMode } from '../types/index.js';
 
 const modeDefaults: Record<StrategyMode, StrategyParams> = {
   conservative: {
@@ -166,6 +166,21 @@ export async function switchMode(userId: string, mode: StrategyMode) {
     change_reason: 'mode_switch',
   });
 
+  return data;
+}
+
+export async function switchExamMode(userId: string, examMode: ExamMode) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update({
+      current_mode: examMode,
+      mode_switched_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select('current_mode, mode_switched_at')
+    .single();
+
+  if (error) throw error;
   return data;
 }
 
