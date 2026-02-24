@@ -160,4 +160,17 @@ export const api = {
 
   generateWeeklyReview: (weekEnd?: string) =>
     request('/api/weekly-review/generate', { method: 'POST', body: JSON.stringify({ weekEnd }) }),
+
+  // Mock Tests
+  createMock: (body: Record<string, unknown>) =>
+    request('/api/mocks', { method: 'POST', body: JSON.stringify(body) }),
+
+  getMocks: (limit = 20) =>
+    request(`/api/mocks?limit=${limit}`),
+
+  getMockAnalytics: () =>
+    request('/api/mocks/analytics'),
+
+  getMockTopicHistory: (topicId: string) =>
+    request(`/api/mocks/topic/${topicId}/history`),
 };

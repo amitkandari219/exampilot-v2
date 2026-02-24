@@ -419,7 +419,7 @@ export interface RecalibrationResult {
 }
 
 // Gamification types
-export type XPTriggerType = 'plan_item_new' | 'plan_item_revision' | 'plan_item_decay_revision' | 'plan_item_stretch' | 'fsrs_review_correct' | 'fsrs_review_incorrect' | 'streak_milestone' | 'recovery_completion' | 'badge_unlock';
+export type XPTriggerType = 'plan_item_new' | 'plan_item_revision' | 'plan_item_decay_revision' | 'plan_item_stretch' | 'fsrs_review_correct' | 'fsrs_review_incorrect' | 'streak_milestone' | 'recovery_completion' | 'badge_unlock' | 'mock_completion';
 export type BadgeCategory = 'streak' | 'milestone' | 'study' | 'recovery' | 'special';
 
 export interface XPTransaction {
@@ -490,4 +490,80 @@ export interface BenchmarkHistoryPoint {
   snapshot_date: string;
   composite_score: number;
   status: BenchmarkStatus;
+}
+
+// Mock Test types
+export type MockTrend = 'improving' | 'stable' | 'declining';
+export type MockSource = 'manual' | 'csv_import';
+export type MockDifficulty = 'easy' | 'medium' | 'hard';
+
+export interface MockTest {
+  id: string;
+  user_id: string;
+  test_name: string;
+  test_date: string;
+  total_questions: number;
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  unattempted: number;
+  score: number;
+  max_score: number;
+  percentile: number | null;
+  source: MockSource;
+  created_at: string;
+}
+
+export interface MockQuestion {
+  id: string;
+  mock_test_id: string;
+  question_number: number;
+  topic_id: string | null;
+  subject_id: string;
+  is_correct: boolean;
+  is_attempted: boolean;
+  difficulty: MockDifficulty | null;
+}
+
+export interface MockTopicAccuracy {
+  id: string;
+  user_id: string;
+  topic_id: string;
+  total_questions: number;
+  correct_questions: number;
+  accuracy: number;
+  last_mock_date: string | null;
+  trend: MockTrend;
+}
+
+export interface MockSubjectAccuracy {
+  id: string;
+  user_id: string;
+  subject_id: string;
+  total_questions: number;
+  correct: number;
+  accuracy: number;
+  tests_count: number;
+  avg_score_pct: number;
+  best_score_pct: number;
+  trend: MockTrend;
+}
+
+export interface MockAnalytics {
+  score_trend: Array<{ test_date: string; score_pct: number; test_name: string }>;
+  subject_accuracy: Array<MockSubjectAccuracy & { subject_name: string }>;
+  weakest_topics: Array<{ topic_id: string; topic_name: string; accuracy: number; total_questions: number; trend: MockTrend }>;
+  strongest_topics: Array<{ topic_id: string; topic_name: string; accuracy: number; total_questions: number }>;
+  tests_count: number;
+  avg_score_pct: number;
+  best_score_pct: number;
+  recommendation: string;
+}
+
+export interface MockTopicHistory {
+  topic_id: string;
+  topic_name: string;
+  current_accuracy: number;
+  trend: MockTrend;
+  history: Array<{ test_date: string; questions: number; correct: number; accuracy: number }>;
 }

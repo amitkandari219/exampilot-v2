@@ -118,7 +118,11 @@ export async function generateDailyPlan(userId: string, date: string) {
     const decayBoost = (prog?.confidence_status === 'decayed') ? 3
       : (prog?.confidence_status === 'stale') ? 2 : 0;
 
-    const priority = (t.pyq_weight * 4) + (t.importance * 2) + (urgency * 2) + decayBoost + freshness;
+    const mockAccuracy = (prog as any)?.mock_accuracy;
+    const mockBoost = (mockAccuracy != null && mockAccuracy < 0.3) ? 3
+      : (mockAccuracy != null && mockAccuracy < 0.5) ? 2 : 0;
+
+    const priority = (t.pyq_weight * 4) + (t.importance * 2) + (urgency * 2) + decayBoost + freshness + mockBoost;
 
     return { topic: t, priority, type: 'new' as const };
   });

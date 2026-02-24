@@ -9,6 +9,7 @@ const XP_AMOUNTS: Record<string, number> = {
   fsrs_review_correct: 50,
   fsrs_review_incorrect: 20,
   recovery_completion: 150,
+  mock_completion: 150,
 };
 
 const STREAK_MILESTONES: Record<number, number> = {

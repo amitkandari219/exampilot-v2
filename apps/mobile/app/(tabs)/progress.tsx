@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { theme } from '../../constants/theme';
 import { useSyllabusProgress } from '../../hooks/useSyllabus';
 import { useVelocity, useVelocityHistory, useBuffer } from '../../hooks/useVelocity';
@@ -11,6 +11,12 @@ import { WeeklyReviewCard } from '../../components/weekly/WeeklyReviewCard';
 import { BenchmarkScoreCard } from '../../components/benchmark/BenchmarkScoreCard';
 import { useWeeklyReview } from '../../hooks/useWeeklyReview';
 import { useBenchmark } from '../../hooks/useBenchmark';
+import { useMockAnalytics } from '../../hooks/useMockTest';
+import { MockSummaryCard } from '../../components/mock/MockSummaryCard';
+import { MockScoreTrendChart } from '../../components/mock/MockScoreTrendChart';
+import { SubjectAccuracyGrid } from '../../components/mock/SubjectAccuracyGrid';
+import { WeakestTopicsAlert } from '../../components/mock/WeakestTopicsAlert';
+import { MockEntrySheet } from '../../components/mock/MockEntrySheet';
 
 export default function ProgressScreen() {
   const { data: subjects, isLoading: syllabusLoading } = useSyllabusProgress();
@@ -20,6 +26,8 @@ export default function ProgressScreen() {
   const { data: stress } = useStress();
   const { data: weeklyReview } = useWeeklyReview();
   const { data: benchmark } = useBenchmark();
+  const { data: mockAnalytics } = useMockAnalytics();
+  const [showMockEntry, setShowMockEntry] = useState(false);
 
   // Calculate overall progress
   let totalGravity = 0;
@@ -116,6 +124,44 @@ export default function ProgressScreen() {
           </View>
         )}
 
+        {/* Mock Tests Section */}
+        <View style={styles.mockHeader}>
+          <Text style={styles.mockTitle}>Mock Tests</Text>
+          <TouchableOpacity style={styles.recordBtn} onPress={() => setShowMockEntry(true)}>
+            <Text style={styles.recordBtnText}>+ Record Mock</Text>
+          </TouchableOpacity>
+        </View>
+
+        {mockAnalytics && mockAnalytics.tests_count > 0 ? (
+          <>
+            <View style={styles.section}>
+              <MockSummaryCard analytics={mockAnalytics} />
+            </View>
+            {mockAnalytics.score_trend.length > 0 && (
+              <View style={styles.section}>
+                <MockScoreTrendChart data={mockAnalytics.score_trend} />
+              </View>
+            )}
+            {mockAnalytics.subject_accuracy.length > 0 && (
+              <View style={styles.section}>
+                <SubjectAccuracyGrid data={mockAnalytics.subject_accuracy} />
+              </View>
+            )}
+            {mockAnalytics.weakest_topics.length > 0 && (
+              <View style={styles.section}>
+                <WeakestTopicsAlert topics={mockAnalytics.weakest_topics} />
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={styles.emptyMock}>
+            <Text style={styles.emptyMockText}>No mock tests recorded yet</Text>
+            <Text style={styles.emptyMockSub}>Tap "+ Record Mock" to add your first test</Text>
+          </View>
+        )}
+
+        <MockEntrySheet visible={showMockEntry} onClose={() => setShowMockEntry(false)} />
+
         <View style={{ height: theme.spacing.xxl }} />
       </ScrollView>
     </SafeAreaView>
@@ -181,5 +227,47 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: theme.spacing.md,
+  },
+  mockHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    marginTop: theme.spacing.md,
+  },
+  mockTitle: {
+    fontSize: theme.fontSize.lg,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  recordBtn: {
+    backgroundColor: theme.colors.primary + '20',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+  },
+  recordBtnText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  emptyMock: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  emptyMockText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  emptyMockSub: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing.xs,
   },
 });

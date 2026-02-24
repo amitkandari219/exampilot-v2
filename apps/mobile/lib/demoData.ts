@@ -845,3 +845,72 @@ export const demoRevisionsDue = {
     { topic_id: 'c1000000-0000-0000-0000-000000000074', due: '2026-02-26', topics: { name: 'Interior of Earth & Seismic Waves' } },
   ],
 };
+
+// Mock Test demo data
+export const demoMockTests = [
+  {
+    id: 'demo-mock-1', user_id: 'demo-user', test_name: 'Prelims Mock 1', test_date: '2026-02-10',
+    total_questions: 100, attempted: 82, correct: 45, incorrect: 37, unattempted: 18,
+    score: 65.58, max_score: 200, percentile: null, source: 'manual' as const, created_at: '2026-02-10T18:00:00.000Z',
+  },
+  {
+    id: 'demo-mock-2', user_id: 'demo-user', test_name: 'Prelims Mock 2', test_date: '2026-02-17',
+    total_questions: 100, attempted: 88, correct: 52, incorrect: 36, unattempted: 12,
+    score: 80.24, max_score: 200, percentile: null, source: 'manual' as const, created_at: '2026-02-17T18:00:00.000Z',
+  },
+  {
+    id: 'demo-mock-3', user_id: 'demo-user', test_name: 'Prelims Mock 3', test_date: '2026-02-24',
+    total_questions: 100, attempted: 90, correct: 58, incorrect: 32, unattempted: 10,
+    score: 94.88, max_score: 200, percentile: null, source: 'manual' as const, created_at: '2026-02-24T18:00:00.000Z',
+  },
+];
+
+export const demoMockAnalytics = {
+  score_trend: [
+    { test_date: '2026-02-10', score_pct: 32.8, test_name: 'Prelims Mock 1' },
+    { test_date: '2026-02-17', score_pct: 40.1, test_name: 'Prelims Mock 2' },
+    { test_date: '2026-02-24', score_pct: 47.4, test_name: 'Prelims Mock 3' },
+  ],
+  subject_accuracy: [
+    {
+      id: 'sa-1', user_id: 'demo-user', subject_id: 'b0000000-0000-0000-0000-000000000001',
+      total_questions: 35, correct: 22, accuracy: 0.63, tests_count: 3, avg_score_pct: 40.1, best_score_pct: 47.4,
+      trend: 'improving' as const, subject_name: 'Indian Heritage & Culture',
+    },
+    {
+      id: 'sa-2', user_id: 'demo-user', subject_id: 'b0000000-0000-0000-0000-000000000004',
+      total_questions: 40, correct: 18, accuracy: 0.45, tests_count: 3, avg_score_pct: 38.5, best_score_pct: 44.0,
+      trend: 'stable' as const, subject_name: 'World History',
+    },
+    {
+      id: 'sa-3', user_id: 'demo-user', subject_id: 'b0000000-0000-0000-0000-000000000005',
+      total_questions: 30, correct: 21, accuracy: 0.70, tests_count: 3, avg_score_pct: 42.0, best_score_pct: 50.0,
+      trend: 'improving' as const, subject_name: 'Physical Geography',
+    },
+  ],
+  weakest_topics: [
+    { topic_id: 'c1000000-0000-0000-0000-000000000066', topic_name: 'American Revolution & Bill of Rights', accuracy: 0.2, total_questions: 5, trend: 'declining' as const },
+    { topic_id: 'c1000000-0000-0000-0000-000000000069', topic_name: 'Treaty of Versailles & League of Nations', accuracy: 0.3, total_questions: 6, trend: 'stable' as const },
+    { topic_id: 'c1000000-0000-0000-0000-000000000084', topic_name: 'Ocean Currents — Major Gyres & Maps', accuracy: 0.35, total_questions: 8, trend: 'improving' as const },
+  ],
+  strongest_topics: [
+    { topic_id: 'c1000000-0000-0000-0000-00000000007b', topic_name: 'Atmosphere — Composition & Structure', accuracy: 0.85, total_questions: 7 },
+    { topic_id: 'c1000000-0000-0000-0000-000000000087', topic_name: 'Coral Reefs — Types, Threats', accuracy: 0.80, total_questions: 5 },
+  ],
+  tests_count: 3,
+  avg_score_pct: 40.1,
+  best_score_pct: 47.4,
+  recommendation: 'Good progress. Target your weakest topics to push above 60%.',
+};
+
+export const demoMockTopicHistory = {
+  topic_id: 'c1000000-0000-0000-0000-000000000084',
+  topic_name: 'Ocean Currents — Major Gyres & Maps',
+  current_accuracy: 0.35,
+  trend: 'improving' as const,
+  history: [
+    { test_date: '2026-02-10', questions: 3, correct: 0, accuracy: 0.0 },
+    { test_date: '2026-02-17', questions: 2, correct: 1, accuracy: 0.5 },
+    { test_date: '2026-02-24', questions: 3, correct: 2, accuracy: 0.67 },
+  ],
+};
