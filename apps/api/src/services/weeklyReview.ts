@@ -21,6 +21,14 @@ function addDerived(row: any): WeeklyReviewSummary {
     highlights: row.highlights || [],
     confidence_distribution: row.confidence_distribution || {},
     weakness_distribution: row.weakness_distribution || {},
+    badges_unlocked: row.badges_unlocked || [],
+    xp_earned: row.xp_earned || 0,
+    level_start: row.level_start || 1,
+    level_end: row.level_end || 1,
+    benchmark_score_start: row.benchmark_score_start ?? null,
+    benchmark_score_end: row.benchmark_score_end ?? null,
+    benchmark_status: row.benchmark_status ?? null,
+    benchmark_trend: row.benchmark_trend ?? null,
     completion_pct_change: (row.completion_pct_end || 0) - (row.completion_pct_start || 0),
     buffer_balance_change: (row.buffer_balance_end || 0) - (row.buffer_balance_start || 0),
   };
@@ -83,6 +91,8 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
     bufferTx,
     confidenceDist,
     streakData,
+    xpData,
+    badgesData,
   ] = await Promise.all([
     // daily_logs
     supabase
@@ -155,6 +165,22 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
       .eq('user_id', userId)
       .eq('streak_type', 'daily_study')
       .single(),
+
+    // xp_transactions — sum XP earned this week
+    supabase
+      .from('xp_transactions')
+      .select('xp_amount')
+      .eq('user_id', userId)
+      .gte('created_at', weekStartStr)
+      .lte('created_at', weekEndStr + 'T23:59:59Z'),
+
+    // user_badges — badges unlocked this week
+    supabase
+      .from('user_badges')
+      .select('badge_slug, badge_definitions(name, icon_name)')
+      .eq('user_id', userId)
+      .gte('unlocked_at', weekStartStr)
+      .lte('unlocked_at', weekEndStr + 'T23:59:59Z'),
   ]);
 
   // --- Compute Study Metrics ---
@@ -240,10 +266,53 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
   const current_streak = streakData.data?.current_count || 0;
   const best_streak = streakData.data?.best_count || 0;
 
+  // --- Gamification ---
+  const xpRows = xpData.data || [];
+  const xp_earned = xpRows.reduce((s: number, r: any) => s + (r.xp_amount || 0), 0);
+
+  const badgeRows = badgesData.data || [];
+  const badges_unlocked = badgeRows.map((b: any) => ({
+    slug: b.badge_slug,
+    name: b.badge_definitions?.name || b.badge_slug,
+    icon_name: b.badge_definitions?.icon_name || 'star',
+  }));
+
+  // Level: query user_profiles for current level
+  const { data: userProfile } = await supabase
+    .from('user_profiles').select('current_level, xp_total').eq('id', userId).single();
+  const level_end = userProfile?.current_level || 1;
+  // Approximate level_start by reverse-calculating from xp_total - xp_earned
+  const xpAtStart = (userProfile?.xp_total || 0) - xp_earned;
+  const level_start = Math.max(1, Math.floor(Math.sqrt(2 * xpAtStart / 500)) + 1);
+
+  // --- Benchmark ---
+  const [benchmarkStart, benchmarkEnd] = await Promise.all([
+    supabase.from('benchmark_snapshots')
+      .select('composite_score, status')
+      .eq('user_id', userId)
+      .lte('snapshot_date', weekStartStr)
+      .order('snapshot_date', { ascending: false })
+      .limit(1).single(),
+    supabase.from('benchmark_snapshots')
+      .select('composite_score, status')
+      .eq('user_id', userId)
+      .lte('snapshot_date', weekEndStr)
+      .order('snapshot_date', { ascending: false })
+      .limit(1).single(),
+  ]);
+
+  const benchmark_score_start = benchmarkStart.data?.composite_score ?? null;
+  const benchmark_score_end = benchmarkEnd.data?.composite_score ?? null;
+  const benchmark_status = benchmarkEnd.data?.status ?? null;
+  const benchmark_trend = (benchmark_score_start != null && benchmark_score_end != null)
+    ? (benchmark_score_end - benchmark_score_start > 2 ? 'improving' : benchmark_score_end - benchmark_score_start < -2 ? 'declining' : 'stable')
+    : null;
+
   // --- Highlights ---
   const highlights = generateHighlights({
     topics_completed, avg_velocity_ratio, avg_bri, plan_completion_rate,
     current_streak, zero_day_count,
+    xp_earned, badges_unlocked, benchmark_score_end, benchmark_status, benchmark_trend,
   });
 
   // --- Build Row ---
@@ -282,6 +351,14 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
     current_streak,
     best_streak,
     highlights,
+    xp_earned,
+    badges_unlocked,
+    level_start,
+    level_end,
+    benchmark_score_start,
+    benchmark_score_end,
+    benchmark_status,
+    benchmark_trend,
   };
 
   // Upsert
@@ -304,6 +381,11 @@ interface HighlightInput {
   plan_completion_rate: number;
   current_streak: number;
   zero_day_count: number;
+  xp_earned: number;
+  badges_unlocked: Array<{ slug: string; name: string; icon_name: string }>;
+  benchmark_score_end: number | null;
+  benchmark_status: string | null;
+  benchmark_trend: string | null;
 }
 
 function generateHighlights(input: HighlightInput): string[] {
@@ -335,6 +417,19 @@ function generateHighlights(input: HighlightInput): string[] {
 
   if (input.zero_day_count >= 3) {
     highlights.push({ priority: 6, text: `${input.zero_day_count} zero-study days — try to maintain consistency` });
+  }
+
+  if (input.xp_earned > 0) {
+    highlights.push({ priority: 7, text: `Earned ${input.xp_earned.toLocaleString()} XP this week` });
+  }
+
+  if (input.badges_unlocked.length > 0) {
+    const names = input.badges_unlocked.map((b) => b.name).join(', ');
+    highlights.push({ priority: 5, text: `Unlocked ${input.badges_unlocked.length} badge(s): ${names}` });
+  }
+
+  if (input.benchmark_score_end != null && input.benchmark_trend === 'improving') {
+    highlights.push({ priority: 4, text: `Readiness score improved to ${input.benchmark_score_end} (${input.benchmark_status})` });
   }
 
   // Sort by priority and take top 3

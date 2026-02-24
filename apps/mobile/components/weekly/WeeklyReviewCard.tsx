@@ -105,9 +105,39 @@ const deltaStyles = StyleSheet.create({
   },
 });
 
+function benchmarkStatusColor(status: string | null): string {
+  switch (status) {
+    case 'exam_ready': return theme.colors.success;
+    case 'on_track': return theme.colors.primary;
+    case 'needs_work': return theme.colors.warning;
+    case 'at_risk': return theme.colors.error;
+    default: return theme.colors.textMuted;
+  }
+}
+
+function formatBenchmarkStatus(status: string | null): string {
+  switch (status) {
+    case 'exam_ready': return 'Exam Ready';
+    case 'on_track': return 'On Track';
+    case 'needs_work': return 'Needs Work';
+    case 'at_risk': return 'At Risk';
+    default: return '';
+  }
+}
+
 export function WeeklyReviewCard({ review }: Props) {
   const velocityColor = review.avg_velocity_ratio >= 0.9 ? theme.colors.success : review.avg_velocity_ratio >= 0.7 ? theme.colors.warning : theme.colors.error;
   const briColor = review.avg_bri >= 60 ? theme.colors.success : review.avg_bri >= 40 ? theme.colors.warning : theme.colors.error;
+
+  const xpEarned = review.xp_earned || 0;
+  const badgesUnlocked = review.badges_unlocked || [];
+  const levelStart = review.level_start || 1;
+  const levelEnd = review.level_end || 1;
+  const leveledUp = levelStart !== levelEnd;
+  const levelLabel = leveledUp ? `Lv ${levelStart}\u2192${levelEnd}` : `Lv ${levelEnd}`;
+  const benchmarkDelta = (review.benchmark_score_start != null && review.benchmark_score_end != null)
+    ? review.benchmark_score_end - review.benchmark_score_start
+    : null;
 
   return (
     <View style={styles.card}>
@@ -136,6 +166,33 @@ export function WeeklyReviewCard({ review }: Props) {
         <MetricPill value={`${review.topics_completed}`} label="Topics" />
         <MetricPill value={`${review.avg_hours_per_day}h/d`} label="Daily" />
       </View>
+
+      {/* XP & Level */}
+      <View style={styles.divider} />
+      <View style={styles.metricsRow}>
+        <MetricPill value={`+${xpEarned.toLocaleString()}`} label="XP" />
+        <MetricPill value={levelLabel} label="Level" />
+        <MetricPill value={`${badgesUnlocked.length}`} label="Badges" />
+      </View>
+
+      {/* Benchmark */}
+      {review.benchmark_score_end != null && (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.grid}>
+            <GridItem
+              label="Readiness"
+              value={`${review.benchmark_score_end}${benchmarkDelta != null ? ` (${benchmarkDelta >= 0 ? '+' : ''}${benchmarkDelta})` : ''}`}
+              color={benchmarkStatusColor(review.benchmark_status)}
+            />
+            <GridItem
+              label="Status"
+              value={formatBenchmarkStatus(review.benchmark_status)}
+              color={benchmarkStatusColor(review.benchmark_status)}
+            />
+          </View>
+        </>
+      )}
 
       {/* Grid */}
       <View style={styles.divider} />

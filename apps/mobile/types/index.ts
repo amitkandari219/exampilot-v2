@@ -385,6 +385,16 @@ export interface WeeklyReviewSummary {
   // Highlights
   highlights: string[];
   valid_from: string;
+  // Gamification (F12b)
+  xp_earned: number;
+  badges_unlocked: Array<{ slug: string; name: string; icon_name: string }>;
+  level_start: number;
+  level_end: number;
+  // Benchmark (F12b)
+  benchmark_score_start: number | null;
+  benchmark_score_end: number | null;
+  benchmark_status: string | null;
+  benchmark_trend: string | null;
   // Derived
   completion_pct_change: number;
   buffer_balance_change: number;

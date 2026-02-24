@@ -753,9 +753,22 @@ export const demoWeeklyReview = {
   highlights: [
     'Completed 12 topics this week',
     'On-track velocity at 1.08x',
-    'Low burnout risk — BRI avg 72',
+    'Earned 1,250 XP this week',
   ],
   valid_from: '2026-02-22T23:59:00.000Z',
+  // Gamification (F12b)
+  xp_earned: 1250,
+  badges_unlocked: [
+    { slug: 'first_week', name: 'First Week', icon_name: 'flame' },
+  ],
+  level_start: 3,
+  level_end: 4,
+  // Benchmark (F12b)
+  benchmark_score_start: 61,
+  benchmark_score_end: 65,
+  benchmark_status: 'on_track',
+  benchmark_trend: 'improving',
+  // Derived
   completion_pct_change: 0.04,
   buffer_balance_change: 1.2,
 };
