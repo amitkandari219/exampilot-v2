@@ -11,6 +11,7 @@ import { velocityRoutes } from './routes/velocity.js';
 import { burnoutRoutes } from './routes/burnout.js';
 import { stressRoutes } from './routes/stress.js';
 import { plannerRoutes } from './routes/planner.js';
+import { weaknessRoutes } from './routes/weakness.js';
 
 const app = Fastify({ logger: true });
 
@@ -28,6 +29,7 @@ async function start() {
   await app.register(burnoutRoutes);
   await app.register(stressRoutes);
   await app.register(plannerRoutes);
+  await app.register(weaknessRoutes);
 
   app.get('/health', async () => ({ status: 'ok' }));
 

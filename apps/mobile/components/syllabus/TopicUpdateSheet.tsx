@@ -108,7 +108,17 @@ export function TopicUpdateSheet({ visible, topic, onClose, onSave }: TopicUpdat
             />
 
             {/* Confidence Slider */}
-            <Text style={styles.label}>Confidence: {confidence}</Text>
+            <View style={styles.confidenceLabelRow}>
+              <Text style={styles.label}>Confidence</Text>
+              <Text style={styles.confidenceValue}>{confidence}</Text>
+            </View>
+            <View style={styles.confidenceBarContainer}>
+              <View style={styles.confidenceBarBg}>
+                <View
+                  style={[styles.confidenceBarFill, { width: `${confidence}%` }]}
+                />
+              </View>
+            </View>
             <View style={styles.sliderRow}>
               <TouchableOpacity
                 style={styles.sliderButton}
@@ -124,13 +134,7 @@ export function TopicUpdateSheet({ visible, topic, onClose, onSave }: TopicUpdat
               >
                 <Text style={styles.sliderButtonText}>-5</Text>
               </TouchableOpacity>
-              <View style={styles.confidenceBarContainer}>
-                <View style={styles.confidenceBarBg}>
-                  <View
-                    style={[styles.confidenceBarFill, { width: `${confidence}%` }]}
-                  />
-                </View>
-              </View>
+              <View style={{ flex: 1 }} />
               <TouchableOpacity
                 style={styles.sliderButton}
                 onPress={() => adjustConfidence(5)}
@@ -230,7 +234,7 @@ const styles = StyleSheet.create({
   },
   statusChipActive: {
     borderColor: theme.colors.primary,
-    backgroundColor: '#0E2A3A',
+    backgroundColor: theme.colors.primary + '15',
   },
   statusChipText: {
     fontSize: theme.fontSize.sm,
@@ -253,10 +257,23 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 80,
   },
+  confidenceLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  confidenceValue: {
+    fontSize: theme.fontSize.lg,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
   sliderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
   sliderButton: {
     backgroundColor: theme.colors.background,
@@ -272,7 +289,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   confidenceBarContainer: {
-    flex: 1,
+    marginTop: theme.spacing.sm,
   },
   confidenceBarBg: {
     height: 8,

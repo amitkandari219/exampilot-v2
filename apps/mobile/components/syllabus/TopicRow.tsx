@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '../../constants/theme';
 import type { TopicWithProgress, TopicStatus } from '../../types';
 import { PYQBadge } from './PYQBadge';
 import { ConfidenceMeter } from './ConfidenceMeter';
+import { HealthBadge } from '../weakness/HealthBadge';
+import { HealthDetailSheet } from '../weakness/HealthDetailSheet';
 
 interface TopicRowProps {
   topic: TopicWithProgress;
@@ -51,6 +53,7 @@ function statusLabel(status: TopicStatus): string {
 }
 
 export function TopicRow({ topic, onPress }: TopicRowProps) {
+  const [healthSheetVisible, setHealthSheetVisible] = useState(false);
   const progress = topic.user_progress;
   const status: TopicStatus = progress?.status ?? 'untouched';
   const pillColors = STATUS_PILL_COLORS[status];
@@ -61,37 +64,49 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
         <Text style={styles.topicName} numberOfLines={1}>
           {topic.name}
         </Text>
+        {progress && progress.health_score > 0 && (
+          <HealthBadge
+            score={progress.health_score}
+            onPress={() => setHealthSheetVisible(true)}
+          />
+        )}
         <PYQBadge weight={topic.pyq_weight} />
       </View>
 
-      <View style={styles.bottomRow}>
+      <View style={styles.middleRow}>
         <View style={[styles.statusPill, { backgroundColor: pillColors.bg }]}>
           <Text style={[styles.statusText, { color: pillColors.text }]}>
             {statusLabel(status)}
           </Text>
         </View>
-
-        {progress && progress.confidence_score > 0 && (
-          <View style={styles.confidenceContainer}>
-            <ConfidenceMeter
-              score={progress.confidence_score}
-              status={progress.confidence_status}
-            />
-          </View>
-        )}
-
         {progress?.last_touched && (
           <Text style={styles.dateText}>{formatDate(progress.last_touched)}</Text>
         )}
       </View>
+
+      {progress && progress.confidence_score > 0 && (
+        <View style={styles.confidenceRow}>
+          <ConfidenceMeter
+            score={progress.confidence_score}
+            status={progress.confidence_status}
+          />
+        </View>
+      )}
+
+      <HealthDetailSheet
+        visible={healthSheetVisible}
+        topicId={topic.id}
+        topicName={topic.name}
+        onClose={() => setHealthSheetVisible(false)}
+      />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
@@ -99,7 +114,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 2,
   },
   topicName: {
     flex: 1,
@@ -108,23 +123,22 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginRight: theme.spacing.sm,
   },
-  bottomRow: {
+  middleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    justifyContent: 'space-between',
   },
   statusPill: {
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: theme.borderRadius.sm,
   },
   statusText: {
     fontSize: theme.fontSize.xs,
     fontWeight: '600',
   },
-  confidenceContainer: {
-    flex: 1,
-    minWidth: 80,
+  confidenceRow: {
+    marginTop: 2,
   },
   dateText: {
     fontSize: theme.fontSize.xs,

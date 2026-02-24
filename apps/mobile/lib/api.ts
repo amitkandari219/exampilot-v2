@@ -98,6 +98,19 @@ export const api = {
   getStress: () =>
     request('/api/stress'),
 
+  // Weakness
+  getWeaknessOverview: () =>
+    request('/api/weakness/overview'),
+
+  getTopicHealth: (topicId: string) =>
+    request(`/api/weakness/topic/${topicId}`),
+
+  getTopicHealthTrend: (topicId: string, days?: number) =>
+    request(`/api/weakness/topic/${topicId}/trend?days=${days || 30}`),
+
+  recalculateHealth: () =>
+    request('/api/weakness/recalculate', { method: 'POST' }),
+
   // Planner
   getDailyPlan: (date?: string) =>
     request(`/api/daily-plan${date ? `?date=${date}` : ''}`),

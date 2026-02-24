@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
   dateLabel: {
-    fontSize: 9,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
   },
   empty: {

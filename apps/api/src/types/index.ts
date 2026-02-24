@@ -20,6 +20,22 @@ export type PlanItemStatus = 'pending' | 'completed' | 'skipped' | 'deferred';
 
 export type BurnoutStatus = 'low' | 'moderate' | 'high' | 'critical';
 
+export type HealthCategory = 'critical' | 'weak' | 'moderate' | 'strong' | 'exam_ready';
+
+export interface WeaknessSnapshot {
+  id: string;
+  user_id: string;
+  topic_id: string;
+  snapshot_date: string;
+  health_score: number;
+  category: HealthCategory;
+  confidence_component: number;
+  revision_component: number;
+  effort_component: number;
+  stability_component: number;
+  valid_from: string;
+}
+
 export type BufferTransactionType = 'deposit' | 'withdrawal' | 'zero_day_penalty' | 'initial' | 'consistency_reward';
 
 export interface StrategyParams {

@@ -9,10 +9,12 @@ import { useBuffer } from '../../hooks/useVelocity';
 import { useBurnout } from '../../hooks/useBurnout';
 import { useDailyPlan } from '../../hooks/usePlanner';
 import { useConfidenceOverview } from '../../hooks/useFSRS';
+import { useWeaknessOverview } from '../../hooks/useWeakness';
 import { StressThermometer } from '../../components/dashboard/StressThermometer';
 import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
 import { BurnoutIndicator } from '../../components/dashboard/BurnoutIndicator';
+import { WeaknessRadarCard } from '../../components/weakness/WeaknessRadarCard';
 import { ConfidenceStatus } from '../../types';
 
 export default function DashboardScreen() {
@@ -24,6 +26,7 @@ export default function DashboardScreen() {
   const { data: burnout } = useBurnout();
   const { data: plan } = useDailyPlan();
   const { data: confidence } = useConfidenceOverview();
+  const { data: weakness } = useWeaknessOverview();
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
@@ -55,6 +58,12 @@ export default function DashboardScreen() {
               recommendation={stress.recommendation}
               history={stress.history?.map((h) => h.score)}
             />
+          </View>
+        )}
+
+        {weakness && (
+          <View style={styles.section}>
+            <WeaknessRadarCard data={weakness} />
           </View>
         )}
 
@@ -118,7 +127,7 @@ export default function DashboardScreen() {
                   const colors: Record<ConfidenceStatus, string> = {
                     fresh: theme.colors.success,
                     fading: theme.colors.warning,
-                    stale: '#F97316',
+                    stale: theme.colors.orange,
                     decayed: theme.colors.error,
                   };
                   return (
@@ -202,7 +211,7 @@ const styles = StyleSheet.create({
   planItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
   statusDot: {
@@ -240,7 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   confLabel: {
-    fontSize: 10,
+    fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'capitalize',
   },

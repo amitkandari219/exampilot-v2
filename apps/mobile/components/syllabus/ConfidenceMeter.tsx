@@ -9,10 +9,10 @@ interface ConfidenceMeterProps {
 }
 
 const STATUS_COLORS: Record<ConfidenceStatus, string> = {
-  fresh: '#34D399',
-  fading: '#FBBF24',
-  stale: '#F97316',
-  decayed: '#F87171',
+  fresh: theme.colors.success,
+  fading: theme.colors.warning,
+  stale: theme.colors.orange,
+  decayed: theme.colors.error,
 };
 
 export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
@@ -20,28 +20,40 @@ export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
   const barColor = STATUS_COLORS[status];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.barBackground}>
-        <View
-          style={[
-            styles.barFill,
-            {
-              width: `${clampedScore}%`,
-              backgroundColor: barColor,
-            },
-          ]}
-        />
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        <View style={styles.barBackground}>
+          <View
+            style={[
+              styles.barFill,
+              {
+                width: `${clampedScore}%`,
+                backgroundColor: barColor,
+              },
+            ]}
+          />
+        </View>
+        <Text style={[styles.scoreText, { color: barColor }]}>{clampedScore}</Text>
       </View>
-      <Text style={[styles.scoreText, { color: barColor }]}>{clampedScore}</Text>
+      <Text style={styles.label}>Confidence</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flexDirection: 'column',
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+  },
+  label: {
+    fontSize: theme.fontSize.xxs,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+    marginTop: 2,
   },
   barBackground: {
     flex: 1,

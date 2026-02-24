@@ -11,7 +11,7 @@ interface PlanItemCardProps {
 
 const TYPE_CONFIG: Record<PlanItemType, { label: string; color: string }> = {
   new: { label: 'NEW', color: '#3B82F6' },
-  revision: { label: 'REVISION', color: '#A855F7' },
+  revision: { label: 'REVISION', color: theme.colors.purple },
   decay_revision: { label: 'DECAY', color: '#F59E0B' },
   stretch: { label: 'STRETCH', color: '#6366F1' },
 };
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.colors.warning,
   },
   timeText: {
     fontSize: theme.fontSize.xs,
