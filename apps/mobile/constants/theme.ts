@@ -29,7 +29,7 @@ const lightColors = {
   primaryDim: '#22D3EE',
   text: '#1C1917',
   textSecondary: '#57534E',
-  textMuted: '#A8A29E',
+  textMuted: '#78716C',
   border: '#D6D3CD',
   success: '#059669',
   warning: '#D97706',
