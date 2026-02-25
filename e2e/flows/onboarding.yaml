@@ -1,0 +1,53 @@
+appId: com.exampilot.mobile
+---
+# Onboarding Flow: Sign up → Complete onboarding → Reach dashboard
+
+- launchApp
+
+# Sign up screen
+- assertVisible: "Sign Up"
+- tapOn: "Email"
+- inputText: "test@example.com"
+- tapOn: "Password"
+- inputText: "TestPassword123!"
+- tapOn: "Sign Up"
+
+# Onboarding Step 1: Hours
+- assertVisible: "hours"
+- tapOn: "Continue"
+
+# Onboarding Step 2: Professional
+- assertVisible:
+    text: ".*professional.*"
+    isRegex: true
+- tapOn: "No"
+- tapOn: "Continue"
+
+# Onboarding Step 3: Attempt
+- assertVisible:
+    text: ".*attempt.*"
+    isRegex: true
+- tapOn: "First"
+- tapOn: "Continue"
+
+# Onboarding Step 4: Approach
+- assertVisible:
+    text: ".*approach.*"
+    isRegex: true
+- tapOn: "Strategic"
+- tapOn: "Continue"
+
+# Onboarding Step 5: Fallback
+- tapOn: "Continue"
+
+# Onboarding Step 6: Result
+- assertVisible:
+    text: ".*mode.*"
+    isRegex: true
+- tapOn: "Continue"
+
+# Onboarding Step 7: Exam date
+- tapOn: "Continue"
+
+# Should reach dashboard
+- assertVisible: "Dashboard"
