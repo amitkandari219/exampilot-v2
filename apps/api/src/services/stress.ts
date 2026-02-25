@@ -20,7 +20,7 @@ export async function calculateStress(userId: string) {
   // Get profile for buffer info
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('buffer_balance, buffer_capacity, exam_date')
+    .select('buffer_balance, buffer_capacity, buffer_initial, exam_date')
     .eq('id', userId)
     .single();
 
@@ -46,7 +46,8 @@ export async function calculateStress(userId: string) {
   const bufferCapacity = profile?.buffer_capacity || 0.15;
   const examDate = profile?.exam_date ? new Date(profile.exam_date) : new Date();
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
-  const maxBuffer = daysRemaining * bufferCapacity;
+  // Use fixed buffer_initial set at onboarding; fall back to dynamic calc for legacy users
+  const maxBuffer = profile?.buffer_initial ?? daysRemaining * bufferCapacity;
   const bufferRatio = maxBuffer > 0 ? (profile?.buffer_balance || 0) / maxBuffer : 0;
   const signalBuffer = linearInterpolate(bufferRatio, 0, 0.5);
 

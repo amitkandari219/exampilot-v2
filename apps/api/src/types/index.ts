@@ -58,6 +58,9 @@ export interface PersonaParams {
   buffer_capacity: number;
   fsrs_target_retention: number;
   burnout_threshold: number;
+  buffer_deposit_rate: number;
+  buffer_withdrawal_rate: number;
+  velocity_target_multiplier: number;
 }
 
 export interface OnboardingPayload {

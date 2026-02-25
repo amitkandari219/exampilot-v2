@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabase.js';
 import { StrategyMode, StrategyParams, OnboardingPayload, OnboardingV2Payload, OnboardingV2Answers, CustomizePayload, PersonaParams, ExamMode } from '../types/index.js';
+import { calculateVelocity } from './velocity.js';
+import { regeneratePlan } from './planner.js';
 
 const modeDefaults: Record<StrategyMode, StrategyParams> = {
   conservative: {
@@ -34,24 +36,36 @@ const personaDefaults: Record<StrategyMode, PersonaParams> = {
     buffer_capacity: 0.20,
     fsrs_target_retention: 0.85,
     burnout_threshold: 65,
+    buffer_deposit_rate: 0.9,
+    buffer_withdrawal_rate: 0.7,
+    velocity_target_multiplier: 0.85,
   },
   balanced: {
     fatigue_threshold: 85,
     buffer_capacity: 0.15,
     fsrs_target_retention: 0.90,
     burnout_threshold: 75,
+    buffer_deposit_rate: 0.8,
+    buffer_withdrawal_rate: 1.0,
+    velocity_target_multiplier: 1.0,
   },
   aggressive: {
     fatigue_threshold: 85,
     buffer_capacity: 0.10,
     fsrs_target_retention: 0.95,
     burnout_threshold: 80,
+    buffer_deposit_rate: 0.6,
+    buffer_withdrawal_rate: 1.2,
+    velocity_target_multiplier: 1.15,
   },
   working_professional: {
     fatigue_threshold: 85,
     buffer_capacity: 0.25,
     fsrs_target_retention: 0.85,
     burnout_threshold: 65,
+    buffer_deposit_rate: 0.9,
+    buffer_withdrawal_rate: 0.8,
+    velocity_target_multiplier: 0.90,
   },
 };
 
@@ -83,6 +97,11 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
   const params = await getDefaultParams(payload.chosen_mode);
   const persona = getPersonaDefaults(payload.chosen_mode);
 
+  // Compute fixed buffer_initial: days_remaining × buffer_capacity
+  const examDate = new Date(payload.exam_date);
+  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const bufferInitial = daysRemaining * persona.buffer_capacity;
+
   const { data, error } = await supabase
     .from('user_profiles')
     .upsert({
@@ -97,6 +116,10 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
       buffer_capacity: persona.buffer_capacity,
       fsrs_target_retention: persona.fsrs_target_retention,
       burnout_threshold: persona.burnout_threshold,
+      buffer_deposit_rate: persona.buffer_deposit_rate,
+      buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
+      velocity_target_multiplier: persona.velocity_target_multiplier,
+      buffer_initial: bufferInitial,
     })
     .select()
     .single();
@@ -112,6 +135,9 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
     buffer_capacity: persona.buffer_capacity,
     fsrs_target_retention: persona.fsrs_target_retention,
     burnout_threshold: persona.burnout_threshold,
+    buffer_deposit_rate: persona.buffer_deposit_rate,
+    buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
+    velocity_target_multiplier: persona.velocity_target_multiplier,
     change_reason: 'initial_onboarding',
   });
 
@@ -142,6 +168,11 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
   const params = await getDefaultParams(mode);
   const persona = getPersonaDefaults(mode);
 
+  // Compute fixed buffer_initial: days_remaining × buffer_capacity
+  const examDate = new Date(payload.exam_date);
+  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const bufferInitial = daysRemaining * persona.buffer_capacity;
+
   // Upsert user profile with V2 fields
   const { data, error } = await supabase
     .from('user_profiles')
@@ -157,6 +188,10 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
       buffer_capacity: persona.buffer_capacity,
       fsrs_target_retention: persona.fsrs_target_retention,
       burnout_threshold: persona.burnout_threshold,
+      buffer_deposit_rate: persona.buffer_deposit_rate,
+      buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
+      velocity_target_multiplier: persona.velocity_target_multiplier,
+      buffer_initial: bufferInitial,
       target_exam_year: payload.answers.target_exam_year,
       attempt_number: payload.answers.attempt_number,
       user_type: payload.answers.user_type,
@@ -198,6 +233,9 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
     buffer_capacity: persona.buffer_capacity,
     fsrs_target_retention: persona.fsrs_target_retention,
     burnout_threshold: persona.burnout_threshold,
+    buffer_deposit_rate: persona.buffer_deposit_rate,
+    buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
+    velocity_target_multiplier: persona.velocity_target_multiplier,
     change_reason: 'initial_onboarding_v2',
   });
 
@@ -216,8 +254,33 @@ export async function getStrategy(userId: string) {
 }
 
 export async function switchMode(userId: string, mode: StrategyMode) {
-  const params = await getDefaultParams(mode);
+  // Fetch current profile to detect custom overrides
+  const { data: current } = await supabase
+    .from('user_profiles')
+    .select('strategy_mode, strategy_params')
+    .eq('id', userId)
+    .single();
+
+  const newDefaults = await getDefaultParams(mode);
   const persona = getPersonaDefaults(mode);
+
+  // Preserve custom overrides: diff current params against old mode defaults,
+  // then layer those customizations on top of new mode defaults
+  let mergedParams = newDefaults;
+  if (current?.strategy_params && current?.strategy_mode) {
+    const oldDefaults = await getDefaultParams(current.strategy_mode as StrategyMode);
+    const overrides: Record<string, number> = {};
+    for (const key of Object.keys(current.strategy_params) as (keyof StrategyParams)[]) {
+      const currentVal = (current.strategy_params as StrategyParams)[key];
+      const oldDefault = oldDefaults[key];
+      if (currentVal !== undefined && currentVal !== oldDefault) {
+        overrides[key] = currentVal;
+      }
+    }
+    if (Object.keys(overrides).length > 0) {
+      mergedParams = { ...newDefaults, ...overrides } as StrategyParams;
+    }
+  }
 
   // Close previous snapshot
   await supabase
@@ -230,12 +293,15 @@ export async function switchMode(userId: string, mode: StrategyMode) {
     .from('user_profiles')
     .update({
       strategy_mode: mode,
-      strategy_params: params,
+      strategy_params: mergedParams,
       mode_switched_at: new Date().toISOString(),
       fatigue_threshold: persona.fatigue_threshold,
       buffer_capacity: persona.buffer_capacity,
       fsrs_target_retention: persona.fsrs_target_retention,
       burnout_threshold: persona.burnout_threshold,
+      buffer_deposit_rate: persona.buffer_deposit_rate,
+      buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
+      velocity_target_multiplier: persona.velocity_target_multiplier,
     })
     .eq('id', userId)
     .select()
@@ -243,17 +309,38 @@ export async function switchMode(userId: string, mode: StrategyMode) {
 
   if (error) throw error;
 
+  // Reinitialize buffer_initial from new buffer_capacity
+  const examDate = new Date(data.exam_date);
+  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const bufferInitial = daysRemaining * persona.buffer_capacity;
+
+  await supabase
+    .from('user_profiles')
+    .update({ buffer_initial: bufferInitial, buffer_balance: 0 })
+    .eq('id', userId);
+
   // Insert new snapshot
   await supabase.from('persona_snapshots').insert({
     user_id: userId,
     strategy_mode: mode,
-    strategy_params: params,
+    strategy_params: mergedParams,
     fatigue_threshold: persona.fatigue_threshold,
     buffer_capacity: persona.buffer_capacity,
     fsrs_target_retention: persona.fsrs_target_retention,
     burnout_threshold: persona.burnout_threshold,
+    buffer_deposit_rate: persona.buffer_deposit_rate,
+    buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
+    velocity_target_multiplier: persona.velocity_target_multiplier,
     change_reason: 'mode_switch',
   });
+
+  // Cascade: recalculate velocity with new params, regenerate tomorrow's plan
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  await calculateVelocity(userId);
+  await regeneratePlan(userId, tomorrowStr);
 
   return data;
 }
@@ -341,10 +428,14 @@ export async function resetUserData(userId: string) {
       challenges: null,
       onboarding_version: null,
       buffer_balance: 0,
+      buffer_initial: null,
       fatigue_threshold: 85,
       buffer_capacity: 0.15,
       fsrs_target_retention: 0.9,
       burnout_threshold: 75,
+      buffer_deposit_rate: null,
+      buffer_withdrawal_rate: null,
+      velocity_target_multiplier: null,
       recovery_mode_active: false,
       recovery_mode_start: null,
       recovery_mode_end: null,
@@ -367,10 +458,14 @@ export async function resetUserData(userId: string) {
         exam_date: null,
         name: null,
         buffer_balance: 0,
+        buffer_initial: null,
         fatigue_threshold: 85,
         buffer_capacity: 0.15,
         fsrs_target_retention: 0.9,
         burnout_threshold: 75,
+        buffer_deposit_rate: null,
+        buffer_withdrawal_rate: null,
+        velocity_target_multiplier: null,
         recovery_mode_active: false,
         recovery_mode_start: null,
         recovery_mode_end: null,

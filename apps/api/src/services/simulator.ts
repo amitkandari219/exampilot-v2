@@ -14,7 +14,7 @@ import type {
 async function getProfileData(userId: string) {
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('exam_date, buffer_capacity, buffer_balance, daily_hours, strategy_params, strategy_mode, current_mode, prelims_date')
+    .select('exam_date, buffer_capacity, buffer_balance, buffer_initial, daily_hours, strategy_params, strategy_mode, current_mode, prelims_date, velocity_target_multiplier')
     .eq('id', userId)
     .single();
 
@@ -105,7 +105,8 @@ function recalcSnapshot(snapshot: SimulationSnapshot, revisionPct: number): Simu
   );
   const velocityRatio = requiredVelocity > 0 ? snapshot.actual_velocity / requiredVelocity : 1;
   const projectedDate = computeProjectedDate(snapshot.remaining_gravity, snapshot.actual_velocity);
-  const bufferMax = snapshot.days_remaining * snapshot.buffer_capacity;
+  // buffer_max is carried from baseline (fixed at onboarding); only recalc for legacy fallback
+  const bufferMax = snapshot.buffer_max || snapshot.days_remaining * snapshot.buffer_capacity;
 
   return {
     ...snapshot,
@@ -135,10 +136,12 @@ async function computeBaseline(userId: string): Promise<{ snapshot: SimulationSn
   const revisionPct = (profile.strategy_params as any)?.revision_frequency
     ? 1 / (profile.strategy_params as any).revision_frequency : 0.25;
 
-  const requiredVelocity = computeRequiredVelocity(gravity.remainingGravity, daysRemaining, bufferPct, revisionPct);
+  const rawRequiredVelocity = computeRequiredVelocity(gravity.remainingGravity, daysRemaining, bufferPct, revisionPct);
+  const requiredVelocity = rawRequiredVelocity * ((profile as any).velocity_target_multiplier ?? 1.0);
   const velocityRatio = requiredVelocity > 0 ? actualVelocity / requiredVelocity : 1;
   const projectedDate = computeProjectedDate(gravity.remainingGravity, actualVelocity);
-  const bufferMax = daysRemaining * bufferPct;
+  // Use fixed buffer_initial set at onboarding; fall back to dynamic calc for legacy users
+  const bufferMax = profile.buffer_initial ?? daysRemaining * bufferPct;
 
   const snapshot: SimulationSnapshot = {
     velocity_ratio: velocityRatio,

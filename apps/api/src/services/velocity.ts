@@ -5,7 +5,7 @@ export async function calculateVelocity(userId: string) {
   // Get user profile
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date')
+    .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date, velocity_target_multiplier')
     .eq('id', userId)
     .single();
 
@@ -50,7 +50,8 @@ export async function calculateVelocity(userId: string) {
   const revisionPct = (profile.strategy_params as any)?.revision_frequency
     ? 1 / (profile.strategy_params as any).revision_frequency : 0.25;
   const effectiveDays = daysRemaining * (1 - bufferPct - revisionPct);
-  const requiredVelocity = effectiveDays > 0 ? remainingGravity / effectiveDays : 0;
+  const rawRequiredVelocity = effectiveDays > 0 ? remainingGravity / effectiveDays : 0;
+  const requiredVelocity = rawRequiredVelocity * ((profile as any).velocity_target_multiplier ?? 1.0);
 
   // Get last 14 days of daily logs
   const fourteenDaysAgo = new Date(now);
@@ -135,7 +136,7 @@ export async function calculateVelocity(userId: string) {
 export async function updateBuffer(userId: string, date: string) {
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('buffer_balance, buffer_capacity, exam_date, current_mode, prelims_date')
+    .select('buffer_balance, buffer_capacity, buffer_initial, exam_date, current_mode, prelims_date, buffer_deposit_rate, buffer_withdrawal_rate')
     .eq('id', userId)
     .single();
 
@@ -146,7 +147,8 @@ export async function updateBuffer(userId: string, date: string) {
   const examDate = new Date(targetDate);
   const now = new Date(date);
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
-  const maxBuffer = daysRemaining * (profile.buffer_capacity || 0.15);
+  // Use fixed buffer_initial set at onboarding; fall back to dynamic calc for legacy users
+  const maxBuffer = profile.buffer_initial ?? daysRemaining * (profile.buffer_capacity || 0.15);
 
   // Get today's log
   const { data: todayLog } = await supabase
@@ -179,13 +181,13 @@ export async function updateBuffer(userId: string, date: string) {
     notes = 'Zero study day penalty';
   } else if (delta > 0) {
     // Deposit: surplus capped at 20% of days_remaining
-    const depositRate = 0.8;
+    const depositRate = (profile as any).buffer_deposit_rate ?? 0.8;
     amount = Math.min(delta * depositRate, daysRemaining * 0.2);
     type = 'deposit';
     notes = `Surplus gravity: ${delta.toFixed(2)}`;
   } else {
     // Withdrawal: deficit with floor
-    const withdrawalRate = 1.0;
+    const withdrawalRate = (profile as any).buffer_withdrawal_rate ?? 1.0;
     amount = Math.max(delta * withdrawalRate, -5);
     type = 'withdrawal';
     notes = `Deficit gravity: ${delta.toFixed(2)}`;
@@ -379,7 +381,7 @@ export async function getVelocityHistory(userId: string, days: number) {
 export async function getBufferDetails(userId: string) {
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('buffer_balance, buffer_capacity, exam_date, current_mode, prelims_date')
+    .select('buffer_balance, buffer_capacity, buffer_initial, exam_date, current_mode, prelims_date')
     .eq('id', userId)
     .single();
 
@@ -390,6 +392,7 @@ export async function getBufferDetails(userId: string) {
   const examDate = new Date(targetDate);
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
   const balanceDays = profile.buffer_balance || 0;
+  const maxBuffer = profile.buffer_initial ?? daysRemaining * (profile.buffer_capacity || 0.15);
 
   const { data: transactions } = await supabase
     .from('buffer_transactions')
@@ -401,8 +404,9 @@ export async function getBufferDetails(userId: string) {
   return {
     balance: profile.buffer_balance || 0,
     capacity: profile.buffer_capacity || 0.15,
+    buffer_initial: profile.buffer_initial ?? null,
     balance_days: balanceDays,
-    max_buffer: daysRemaining * (profile.buffer_capacity || 0.15),
+    max_buffer: maxBuffer,
     transactions: transactions || [],
   };
 }
