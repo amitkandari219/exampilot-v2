@@ -1,87 +1,92 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
-import { ModeCard } from '../../components/onboarding/ModeCard';
-import { OptionCard } from '../../components/onboarding/OptionCard';
-import { strategyModes, getModeDefinition } from '../../constants/strategyModes';
-import { StrategyMode } from '../../types';
+import { valuePropItems, alwaysValueProps } from '../../constants/onboardingData';
+import { Challenge } from '../../types';
 import { theme } from '../../constants/theme';
 
-export default function ResultScreen() {
+export default function ValuePropScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    hours: string;
-    isWorking: string;
-    attempt: string;
-    approach: string;
-    fallback: string;
-    recommendedMode: string;
+    name: string;
+    target_exam_year: string;
+    attempt_number: string;
+    user_type: string;
+    challenges: string;
   }>();
 
-  const recommended = params.recommendedMode as StrategyMode;
-  const [chosenMode, setChosenMode] = useState<StrategyMode>(recommended);
-  const [showAllModes, setShowAllModes] = useState(false);
+  const challenges = (params.challenges?.split(',') || []) as Challenge[];
 
-  const recommendedDef = getModeDefinition(recommended);
+  // Build personalized value props from user's challenges + always-on items
+  const items: string[] = [];
+  for (const ch of challenges) {
+    if (valuePropItems[ch]) items.push(valuePropItems[ch]);
+  }
+  for (const item of alwaysValueProps) {
+    items.push(item);
+  }
+
+  // Staggered fade-in animations
+  const anims = useRef(items.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const animations = anims.map((anim: Animated.Value, i: number) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 400,
+        delay: i * 200,
+        useNativeDriver: true,
+      })
+    );
+    Animated.stagger(200, animations).start();
+  }, []);
 
   return (
     <QuestionScreen
       step={5}
-      totalSteps={7}
-      question={showAllModes ? 'Choose your strategy' : 'Your recommended strategy'}
-      subtitle={
-        showAllModes
-          ? 'Pick the mode that suits you best'
-          : 'Based on your answers, we think this fits you'
-      }
+      totalSteps={10}
+      chatMessage={`Based on your profile, here's how I'll help you, ${params.name}...`}
+      question="Your personalized plan"
+      subtitle="ExamPilot will handle all of this for you"
       nextLabel="Continue"
       onNext={() =>
-        router.push({
-          pathname: '/onboarding/examdate',
-          params: { ...params, chosenMode },
-        })
+        router.push({ pathname: '/onboarding/examdate', params })
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {showAllModes ? (
-          strategyModes.map((mode) => (
-            <ModeCard
-              key={mode.mode}
-              mode={mode}
-              selected={chosenMode === mode.mode}
-              recommended={mode.mode === recommended}
-              onPress={() => setChosenMode(mode.mode)}
-            />
-          ))
-        ) : (
-          <>
-            <ModeCard
-              mode={recommendedDef}
-              selected
-              recommended
-              onPress={() => {}}
-            />
-            <View style={styles.choiceRow}>
-              <OptionCard
-                label="This is right for me"
-                selected={!showAllModes && chosenMode === recommended}
-                onPress={() => setChosenMode(recommended)}
-              />
-              <OptionCard
-                label="I'd like to choose differently"
-                onPress={() => setShowAllModes(true)}
-              />
-            </View>
-          </>
-        )}
-      </ScrollView>
+      <View style={styles.list}>
+        {items.map((item: string, i: number) => (
+          <Animated.View
+            key={i}
+            style={[styles.row, { opacity: anims[i], transform: [{ translateX: anims[i].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}
+          >
+            <Text style={styles.bullet}>✦</Text>
+            <Text style={styles.itemText}>{item}</Text>
+          </Animated.View>
+        ))}
+      </View>
     </QuestionScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  choiceRow: {
-    marginTop: theme.spacing.lg,
+  list: {
+    gap: theme.spacing.md,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+  },
+  bullet: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    marginTop: 2,
+  },
+  itemText: {
+    flex: 1,
+    fontSize: theme.fontSize.md,
+    color: theme.colors.text,
+    lineHeight: 22,
   },
 });

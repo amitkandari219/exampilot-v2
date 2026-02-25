@@ -1,7 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Switch, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { theme } from '../../constants/theme';
+
+function crossAlert(title: string, message: string, buttons: Array<{ text: string; style?: string; onPress?: () => void }>) {
+  if (Platform.OS === 'web') {
+    const confirmed = window.confirm(`${title}\n\n${message}`);
+    if (confirmed) {
+      const destructive = buttons.find((b) => b.style === 'destructive');
+      destructive?.onPress?.();
+    }
+  } else {
+    Alert.alert(title, message, buttons as any);
+  }
+}
 import { getDefaultParams } from '../../constants/strategyModes';
 import { StrategyCard } from '../../components/settings/StrategyCard';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,6 +29,8 @@ import { api } from '../../lib/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const { user, signOut } = useAuth();
   const { data: burnout } = useBurnout();
   const activateRecovery = useActivateRecovery();
@@ -26,6 +42,7 @@ export default function SettingsScreen() {
   const { data: badges } = useBadges();
   const switchExamMode = useSwitchExamMode();
 
+  const [resetting, setResetting] = useState(false);
   const [mode, setMode] = useState<StrategyMode>('balanced');
   const [examMode, setExamMode] = useState<ExamMode>('mains');
   const [params, setParams] = useState<StrategyParams>(getDefaultParams('balanced'));
@@ -71,7 +88,7 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure?', [
+    crossAlert('Sign Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -172,25 +189,6 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Exam Mode</Text>
-          <View style={styles.examModeToggle}>
-            {(['prelims', 'mains', 'post_prelims'] as ExamMode[]).map((m) => (
-              <TouchableOpacity
-                key={m}
-                style={[styles.examModeButton, examMode === m && styles.examModeButtonActive]}
-                onPress={() => handleExamModeChange(m)}
-                disabled={switchExamMode.isPending}
-              >
-                <Text style={[styles.examModeButtonText, examMode === m && styles.examModeButtonTextActive]}>
-                  {m === 'post_prelims' ? 'Post-Prelims' : m.charAt(0).toUpperCase() + m.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.examModeDesc}>{examModeDescriptions[examMode]}</Text>
-        </View>
-
         <StrategyCard
           currentMode={mode}
           params={params}
@@ -288,19 +286,47 @@ export default function SettingsScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.resetButton}
+          style={[styles.resetButton, resetting && { opacity: 0.5 }]}
+          disabled={resetting}
           onPress={() => {
-            Alert.alert('Reset Onboarding', 'This will restart the onboarding flow. Continue?', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Reset',
-                style: 'destructive',
-                onPress: () => router.replace('/onboarding'),
-              },
-            ]);
+            crossAlert(
+              'Reset Onboarding',
+              'This will clear all your progress, plans, and data, and restart onboarding from scratch. This cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Reset Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setResetting(true);
+                    try {
+                      await api.resetOnboarding();
+                    } catch {
+                      // Continue even if API fails
+                    }
+                    queryClient.clear();
+                    if (Platform.OS === 'web') {
+                      window.location.href = '/onboarding';
+                    } else {
+                      const root = navigation.getParent() ?? navigation;
+                      root.dispatch(
+                        CommonActions.reset({
+                          index: 0,
+                          routes: [{ name: 'onboarding' }],
+                        })
+                      );
+                    }
+                  },
+                },
+              ]
+            );
           }}
         >
-          <Text style={styles.resetText}>Redo Onboarding</Text>
+          {resetting ? (
+            <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+          ) : (
+            <Text style={styles.resetText}>Redo Onboarding</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

@@ -1,13 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { theme } from '../../constants/theme';
-import { ProgressDots } from './ProgressDots';
+import { OnboardingProgressBar } from './OnboardingProgressBar';
+import { ChatBubble } from './ChatBubble';
 
 interface QuestionScreenProps {
   step: number;
   totalSteps: number;
   question: string;
   subtitle?: string;
+  chatMessage?: string;
+  chatDelay?: number;
   children: React.ReactNode;
   onNext?: () => void;
   nextLabel?: string;
@@ -20,37 +24,68 @@ export function QuestionScreen({
   totalSteps,
   question,
   subtitle,
+  chatMessage,
+  chatDelay,
   children,
   onNext,
   nextLabel = 'Continue',
   nextDisabled = false,
   showNext = true,
 }: QuestionScreenProps) {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <ProgressDots total={totalSteps} current={step} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.container}>
+          <View style={styles.topRow}>
+            {step > 0 ? (
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.backText}>← Back</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.backPlaceholder} />
+            )}
+            <View style={styles.progressWrap}>
+              <OnboardingProgressBar current={step} total={totalSteps} />
+            </View>
+          </View>
 
-        <View style={styles.content}>
-          <Text style={styles.question}>{question}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-
-          <View style={styles.body}>{children}</View>
-        </View>
-
-        {showNext && (
-          <TouchableOpacity
-            style={[styles.nextButton, nextDisabled && styles.nextButtonDisabled]}
-            onPress={onNext}
-            disabled={nextDisabled}
-            activeOpacity={0.8}
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={[styles.nextText, nextDisabled && styles.nextTextDisabled]}>
-              {nextLabel}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+            {chatMessage && <ChatBubble message={chatMessage} delay={chatDelay} />}
+
+            <Text style={styles.question}>{question}</Text>
+            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+
+            <View style={styles.body}>{children}</View>
+          </ScrollView>
+
+          {showNext && (
+            <TouchableOpacity
+              style={[styles.nextButton, nextDisabled && styles.nextButtonDisabled]}
+              onPress={onNext}
+              disabled={nextDisabled}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.nextText, nextDisabled && styles.nextTextDisabled]}>
+                {nextLabel}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -60,36 +95,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,
   },
-  content: {
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    paddingVertical: theme.spacing.md,
+    paddingRight: theme.spacing.sm,
+  },
+  backText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  backPlaceholder: {
+    width: 48,
+  },
+  progressWrap: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: theme.spacing.md,
   },
   question: {
     fontSize: theme.fontSize.xl,
     fontWeight: '700',
     color: theme.colors.text,
-    textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
   subtitle: {
     fontSize: theme.fontSize.md,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
   },
   body: {
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
   nextButton: {
     backgroundColor: theme.colors.primary,
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     alignItems: 'center',
+    marginTop: theme.spacing.md,
   },
   nextButtonDisabled: {
     backgroundColor: theme.colors.surfaceLight,

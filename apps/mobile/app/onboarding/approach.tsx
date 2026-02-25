@@ -1,45 +1,61 @@
 import React, { useState } from 'react';
+import { View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
-import { OptionCard } from '../../components/onboarding/OptionCard';
+import { SelectionCard } from '../../components/onboarding/SelectionCard';
+import { ChatBubble } from '../../components/onboarding/ChatBubble';
+import { userTypeOptions, motivationalResponses } from '../../constants/onboardingData';
+import { UserType } from '../../types';
 
-type Approach = 'thorough' | 'strategic';
-
-export default function ApproachScreen() {
+export default function UserTypeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    hours: string;
-    isWorking: string;
-    attempt: string;
+    name: string;
+    target_exam_year: string;
+    attempt_number: string;
   }>();
-  const [approach, setApproach] = useState<Approach | null>(null);
+  const [userType, setUserType] = useState<UserType | null>(null);
+
+  const chatMsg =
+    params.attempt_number === 'first'
+      ? 'A fresh start with the right plan is powerful!'
+      : params.attempt_number === 'second'
+        ? 'Second time around, you know what to expect. Let\'s refine your approach.'
+        : 'Your persistence is your biggest asset!';
 
   return (
     <QuestionScreen
       step={3}
-      totalSteps={7}
-      question="What's your study approach?"
-      subtitle="There's no wrong answer"
-      nextDisabled={approach === null}
+      totalSteps={10}
+      chatMessage={chatMsg}
+      question="What describes you best?"
+      subtitle="This helps us tailor your daily plan"
+      nextDisabled={userType === null}
       onNext={() =>
         router.push({
           pathname: '/onboarding/fallback',
-          params: { ...params, approach: approach! },
+          params: { ...params, user_type: userType! },
         })
       }
     >
-      <OptionCard
-        label="Thorough & deep"
-        description="I prefer understanding everything deeply, even if it takes longer"
-        selected={approach === 'thorough'}
-        onPress={() => setApproach('thorough')}
-      />
-      <OptionCard
-        label="Strategic & selective"
-        description="I focus on high-yield topics and optimize for the exam pattern"
-        selected={approach === 'strategic'}
-        onPress={() => setApproach('strategic')}
-      />
+      {userTypeOptions.map((opt) => (
+        <SelectionCard
+          key={opt.key}
+          icon={opt.icon}
+          label={opt.label}
+          subtitle={opt.subtitle}
+          selected={userType === opt.key}
+          onPress={() => setUserType(opt.key)}
+        />
+      ))}
+      {userType && (
+        <View style={{ marginTop: 8 }}>
+          <ChatBubble
+            message={motivationalResponses.usertype[userType]}
+            delay={300}
+          />
+        </View>
+      )}
     </QuestionScreen>
   );
 }

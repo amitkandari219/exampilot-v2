@@ -1,19 +1,42 @@
 import { FastifyInstance } from 'fastify';
-import { completeOnboarding } from '../services/strategy.js';
-import { OnboardingPayload } from '../types/index.js';
+import { completeOnboarding, completeOnboardingV2, resetUserData } from '../services/strategy.js';
+import { OnboardingPayload, OnboardingV2Payload } from '../types/index.js';
 
 export async function onboardingRoutes(app: FastifyInstance) {
   app.post<{
-    Body: OnboardingPayload;
+    Body: OnboardingPayload | OnboardingV2Payload;
   }>('/api/onboarding', async (request, reply) => {
     const userId = request.userId;
     const payload = request.body;
 
-    if (!payload.chosen_mode || !payload.exam_date || !payload.name) {
+    // Detect V2 payload by presence of `answers` field
+    if ('answers' in payload) {
+      const v2 = payload as OnboardingV2Payload;
+      if (!v2.chosen_mode || !v2.exam_date || !v2.answers?.name) {
+        return reply.status(400).send({ error: 'Missing required fields: chosen_mode, exam_date, answers.name' });
+      }
+      const result = await completeOnboardingV2(userId, v2);
+      return reply.status(200).send(result);
+    }
+
+    // V1 fallback
+    const v1 = payload as OnboardingPayload;
+    if (!v1.chosen_mode || !v1.exam_date || !v1.name) {
       return reply.status(400).send({ error: 'Missing required fields: chosen_mode, exam_date, name' });
     }
 
-    const result = await completeOnboarding(userId, payload);
+    const result = await completeOnboarding(userId, v1);
     return reply.status(200).send(result);
+  });
+
+  app.post('/api/onboarding/reset', async (request, reply) => {
+    const userId = request.userId;
+    try {
+      const result = await resetUserData(userId);
+      return reply.status(200).send(result);
+    } catch (err: any) {
+      request.log.error(err, 'Failed to reset user data');
+      return reply.status(500).send({ error: err.message || 'Reset failed' });
+    }
   });
 }

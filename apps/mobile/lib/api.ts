@@ -30,9 +30,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  // Onboarding (no userId needed — server uses auth token)
-  completeOnboarding: (body: unknown) =>
+  // Onboarding (no userId needed — server uses auth token, accepts V1 or V2 payload)
+  completeOnboarding: (body: object) =>
     request('/api/onboarding', { method: 'POST', body: JSON.stringify(body) }),
+
+  resetOnboarding: () =>
+    request('/api/onboarding/reset', { method: 'POST', body: '{}' }),
 
   // Strategy
   getStrategy: () =>

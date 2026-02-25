@@ -1,117 +1,159 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Platform,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
-import { api } from '../../lib/api';
-import { useAuth } from '../../hooks/useAuth';
+import { ModeCard } from '../../components/onboarding/ModeCard';
+import { strategyModes, getModeDefinition } from '../../constants/strategyModes';
+import { classifyModeV2 } from '../../lib/classify';
+import { OnboardingV2Answers, StrategyMode, Challenge } from '../../types';
 import { theme } from '../../constants/theme';
-import { StrategyMode } from '../../types';
 
-export default function ExamDateScreen() {
+export default function StrategyRevealScreen() {
   const router = useRouter();
-  const { user } = useAuth();
   const params = useLocalSearchParams<{
-    hours: string;
-    isWorking: string;
-    attempt: string;
-    approach: string;
-    fallback: string;
-    recommendedMode: string;
-    chosenMode: string;
+    name: string;
+    target_exam_year: string;
+    attempt_number: string;
+    user_type: string;
+    challenges: string;
   }>();
 
-  const [name, setName] = useState('');
+  const answers: OnboardingV2Answers = useMemo(() => ({
+    name: params.name || '',
+    target_exam_year: parseInt(params.target_exam_year, 10),
+    attempt_number: params.attempt_number as OnboardingV2Answers['attempt_number'],
+    user_type: params.user_type as OnboardingV2Answers['user_type'],
+    challenges: (params.challenges?.split(',') || []) as Challenge[],
+  }), [params]);
+
+  const recommended = useMemo(() => classifyModeV2(answers), [answers]);
+  const [chosenMode, setChosenMode] = useState<StrategyMode>(recommended);
+  const [showAllModes, setShowAllModes] = useState(false);
   const [examDate, setExamDate] = useState(new Date(Date.now() + 180 * 86400000));
   const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
-  const [loading, setLoading] = useState(false);
 
-  const canSubmit = name.trim().length >= 2 && !loading;
+  const recommendedDef = getModeDefinition(recommended);
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      await api.completeOnboarding({
-        daily_hours: parseFloat(params.hours),
-        is_working_professional: params.isWorking === 'true',
-        attempt_number: params.attempt,
-        study_approach: params.approach,
-        fallback_strategy: params.fallback,
-        recommended_mode: params.recommendedMode,
-        chosen_mode: params.chosenMode as StrategyMode,
-        exam_date: examDate.toISOString().split('T')[0],
-        name: name.trim(),
-      });
-
-      router.replace('/(tabs)');
-    } catch {
-      // Still navigate forward if API fails
-      router.replace('/(tabs)');
-    } finally {
-      setLoading(false);
-    }
+  const modeNames: Record<string, string> = {
+    balanced: 'Balanced',
+    aggressive: 'Aggressive',
+    conservative: 'Conservative',
+    working_professional: 'Working Professional',
   };
 
   return (
     <QuestionScreen
       step={6}
-      totalSteps={7}
-      question="Almost there!"
-      subtitle="Set your exam date and let's begin"
-      nextLabel={loading ? 'Setting up...' : "Let's begin"}
-      nextDisabled={!canSubmit}
-      onNext={handleSubmit}
+      totalSteps={10}
+      chatMessage={`Based on your profile, I recommend the ${modeNames[recommended]} strategy!`}
+      question={showAllModes ? 'Choose your strategy' : 'Your recommended strategy'}
+      subtitle={showAllModes ? 'Pick the mode that suits you best' : undefined}
+      nextLabel="Continue"
+      onNext={() =>
+        router.push({
+          pathname: '/onboarding/targets',
+          params: {
+            ...params,
+            chosen_mode: chosenMode,
+            exam_date: examDate.toISOString().split('T')[0],
+          },
+        })
+      }
     >
-      <View style={styles.form}>
-        <Text style={styles.label}>Your name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your name"
-          placeholderTextColor={theme.colors.textMuted}
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-        />
-
-        <Text style={[styles.label, { marginTop: theme.spacing.lg }]}>Exam date</Text>
-
-        {Platform.OS === 'android' && (
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowPicker(true)}
-          >
-            <Text style={styles.dateText}>{examDate.toLocaleDateString()}</Text>
-          </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {showAllModes ? (
+          strategyModes.map((mode) => (
+            <ModeCard
+              key={mode.mode}
+              mode={mode}
+              selected={chosenMode === mode.mode}
+              recommended={mode.mode === recommended}
+              onPress={() => setChosenMode(mode.mode)}
+            />
+          ))
+        ) : (
+          <>
+            <ModeCard
+              mode={recommendedDef}
+              selected
+              recommended
+              onPress={() => {}}
+            />
+            <TouchableOpacity
+              style={styles.viewAll}
+              onPress={() => setShowAllModes(true)}
+            >
+              <Text style={styles.viewAllText}>View all strategies</Text>
+            </TouchableOpacity>
+          </>
         )}
 
-        {showPicker && (
-          <DateTimePicker
-            value={examDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            minimumDate={new Date()}
-            themeVariant="dark"
-            onChange={(_, date) => {
-              setShowPicker(Platform.OS === 'ios');
-              if (date) setExamDate(date);
-            }}
-          />
-        )}
-      </View>
+        <View style={styles.dateSection}>
+          <Text style={styles.label}>Exam date</Text>
+
+          {Platform.OS === 'web' ? (
+            <TextInput
+              style={styles.dateInput}
+              value={examDate.toISOString().split('T')[0]}
+              onChangeText={(text) => {
+                const parsed = new Date(text + 'T00:00:00');
+                if (!isNaN(parsed.getTime())) setExamDate(parsed);
+              }}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.colors.textMuted}
+              // @ts-ignore — web-only HTML input type
+              type="date"
+            />
+          ) : (
+            <>
+              {Platform.OS === 'android' && (
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowPicker(true)}
+                >
+                  <Text style={styles.dateText}>{examDate.toLocaleDateString()}</Text>
+                </TouchableOpacity>
+              )}
+
+              {showPicker && (() => {
+                const DateTimePicker = require('@react-native-community/datetimepicker').default;
+                return (
+                  <DateTimePicker
+                    value={examDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    minimumDate={new Date()}
+                    themeVariant="dark"
+                    onChange={(_: any, date?: Date) => {
+                      setShowPicker(Platform.OS === 'ios');
+                      if (date) setExamDate(date);
+                    }}
+                  />
+                );
+              })()}
+            </>
+          )}
+        </View>
+      </ScrollView>
     </QuestionScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  form: {
+  viewAll: {
+    alignItems: 'center',
     paddingVertical: theme.spacing.md,
+  },
+  viewAllText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  dateSection: {
+    marginTop: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
   label: {
     fontSize: theme.fontSize.sm,
@@ -121,7 +163,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  input: {
+  dateInput: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,

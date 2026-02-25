@@ -72,6 +72,44 @@ export interface OnboardingPayload {
   name: string;
 }
 
+// V2 Onboarding types
+export type UserType = 'student' | 'working' | 'dropout' | 'repeater';
+
+export type Challenge =
+  | 'time_management'
+  | 'consistency'
+  | 'syllabus_coverage'
+  | 'revision'
+  | 'answer_writing'
+  | 'motivation'
+  | 'optional_subject'
+  | 'current_affairs';
+
+export interface OnboardingV2Answers {
+  name: string;
+  target_exam_year: number;
+  attempt_number: 'first' | 'second' | 'third_plus';
+  user_type: UserType;
+  challenges: Challenge[];
+}
+
+export interface UserTargets {
+  daily_hours: number;
+  daily_new_topics: number;
+  weekly_revisions: number;
+  weekly_tests: number;
+  weekly_answer_writing: number;
+  weekly_ca_hours: number;
+}
+
+export interface OnboardingV2Payload {
+  answers: OnboardingV2Answers;
+  chosen_mode: StrategyMode;
+  targets: UserTargets;
+  promise_text?: string;
+  exam_date: string;
+}
+
 export interface SwitchModePayload {
   mode: StrategyMode;
 }

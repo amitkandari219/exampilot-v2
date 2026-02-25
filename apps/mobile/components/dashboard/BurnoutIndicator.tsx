@@ -17,6 +17,13 @@ const statusColors: Record<BurnoutStatus, string> = {
   critical: theme.colors.error,
 };
 
+const statusLabels: Record<BurnoutStatus, string> = {
+  low: 'Feeling good',
+  moderate: 'Moderate',
+  high: 'Take it easy',
+  critical: 'Rest needed',
+};
+
 export function BurnoutIndicator({ briScore, status, inRecovery, onPress }: BurnoutIndicatorProps) {
   const color = statusColors[status];
 
@@ -24,8 +31,8 @@ export function BurnoutIndicator({ briScore, status, inRecovery, onPress }: Burn
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.heartDot, { backgroundColor: color }]} />
       <View>
-        <Text style={styles.label}>{inRecovery ? 'Recovery' : 'BRI'}</Text>
-        <Text style={[styles.score, { color }]}>{briScore}</Text>
+        <Text style={styles.label}>{inRecovery ? 'Recovery' : 'Burnout'}</Text>
+        <Text style={[styles.status, { color }]}>{inRecovery ? 'Resting' : statusLabels[status]}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -54,8 +61,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  score: {
-    fontSize: theme.fontSize.md,
-    fontWeight: '800',
+  status: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: '700',
   },
 });

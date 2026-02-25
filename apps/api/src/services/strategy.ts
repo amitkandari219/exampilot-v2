@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase.js';
-import { StrategyMode, StrategyParams, OnboardingPayload, CustomizePayload, PersonaParams, ExamMode } from '../types/index.js';
+import { StrategyMode, StrategyParams, OnboardingPayload, OnboardingV2Payload, OnboardingV2Answers, CustomizePayload, PersonaParams, ExamMode } from '../types/index.js';
 
 const modeDefaults: Record<StrategyMode, StrategyParams> = {
   conservative: {
@@ -115,6 +115,89 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
   return data;
 }
 
+function classifyModeV2Server(answers: OnboardingV2Answers): StrategyMode {
+  if (answers.user_type === 'working') return 'working_professional';
+  let score = 0;
+  if (answers.attempt_number === 'third_plus') score += 2;
+  else if (answers.attempt_number === 'second') score += 1;
+  else score -= 1;
+  if (answers.user_type === 'dropout') score += 2;
+  if (answers.user_type === 'repeater') score += 1;
+  if (answers.challenges.includes('time_management')) score -= 1;
+  if (answers.challenges.includes('consistency')) score -= 1;
+  if (answers.challenges.includes('syllabus_coverage')) score += 1;
+  if (score >= 3) return 'aggressive';
+  if (score <= -1) return 'conservative';
+  return 'balanced';
+}
+
+export async function completeOnboardingV2(userId: string, payload: OnboardingV2Payload) {
+  const mode = payload.chosen_mode || classifyModeV2Server(payload.answers);
+  const params = await getDefaultParams(mode);
+  const persona = getPersonaDefaults(mode);
+
+  // Upsert user profile with V2 fields
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .upsert({
+      id: userId,
+      name: payload.answers.name,
+      exam_date: payload.exam_date,
+      daily_hours: payload.targets.daily_hours,
+      strategy_mode: mode,
+      strategy_params: params,
+      onboarding_completed: true,
+      fatigue_threshold: persona.fatigue_threshold,
+      buffer_capacity: persona.buffer_capacity,
+      fsrs_target_retention: persona.fsrs_target_retention,
+      burnout_threshold: persona.burnout_threshold,
+      target_exam_year: payload.answers.target_exam_year,
+      attempt_number: payload.answers.attempt_number,
+      user_type: payload.answers.user_type,
+      challenges: payload.answers.challenges,
+      onboarding_version: 2,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Upsert user targets
+  await supabase
+    .from('user_targets')
+    .upsert({
+      user_id: userId,
+      daily_hours: payload.targets.daily_hours,
+      daily_new_topics: payload.targets.daily_new_topics,
+      weekly_revisions: payload.targets.weekly_revisions,
+      weekly_tests: payload.targets.weekly_tests,
+      weekly_answer_writing: payload.targets.weekly_answer_writing,
+      weekly_ca_hours: payload.targets.weekly_ca_hours,
+    });
+
+  // Insert promise if provided
+  if (payload.promise_text) {
+    await supabase.from('user_promises').insert({
+      user_id: userId,
+      promise_text: payload.promise_text,
+    });
+  }
+
+  // Insert persona snapshot
+  await supabase.from('persona_snapshots').insert({
+    user_id: userId,
+    strategy_mode: mode,
+    strategy_params: params,
+    fatigue_threshold: persona.fatigue_threshold,
+    buffer_capacity: persona.buffer_capacity,
+    fsrs_target_retention: persona.fsrs_target_retention,
+    burnout_threshold: persona.burnout_threshold,
+    change_reason: 'initial_onboarding_v2',
+  });
+
+  return data;
+}
+
 export async function getStrategy(userId: string) {
   const { data, error } = await supabase
     .from('user_profiles')
@@ -182,6 +265,104 @@ export async function switchExamMode(userId: string, examMode: ExamMode) {
 
   if (error) throw error;
   return data;
+}
+
+export async function resetUserData(userId: string) {
+  // Helper: delete from a table, ignore errors (table may not exist yet)
+  const safeDelete = async (table: string, column = 'user_id') => {
+    // Supabase returns { error } instead of throwing
+    const { error } = await supabase.from(table).delete().eq(column, userId);
+    if (error) {
+      console.warn(`resetUserData: failed to delete from ${table}: ${error.message}`);
+    }
+  };
+
+  // Delete child tables first (FK order), then parent tables
+  await safeDelete('mock_topic_accuracy');
+  await safeDelete('mock_subject_accuracy');
+  await safeDelete('mock_tests');
+
+  await safeDelete('ca_daily_logs');
+  await safeDelete('ca_streaks');
+
+  await safeDelete('daily_plans');
+
+  await safeDelete('fsrs_cards');
+
+  await safeDelete('confidence_snapshots');
+  await safeDelete('revision_schedule');
+
+  await safeDelete('user_progress');
+  await safeDelete('status_changes');
+  await safeDelete('weakness_snapshots');
+
+  await safeDelete('velocity_snapshots');
+  await safeDelete('daily_logs');
+  await safeDelete('buffer_transactions');
+  await safeDelete('streaks');
+
+  await safeDelete('burnout_snapshots');
+  await safeDelete('recovery_log');
+
+  await safeDelete('recalibration_log');
+  await safeDelete('weekly_reviews');
+
+  await safeDelete('xp_transactions');
+  await safeDelete('user_badges');
+  await safeDelete('benchmark_snapshots');
+
+  await safeDelete('user_targets');
+  await safeDelete('user_promises');
+
+  await safeDelete('persona_snapshots');
+
+  // Reset user_profiles to defaults (keep the row, clear onboarding)
+  const { error: profileError } = await supabase
+    .from('user_profiles')
+    .update({
+      onboarding_completed: false,
+      strategy_mode: 'balanced',
+      strategy_params: null,
+      daily_hours: 6,
+      exam_date: null,
+      name: null,
+      target_exam_year: null,
+      attempt_number: null,
+      user_type: null,
+      challenges: null,
+      onboarding_version: null,
+      buffer_balance: 0,
+      recovery_mode_active: false,
+      recovery_mode_start: null,
+      recovery_mode_end: null,
+    })
+    .eq('id', userId);
+
+  if (profileError) {
+    // Fallback: update only core columns if V2 columns don't exist
+    const { error: fallbackError } = await supabase
+      .from('user_profiles')
+      .update({
+        onboarding_completed: false,
+        strategy_mode: 'balanced',
+        strategy_params: null,
+        daily_hours: 6,
+        exam_date: null,
+        name: null,
+        buffer_balance: 0,
+        recovery_mode_active: false,
+        recovery_mode_start: null,
+        recovery_mode_end: null,
+      })
+      .eq('id', userId);
+
+    if (fallbackError) {
+      console.error('resetUserData: failed to reset profile:', fallbackError.message);
+      throw fallbackError;
+    }
+  }
+
+  return { success: true };
 }
 
 export async function customizeParams(userId: string, payload: CustomizePayload) {

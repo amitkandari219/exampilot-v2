@@ -1,39 +1,40 @@
 import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
-import { OptionCard } from '../../components/onboarding/OptionCard';
+import { SelectionCard } from '../../components/onboarding/SelectionCard';
+import { getExamYearOptions } from '../../constants/onboardingData';
 
-export default function ProfessionalScreen() {
+export default function ExamYearScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ hours: string }>();
-  const [isWorking, setIsWorking] = useState<boolean | null>(null);
+  const params = useLocalSearchParams<{ name: string }>();
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const yearOptions = getExamYearOptions();
 
   return (
     <QuestionScreen
       step={1}
-      totalSteps={7}
-      question="Are you a working professional?"
-      subtitle="This helps us optimize your schedule"
-      nextDisabled={isWorking === null}
+      totalSteps={10}
+      chatMessage={`Great to meet you, ${params.name}! When are you targeting CSE?`}
+      question="Target exam year"
+      subtitle="Choose your CSE cycle"
+      nextDisabled={selectedYear === null}
       onNext={() =>
         router.push({
           pathname: '/onboarding/attempt',
-          params: { hours: params.hours, isWorking: String(isWorking) },
+          params: { name: params.name, target_exam_year: String(selectedYear) },
         })
       }
     >
-      <OptionCard
-        label="Yes, I'm working"
-        description="I have a full-time or part-time job alongside preparation"
-        selected={isWorking === true}
-        onPress={() => setIsWorking(true)}
-      />
-      <OptionCard
-        label="No, full-time aspirant"
-        description="I can dedicate my entire day to preparation"
-        selected={isWorking === false}
-        onPress={() => setIsWorking(false)}
-      />
+      {yearOptions.map((opt) => (
+        <SelectionCard
+          key={opt.key}
+          icon="📅"
+          label={`CSE ${opt.label}`}
+          subtitle={opt.key === yearOptions[0].key ? 'Coming up soon!' : undefined}
+          selected={selectedYear === opt.key}
+          onPress={() => setSelectedYear(opt.key)}
+        />
+      ))}
     </QuestionScreen>
   );
 }
