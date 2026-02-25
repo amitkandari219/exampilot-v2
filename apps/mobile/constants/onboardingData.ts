@@ -1,4 +1,4 @@
-import { OnboardingV2Answers, UserTargets, Challenge } from '../types';
+import { OnboardingV2Answers, UserTargets, Challenge, StrategyMode } from '../types';
 
 // Exam year options (current year + next 2)
 export function getExamYearOptions(): Array<{ key: number; label: string }> {
@@ -69,16 +69,16 @@ export const alwaysValueProps = [
   'Smart exam mode switching (Prelims/Mains)',
 ];
 
-// Base targets by user type
-const baseTargets: Record<string, UserTargets> = {
-  student: { daily_hours: 8, daily_new_topics: 3, weekly_revisions: 4, weekly_tests: 1, weekly_answer_writing: 3, weekly_ca_hours: 6 },
-  working: { daily_hours: 4, daily_new_topics: 1, weekly_revisions: 2, weekly_tests: 1, weekly_answer_writing: 1, weekly_ca_hours: 4 },
-  dropout: { daily_hours: 10, daily_new_topics: 3, weekly_revisions: 5, weekly_tests: 2, weekly_answer_writing: 4, weekly_ca_hours: 7 },
-  repeater: { daily_hours: 8, daily_new_topics: 2, weekly_revisions: 5, weekly_tests: 2, weekly_answer_writing: 3, weekly_ca_hours: 6 },
+// Base targets by strategy mode
+const modeBaseTargets: Record<StrategyMode, UserTargets> = {
+  conservative: { daily_hours: 5, daily_new_topics: 1, weekly_revisions: 5, weekly_tests: 1, weekly_answer_writing: 2, weekly_ca_hours: 4 },
+  balanced: { daily_hours: 7, daily_new_topics: 2, weekly_revisions: 4, weekly_tests: 1, weekly_answer_writing: 3, weekly_ca_hours: 5 },
+  aggressive: { daily_hours: 10, daily_new_topics: 3, weekly_revisions: 3, weekly_tests: 2, weekly_answer_writing: 4, weekly_ca_hours: 7 },
+  working_professional: { daily_hours: 4, daily_new_topics: 1, weekly_revisions: 2, weekly_tests: 1, weekly_answer_writing: 1, weekly_ca_hours: 3 },
 };
 
-export function getDefaultTargets(answers: OnboardingV2Answers): UserTargets {
-  const base = { ...(baseTargets[answers.user_type] || baseTargets.student) };
+export function getDefaultTargets(answers: OnboardingV2Answers, chosenMode: StrategyMode): UserTargets {
+  const base = { ...(modeBaseTargets[chosenMode] || modeBaseTargets.balanced) };
 
   // Challenge-based adjustments
   if (answers.challenges.includes('revision')) base.weekly_revisions += 1;

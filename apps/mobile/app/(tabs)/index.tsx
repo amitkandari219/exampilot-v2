@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useStress } from '../../hooks/useStress';
+import { useSwitchExamMode } from '../../hooks/useStrategy';
+import { api } from '../../lib/api';
 import { useVelocity } from '../../hooks/useVelocity';
 import { useBuffer } from '../../hooks/useVelocity';
 import { useBurnout } from '../../hooks/useBurnout';
@@ -21,7 +23,7 @@ import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
 import { BurnoutIndicator } from '../../components/dashboard/BurnoutIndicator';
 import { WeaknessRadarCard } from '../../components/weakness/WeaknessRadarCard';
-import { ConfidenceStatus } from '../../types';
+import { ConfidenceStatus, ExamMode } from '../../types';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -36,6 +38,19 @@ export default function DashboardScreen() {
   const { data: gamification } = useGamification();
   const { data: benchmark } = useBenchmark();
   const { data: caStats } = useCAStats();
+  const switchExamMode = useSwitchExamMode();
+  const [examMode, setExamMode] = useState<ExamMode>('mains');
+
+  useEffect(() => {
+    api.getStrategy().then((data: any) => {
+      if (data?.current_mode) setExamMode(data.current_mode);
+    }).catch(() => {});
+  }, []);
+
+  const handleExamModeChange = (newMode: ExamMode) => {
+    setExamMode(newMode);
+    switchExamMode.mutate(newMode);
+  };
 
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
@@ -55,6 +70,21 @@ export default function DashboardScreen() {
               inRecovery={burnout.in_recovery}
             />
           )}
+        </View>
+
+        <View style={styles.examModeToggle}>
+          {(['prelims', 'mains', 'post_prelims'] as ExamMode[]).map((m) => (
+            <TouchableOpacity
+              key={m}
+              style={[styles.examModeBtn, examMode === m && styles.examModeBtnActive]}
+              onPress={() => handleExamModeChange(m)}
+              disabled={switchExamMode.isPending}
+            >
+              <Text style={[styles.examModeBtnText, examMode === m && styles.examModeBtnTextActive]}>
+                {m === 'post_prelims' ? 'Post-Pre' : m.charAt(0).toUpperCase() + m.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {gamification && (
@@ -291,6 +321,32 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'capitalize',
+  },
+  examModeToggle: {
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
+  },
+  examModeBtn: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  examModeBtnActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  examModeBtnText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  examModeBtnTextActive: {
+    color: theme.colors.background,
   },
   simulatorButton: {
     flexDirection: 'row',

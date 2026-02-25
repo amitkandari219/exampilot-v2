@@ -4,7 +4,7 @@ import Slider from '@react-native-community/slider';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
 import { getDefaultTargets } from '../../constants/onboardingData';
-import { OnboardingV2Answers, UserTargets, Challenge } from '../../types';
+import { OnboardingV2Answers, UserTargets, Challenge, StrategyMode } from '../../types';
 import { theme } from '../../constants/theme';
 
 interface SliderRowProps {
@@ -61,7 +61,8 @@ export default function TargetsScreen() {
     challenges: (params.challenges?.split(',') || []) as Challenge[],
   }), [params]);
 
-  const defaults = useMemo(() => getDefaultTargets(answers), [answers]);
+  const chosenMode = (params.chosen_mode || 'balanced') as StrategyMode;
+  const defaults = useMemo(() => getDefaultTargets(answers, chosenMode), [answers, chosenMode]);
   const [targets, setTargets] = useState<UserTargets>(defaults);
 
   const update = (key: keyof UserTargets, val: number) =>
