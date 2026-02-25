@@ -1,21 +1,26 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { WeaknessOverview, HealthCategory } from '../../types';
 
 interface WeakAreaListProps {
   data: WeaknessOverview;
 }
 
-const CATEGORY_COLORS: Record<HealthCategory, string> = {
-  critical: theme.colors.error,
-  weak: theme.colors.orange,
-  moderate: theme.colors.warning,
-  strong: theme.colors.success,
-  exam_ready: theme.colors.primary,
-};
+function getCategoryColors(theme: Theme) {
+  return {
+    critical: theme.colors.error,
+    weak: theme.colors.orange,
+    moderate: theme.colors.warning,
+    strong: theme.colors.success,
+    exam_ready: theme.colors.primary,
+  };
+}
 
 export function WeakAreaList({ data }: WeakAreaListProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   if (data.by_subject.length === 0) {
     return (
       <View style={styles.empty}>
@@ -46,13 +51,13 @@ export function WeakAreaList({ data }: WeakAreaListProps) {
 
           {group.topics.map((t) => (
             <View key={t.topic_id} style={styles.topicItem}>
-              <View style={[styles.dot, { backgroundColor: CATEGORY_COLORS[t.category] }]} />
+              <View style={[styles.dot, { backgroundColor: getCategoryColors(theme)[t.category] }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.topicName} numberOfLines={1}>{t.topic_name}</Text>
                 <Text style={styles.chapterName}>{t.chapter_name}</Text>
                 <Text style={styles.recommendation}>{t.recommendation}</Text>
               </View>
-              <Text style={[styles.score, { color: CATEGORY_COLORS[t.category] }]}>
+              <Text style={[styles.score, { color: getCategoryColors(theme)[t.category] }]}>
                 {t.health_score}
               </Text>
             </View>
@@ -63,7 +68,7 @@ export function WeakAreaList({ data }: WeakAreaListProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   empty: {
     padding: theme.spacing.lg,
     alignItems: 'center',

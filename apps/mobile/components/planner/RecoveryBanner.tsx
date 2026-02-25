@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface RecoveryBannerProps {
   day: number;
@@ -8,6 +9,8 @@ interface RecoveryBannerProps {
 }
 
 export function RecoveryBanner({ day, totalDays }: RecoveryBannerProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const progress = totalDays > 0 ? day / totalDays : 0;
 
   return (
@@ -28,7 +31,7 @@ export function RecoveryBanner({ day, totalDays }: RecoveryBannerProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   banner: {
     backgroundColor: theme.colors.recoveryBg,
     borderRadius: theme.borderRadius.lg,

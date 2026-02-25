@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { CAStats } from '../../types';
 import { CALogSheet } from './CALogSheet';
 
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function CADashboardCard({ stats }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [showLog, setShowLog] = useState(false);
 
   const streakColor = stats.streak.current_streak >= 7
@@ -76,7 +79,7 @@ export function CADashboardCard({ stats }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

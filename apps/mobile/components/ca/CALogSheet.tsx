@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, {  useState, useEffect , useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useLogCA } from '../../hooks/useCurrentAffairs';
 import { useSyllabusProgress } from '../../hooks/useSyllabus';
 import type { CADailyLog } from '../../types';
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export function CALogSheet({ visible, onClose, existing }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [completed, setCompleted] = useState(true);
   const [hours, setHours] = useState('1');
   const [notes, setNotes] = useState('');
@@ -171,7 +174,7 @@ export function CALogSheet({ visible, onClose, existing }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

@@ -1,14 +1,17 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChatBubble } from '../../components/onboarding/ChatBubble';
 import { api } from '../../lib/api';
 import { OnboardingV2Answers, OnboardingV2Payload, UserTargets, StrategyMode, Challenge } from '../../types';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 export default function CompleteScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{
     name: string;
@@ -117,8 +120,13 @@ export default function CompleteScreen() {
         <TouchableOpacity
           style={styles.startButton}
           onPress={() => {
+            queryClient.removeQueries();
             queryClient.clear();
-            router.replace('/(tabs)');
+            if (Platform.OS === 'web') {
+              window.location.href = '/';
+            } else {
+              router.replace('/(tabs)');
+            }
           }}
           activeOpacity={0.8}
         >
@@ -129,7 +137,7 @@ export default function CompleteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: theme.colors.background,

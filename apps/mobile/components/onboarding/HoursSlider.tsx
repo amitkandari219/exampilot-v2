@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface HoursSliderProps {
   value: number;
@@ -9,6 +10,8 @@ interface HoursSliderProps {
 }
 
 export function HoursSlider({ value, onValueChange }: HoursSliderProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.container}>
       <Text style={styles.hoursDisplay}>{value}</Text>
@@ -33,7 +36,7 @@ export function HoursSlider({ value, onValueChange }: HoursSliderProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: theme.spacing.lg,

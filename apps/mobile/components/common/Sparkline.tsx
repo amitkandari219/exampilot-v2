@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface SparklineProps {
   data: number[];
@@ -9,7 +10,10 @@ interface SparklineProps {
   color?: string;
 }
 
-export function Sparkline({ data, width = 80, height = 24, color = theme.colors.primary }: SparklineProps) {
+export function Sparkline({ data, width = 80, height = 24, color }: SparklineProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const resolvedColor = color ?? theme.colors.primary;
   if (data.length < 2) return null;
 
   const min = Math.min(...data);
@@ -29,7 +33,7 @@ export function Sparkline({ data, width = 80, height = 24, color = theme.colors.
               {
                 width: barWidth,
                 height: normalizedHeight,
-                backgroundColor: color,
+                backgroundColor: resolvedColor,
                 opacity: index === data.length - 1 ? 1 : 0.5,
                 marginLeft: index > 0 ? 2 : 0,
               },
@@ -41,7 +45,7 @@ export function Sparkline({ data, width = 80, height = 24, color = theme.colors.
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',

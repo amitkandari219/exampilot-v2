@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 export default function SignupScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const { signUp } = useAuth();
   const [email, setEmail] = useState('');
@@ -106,7 +109,7 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, padding: theme.spacing.lg, justifyContent: 'center' },
   title: {

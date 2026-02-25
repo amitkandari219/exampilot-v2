@@ -1,14 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
 import { ModeCard } from '../../components/onboarding/ModeCard';
 import { strategyModes, getModeDefinition } from '../../constants/strategyModes';
 import { classifyModeV2 } from '../../lib/classify';
 import { OnboardingV2Answers, StrategyMode, Challenge } from '../../types';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function StrategyRevealScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{
     name: string;
@@ -26,11 +32,45 @@ export default function StrategyRevealScreen() {
     challenges: (params.challenges?.split(',') || []) as Challenge[],
   }), [params]);
 
+  const { session } = useAuth();
   const recommended = useMemo(() => classifyModeV2(answers), [answers]);
   const [chosenMode, setChosenMode] = useState<StrategyMode>(recommended);
   const [showAllModes, setShowAllModes] = useState(false);
   const [examDate, setExamDate] = useState(new Date(Date.now() + 180 * 86400000));
   const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
+
+  useEffect(() => {
+    const applyDate = (val: string) => {
+      const parsed = new Date(val + 'T00:00:00');
+      if (!isNaN(parsed.getTime()) && parsed > new Date()) setExamDate(parsed);
+    };
+
+    const readPrefill = Platform.OS === 'web'
+      ? () => {
+          const val = localStorage.getItem('prefill_exam_date');
+          if (val) localStorage.removeItem('prefill_exam_date');
+          return Promise.resolve(val);
+        }
+      : () => AsyncStorage.getItem('prefill_exam_date').then((val) => {
+          if (val) AsyncStorage.removeItem('prefill_exam_date');
+          return val;
+        });
+
+    readPrefill().then((val) => {
+      if (val) {
+        applyDate(val);
+      } else if (session?.user?.id) {
+        supabase
+          .from('user_profiles')
+          .select('exam_date')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.exam_date) applyDate(data.exam_date);
+          });
+      }
+    });
+  }, [session?.user?.id]);
 
   const recommendedDef = getModeDefinition(recommended);
 
@@ -92,17 +132,24 @@ export default function StrategyRevealScreen() {
           <Text style={styles.label}>Exam date</Text>
 
           {Platform.OS === 'web' ? (
-            <TextInput
-              style={styles.dateInput}
+            <input
+              type="date"
               value={examDate.toISOString().split('T')[0]}
-              onChangeText={(text) => {
-                const parsed = new Date(text + 'T00:00:00');
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e: any) => {
+                const parsed = new Date(e.target.value + 'T00:00:00');
                 if (!isNaN(parsed.getTime())) setExamDate(parsed);
               }}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.colors.textMuted}
-              // @ts-ignore — web-only HTML input type
-              type="date"
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderRadius: theme.borderRadius.md,
+                border: `1px solid ${theme.colors.border}`,
+                padding: theme.spacing.md,
+                fontSize: theme.fontSize.md,
+                color: theme.colors.text,
+                width: '100%',
+                boxSizing: 'border-box' as any,
+              }}
             />
           ) : (
             <>
@@ -139,7 +186,7 @@ export default function StrategyRevealScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   viewAll: {
     alignItems: 'center',
     paddingVertical: theme.spacing.md,

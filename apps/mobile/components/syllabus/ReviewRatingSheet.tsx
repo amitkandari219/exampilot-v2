@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface ReviewRatingSheetProps {
   visible: boolean;
@@ -9,34 +10,15 @@ interface ReviewRatingSheetProps {
   onClose: () => void;
 }
 
-const RATING_OPTIONS: { rating: number; label: string; color: string; description: string }[] = [
-  {
-    rating: 1,
-    label: 'Again',
-    color: theme.colors.error,
-    description: 'Completely forgot',
-  },
-  {
-    rating: 2,
-    label: 'Hard',
-    color: theme.colors.orange,
-    description: 'Recalled with difficulty',
-  },
-  {
-    rating: 3,
-    label: 'Good',
-    color: theme.colors.primary,
-    description: 'Recalled with some effort',
-  },
-  {
-    rating: 4,
-    label: 'Easy',
-    color: theme.colors.success,
-    description: 'Recalled effortlessly',
-  },
-];
-
 export function ReviewRatingSheet({ visible, topicName, onRate, onClose }: ReviewRatingSheetProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const RATING_OPTIONS = [
+    { rating: 1, label: 'Again', color: theme.colors.error, description: 'Completely forgot' },
+    { rating: 2, label: 'Hard', color: theme.colors.orange, description: 'Recalled with difficulty' },
+    { rating: 3, label: 'Good', color: theme.colors.primary, description: 'Recalled with some effort' },
+    { rating: 4, label: 'Easy', color: theme.colors.success, description: 'Recalled effortlessly' },
+  ];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -71,7 +53,7 @@ export function ReviewRatingSheet({ visible, topicName, onRate, onClose }: Revie
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',

@@ -4,9 +4,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
 import { getPromiseText } from '../../constants/onboardingData';
 import { UserTargets } from '../../types';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 export default function PromiseScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{
     name: string;
@@ -91,7 +94,7 @@ export default function PromiseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { Subject } from '../../types';
 import { ChapterAccordion } from './ChapterAccordion';
 
@@ -10,6 +11,8 @@ interface SubjectCardProps {
 }
 
 export function SubjectCard({ subject, onTopicPress }: SubjectCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [expanded, setExpanded] = useState(false);
 
   const progress = subject.progress;
@@ -61,6 +64,8 @@ export function SubjectCard({ subject, onTopicPress }: SubjectCardProps) {
 }
 
 function ProgressRing({ percentage }: { percentage: number }) {
+  const { theme } = useTheme();
+  const ringStyles = useMemo(() => createStyles(theme), [theme]);
   const clamped = Math.max(0, Math.min(100, percentage));
   const ringColor =
     clamped >= 80
@@ -72,10 +77,10 @@ function ProgressRing({ percentage }: { percentage: number }) {
           : theme.colors.textMuted;
 
   return (
-    <View style={[styles.ring, { borderColor: theme.colors.border }]}>
+    <View style={[ringStyles.ring, { borderColor: theme.colors.border }]}>
       <View
         style={[
-          styles.ringOverlay,
+          ringStyles.ringOverlay,
           {
             borderColor: ringColor,
             borderTopColor: clamped >= 25 ? ringColor : 'transparent',
@@ -85,12 +90,12 @@ function ProgressRing({ percentage }: { percentage: number }) {
           },
         ]}
       />
-      <Text style={[styles.ringText, { color: ringColor }]}>{Math.round(clamped)}</Text>
+      <Text style={[ringStyles.ringText, { color: ringColor }]}>{Math.round(clamped)}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

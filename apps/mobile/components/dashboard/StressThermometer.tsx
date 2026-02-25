@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { Sparkline } from '../common/Sparkline';
 
 interface StressThermometerProps {
@@ -17,7 +18,7 @@ interface StressThermometerProps {
   history?: number[];
 }
 
-function getColor(score: number): string {
+function getColor(score: number, theme: Theme): string {
   if (score >= 70) return theme.colors.success;
   if (score >= 45) return theme.colors.warning;
   if (score >= 25) return theme.colors.orange;
@@ -25,7 +26,9 @@ function getColor(score: number): string {
 }
 
 export function StressThermometer({ score, status, label, signals, recommendation, history }: StressThermometerProps) {
-  const color = getColor(score);
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const color = getColor(score, theme);
 
   const signalEntries = [
     { name: 'Velocity', value: signals.velocity },
@@ -67,7 +70,7 @@ export function StressThermometer({ score, status, label, signals, recommendatio
               <View
                 style={[
                   styles.signalBarFill,
-                  { height: `${signal.value}%`, backgroundColor: getColor(signal.value) },
+                  { height: `${signal.value}%`, backgroundColor: getColor(signal.value, theme) },
                 ]}
               />
             </View>
@@ -81,7 +84,7 @@ export function StressThermometer({ score, status, label, signals, recommendatio
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

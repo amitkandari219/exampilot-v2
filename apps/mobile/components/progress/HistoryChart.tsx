@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface HistoryChartProps {
   data: Array<{ date: string; value: number }>;
@@ -9,7 +10,10 @@ interface HistoryChartProps {
   height?: number;
 }
 
-export function HistoryChart({ data, title, color = theme.colors.primary, height = 80 }: HistoryChartProps) {
+export function HistoryChart({ data, title, color, height = 80 }: HistoryChartProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const resolvedColor = color ?? theme.colors.primary;
   if (data.length === 0) {
     return (
       <View style={styles.card}>
@@ -29,7 +33,7 @@ export function HistoryChart({ data, title, color = theme.colors.primary, height
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={[styles.latest, { color }]}>{values[values.length - 1].toFixed(1)}</Text>
+        <Text style={[styles.latest, { color: resolvedColor }]}>{values[values.length - 1].toFixed(1)}</Text>
       </View>
 
       <View style={[styles.chartArea, { height }]}>
@@ -43,7 +47,7 @@ export function HistoryChart({ data, title, color = theme.colors.primary, height
                 {
                   width: barWidth,
                   height: barHeight,
-                  backgroundColor: color,
+                  backgroundColor: resolvedColor,
                   opacity: index === data.length - 1 ? 1 : 0.4,
                   marginLeft: index > 0 ? 2 : 0,
                 },
@@ -65,7 +69,7 @@ export function HistoryChart({ data, title, color = theme.colors.primary, height
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

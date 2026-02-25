@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { Sparkline } from '../common/Sparkline';
 import { VelocityStatus } from '../../types';
 
@@ -13,12 +14,14 @@ interface VelocityCardProps {
   history?: number[];
 }
 
-const statusColors: Record<VelocityStatus, string> = {
-  ahead: theme.colors.success,
-  on_track: theme.colors.primary,
-  behind: theme.colors.warning,
-  at_risk: theme.colors.error,
-};
+function getStatusColors(theme: Theme) {
+  return {
+    ahead: theme.colors.success,
+    on_track: theme.colors.primary,
+    behind: theme.colors.warning,
+    at_risk: theme.colors.error,
+  };
+}
 
 const statusLabels: Record<VelocityStatus, string> = {
   ahead: 'Ahead',
@@ -28,7 +31,9 @@ const statusLabels: Record<VelocityStatus, string> = {
 };
 
 export function VelocityCard({ velocityRatio, status, trend, projectedDate, streak, history }: VelocityCardProps) {
-  const color = statusColors[status];
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const color = getStatusColors(theme)[status];
   const trendArrow = trend === 'improving' ? '+' : trend === 'declining' ? '-' : '=';
 
   return (
@@ -62,7 +67,7 @@ export function VelocityCard({ velocityRatio, status, trend, projectedDate, stre
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

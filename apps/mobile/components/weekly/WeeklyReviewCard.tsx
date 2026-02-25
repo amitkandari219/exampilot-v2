@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { WeeklyReviewSummary } from '../../types';
 
 interface Props {
@@ -20,15 +21,17 @@ function formatDateRange(start: string, end: string): string {
 }
 
 function MetricPill({ value, label }: { value: string; label: string }) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createPillStyles(theme), [theme]);
   return (
-    <View style={pillStyles.container}>
-      <Text style={pillStyles.value}>{value}</Text>
-      <Text style={pillStyles.label}>{label}</Text>
+    <View style={styles.container}>
+      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.label}>{label}</Text>
     </View>
   );
 }
 
-const pillStyles = StyleSheet.create({
+const createPillStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
@@ -49,15 +52,17 @@ const pillStyles = StyleSheet.create({
 });
 
 function GridItem({ label, value, color }: { label: string; value: string; color?: string }) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createGridStyles(theme), [theme]);
   return (
-    <View style={gridStyles.item}>
-      <Text style={[gridStyles.value, color ? { color } : null]}>{value}</Text>
-      <Text style={gridStyles.label}>{label}</Text>
+    <View style={styles.item}>
+      <Text style={[styles.value, color ? { color } : null]}>{value}</Text>
+      <Text style={styles.label}>{label}</Text>
     </View>
   );
 }
 
-const gridStyles = StyleSheet.create({
+const createGridStyles = (theme: Theme) => StyleSheet.create({
   item: {
     width: '50%' as any,
     paddingVertical: theme.spacing.xs,
@@ -76,19 +81,21 @@ const gridStyles = StyleSheet.create({
 });
 
 function DeltaChip({ label, value }: { label: string; value: number }) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createDeltaStyles(theme), [theme]);
   const isPositive = value > 0;
   const isNegative = value < 0;
   const color = isPositive ? theme.colors.success : isNegative ? theme.colors.error : theme.colors.textMuted;
   const prefix = isPositive ? '+' : '';
   return (
-    <View style={deltaStyles.chip}>
-      <Text style={[deltaStyles.value, { color }]}>{prefix}{value}</Text>
-      <Text style={deltaStyles.label}>{label}</Text>
+    <View style={styles.chip}>
+      <Text style={[styles.value, { color }]}>{prefix}{value}</Text>
+      <Text style={styles.label}>{label}</Text>
     </View>
   );
 }
 
-const deltaStyles = StyleSheet.create({
+const createDeltaStyles = (theme: Theme) => StyleSheet.create({
   chip: {
     flex: 1,
     alignItems: 'center',
@@ -105,7 +112,7 @@ const deltaStyles = StyleSheet.create({
   },
 });
 
-function benchmarkStatusColor(status: string | null): string {
+function benchmarkStatusColor(status: string | null, theme: Theme): string {
   switch (status) {
     case 'exam_ready': return theme.colors.success;
     case 'on_track': return theme.colors.primary;
@@ -126,6 +133,8 @@ function formatBenchmarkStatus(status: string | null): string {
 }
 
 export function WeeklyReviewCard({ review }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const velocityColor = review.avg_velocity_ratio >= 0.9 ? theme.colors.success : review.avg_velocity_ratio >= 0.7 ? theme.colors.warning : theme.colors.error;
   const briColor = review.avg_bri >= 60 ? theme.colors.success : review.avg_bri >= 40 ? theme.colors.warning : theme.colors.error;
 
@@ -183,12 +192,12 @@ export function WeeklyReviewCard({ review }: Props) {
             <GridItem
               label="Readiness"
               value={`${review.benchmark_score_end}${benchmarkDelta != null ? ` (${benchmarkDelta >= 0 ? '+' : ''}${benchmarkDelta})` : ''}`}
-              color={benchmarkStatusColor(review.benchmark_status)}
+              color={benchmarkStatusColor(review.benchmark_status, theme)}
             />
             <GridItem
               label="Status"
               value={formatBenchmarkStatus(review.benchmark_status)}
-              color={benchmarkStatusColor(review.benchmark_status)}
+              color={benchmarkStatusColor(review.benchmark_status, theme)}
             />
           </View>
         </>
@@ -216,7 +225,7 @@ export function WeeklyReviewCard({ review }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { BenchmarkProfile } from '../../types';
 
 interface Props {
@@ -15,14 +16,14 @@ const STATUS_LABELS: Record<string, string> = {
   at_risk: 'At Risk',
 };
 
-function getScoreColor(score: number): string {
+function getScoreColor(score: number, theme: Theme): string {
   if (score >= 80) return theme.colors.success;
   if (score >= 60) return theme.colors.primary;
   if (score >= 40) return theme.colors.warning;
   return theme.colors.error;
 }
 
-function getStatusColor(status: string): string {
+function getStatusColor(status: string, theme: Theme): string {
   switch (status) {
     case 'exam_ready': return theme.colors.success;
     case 'on_track': return theme.colors.primary;
@@ -38,23 +39,27 @@ interface BarProps {
 }
 
 function ComponentBar({ label, value }: BarProps) {
-  const color = getScoreColor(value);
+  const { theme } = useTheme();
+  const bStyles = useMemo(() => createBarStyles(theme), [theme]);
+  const color = getScoreColor(value, theme);
   const pct = Math.min(100, Math.max(0, value));
 
   return (
-    <View style={barStyles.row}>
-      <Text style={barStyles.label}>{label}</Text>
-      <View style={barStyles.track}>
-        <View style={[barStyles.fill, { width: `${pct}%`, backgroundColor: color }]} />
+    <View style={bStyles.row}>
+      <Text style={bStyles.label}>{label}</Text>
+      <View style={bStyles.track}>
+        <View style={[bStyles.fill, { width: `${pct}%`, backgroundColor: color }]} />
       </View>
-      <Text style={[barStyles.value, { color }]}>{Math.round(value)}</Text>
+      <Text style={[bStyles.value, { color }]}>{Math.round(value)}</Text>
     </View>
   );
 }
 
 export function BenchmarkScoreCard({ profile, compact = false }: Props) {
-  const scoreColor = getScoreColor(profile.composite_score);
-  const statusColor = getStatusColor(profile.status);
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const scoreColor = getScoreColor(profile.composite_score, theme);
+  const statusColor = getStatusColor(profile.status, theme);
   const trendSymbol = profile.trend_delta > 0 ? '+' : '';
   const trendLabel = profile.trend === 'improving' ? 'improving' : profile.trend === 'declining' ? 'declining' : 'stable';
 
@@ -102,7 +107,7 @@ export function BenchmarkScoreCard({ profile, compact = false }: Props) {
   );
 }
 
-const barStyles = StyleSheet.create({
+const createBarStyles = (theme: Theme) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -133,7 +138,7 @@ const barStyles = StyleSheet.create({
   },
 });
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

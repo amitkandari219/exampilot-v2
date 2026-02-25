@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface OptionCardProps {
   label: string;
@@ -10,6 +11,8 @@ interface OptionCardProps {
 }
 
 export function OptionCard({ label, description, selected, onPress }: OptionCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <TouchableOpacity
       style={[styles.card, selected && styles.cardSelected]}
@@ -26,7 +29,7 @@ export function OptionCard({ label, description, selected, onPress }: OptionCard
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

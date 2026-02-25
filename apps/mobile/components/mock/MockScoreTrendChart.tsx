@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface TrendPoint {
   test_date: string;
@@ -12,13 +13,15 @@ interface Props {
   data: TrendPoint[];
 }
 
-function getBarColor(pct: number): string {
+function getBarColor(pct: number, theme: Theme): string {
   if (pct >= 60) return theme.colors.success;
   if (pct >= 45) return theme.colors.warning;
   return theme.colors.error;
 }
 
 export function MockScoreTrendChart({ data }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   if (data.length === 0) return null;
 
   const maxPct = Math.max(...data.map((d) => d.score_pct), 100);
@@ -29,7 +32,7 @@ export function MockScoreTrendChart({ data }: Props) {
       <View style={styles.chartContainer}>
         {data.map((point, i) => {
           const heightPct = maxPct > 0 ? (point.score_pct / maxPct) * 100 : 0;
-          const color = getBarColor(point.score_pct);
+          const color = getBarColor(point.score_pct, theme);
           return (
             <View key={i} style={styles.barCol}>
               <Text style={[styles.barValue, { color }]}>{point.score_pct.toFixed(0)}%</Text>
@@ -59,7 +62,7 @@ export function MockScoreTrendChart({ data }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

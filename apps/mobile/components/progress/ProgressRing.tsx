@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface ProgressRingProps {
   percentage: number;
@@ -14,9 +15,12 @@ export function ProgressRing({
   percentage,
   size = 64,
   strokeWidth = 4,
-  color = theme.colors.primary,
+  color,
   label,
 }: ProgressRingProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const resolvedColor = color ?? theme.colors.primary;
   const pct = Math.max(0, Math.min(100, percentage));
   const innerSize = size - strokeWidth * 2;
 
@@ -44,11 +48,11 @@ export function ProgressRing({
             height: size,
             borderRadius: size / 2,
             borderWidth: strokeWidth,
-            borderColor: color,
-            borderTopColor: pct > 25 ? color : 'transparent',
-            borderRightColor: pct > 50 ? color : 'transparent',
-            borderBottomColor: pct > 75 ? color : 'transparent',
-            borderLeftColor: pct > 0 ? color : 'transparent',
+            borderColor: resolvedColor,
+            borderTopColor: pct > 25 ? resolvedColor : 'transparent',
+            borderRightColor: pct > 50 ? resolvedColor : 'transparent',
+            borderBottomColor: pct > 75 ? resolvedColor : 'transparent',
+            borderLeftColor: pct > 0 ? resolvedColor : 'transparent',
             transform: [{ rotate: '-45deg' }],
           },
         ]}
@@ -61,7 +65,7 @@ export function ProgressRing({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',

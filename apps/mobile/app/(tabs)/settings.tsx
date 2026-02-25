@@ -1,16 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Switch, ActivityIndicator, Platform } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Switch, ActivityIndicator, Platform, TextInput, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { theme } from '../../constants/theme';
+import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
-function crossAlert(title: string, message: string, buttons: Array<{ text: string; style?: string; onPress?: () => void }>) {
+function crossAlert(title: string, message: string, buttons: Array<{ text: string; style?: string; onPress?: () => void | Promise<void> }>) {
   if (Platform.OS === 'web') {
     const confirmed = window.confirm(`${title}\n\n${message}`);
     if (confirmed) {
       const destructive = buttons.find((b) => b.style === 'destructive');
-      destructive?.onPress?.();
+      const result = destructive?.onPress?.();
+      if (result && typeof (result as any).then === 'function') {
+        (result as Promise<void>).catch(() => {});
+      }
     }
   } else {
     Alert.alert(title, message, buttons as any);
@@ -25,12 +32,16 @@ import { useGamification, useBadges } from '../../hooks/useGamification';
 import { BadgeGrid } from '../../components/gamification/BadgeGrid';
 import { StrategyMode, StrategyParams, ExamMode } from '../../types';
 import { useSwitchExamMode } from '../../hooks/useStrategy';
+import { useProfile, useUpdateProfile } from '../../hooks/useProfile';
+import { supabase } from '../../lib/supabase';
 import { api } from '../../lib/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { user, signOut } = useAuth();
   const { data: burnout } = useBurnout();
   const activateRecovery = useActivateRecovery();
@@ -42,13 +53,59 @@ export default function SettingsScreen() {
   const { data: badges } = useBadges();
   const switchExamMode = useSwitchExamMode();
 
+  const { data: profileData } = useProfile();
+  const updateProfile = useUpdateProfile();
+
   const [resetting, setResetting] = useState(false);
   const [mode, setMode] = useState<StrategyMode>('balanced');
   const [examMode, setExamMode] = useState<ExamMode>('mains');
   const [params, setParams] = useState<StrategyParams>(getDefaultParams('balanced'));
   const [personaParams, setPersonaParams] = useState<Record<string, number>>({});
 
+  // Profile edit state
+  const [profileName, setProfileName] = useState('');
+  const [profileExamDate, setProfileExamDate] = useState<Date | null>(null);
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Load profile from API if available
   useEffect(() => {
+    if (profileData) {
+      setProfileName(profileData.name || '');
+      setProfileExamDate(profileData.exam_date ? new Date(profileData.exam_date) : null);
+      setProfileAvatarUrl(profileData.avatar_url);
+    }
+  }, [profileData]);
+
+  // Also load directly from Supabase (works even if API profile route isn't deployed)
+  const loadProfileFromSupabase = React.useCallback(() => {
+    if (!user?.id) return;
+    supabase
+      .from('user_profiles')
+      .select('name, exam_date')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.name) setProfileName(data.name);
+        if (data?.exam_date) setProfileExamDate(new Date(data.exam_date));
+      });
+    // avatar_url may not exist if migration hasn't run — query separately
+    supabase
+      .from('user_profiles')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.avatar_url) setProfileAvatarUrl(data.avatar_url);
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  useFocusEffect(loadProfileFromSupabase);
+
+  const loadStrategy = React.useCallback(() => {
     api.getStrategy().then((data: any) => {
       if (data?.strategy_mode) {
         setMode(data.strategy_mode);
@@ -63,6 +120,8 @@ export default function SettingsScreen() {
       }
     }).catch(() => {});
   }, []);
+
+  useFocusEffect(loadStrategy);
 
   const examModeDescriptions: Record<ExamMode, string> = {
     prelims: 'MCQ focus. Velocity targets prelims date.',
@@ -85,6 +144,62 @@ export default function SettingsScreen() {
 
   const handleParamsChange = (updates: Partial<StrategyParams>) => {
     setParams((prev) => ({ ...prev, ...updates }));
+  };
+
+  const getInitials = (name: string, email?: string) => {
+    if (name) {
+      return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+    return (email || '?')[0].toUpperCase();
+  };
+
+  const handlePickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setUploadingAvatar(true);
+    try {
+      const asset = result.assets[0];
+      const ext = asset.uri.split('.').pop() || 'jpg';
+      const fileName = `${user?.id || 'avatar'}_${Date.now()}.${ext}`;
+
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, { contentType: asset.mimeType || 'image/jpeg', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl;
+
+      setProfileAvatarUrl(publicUrl);
+      updateProfile.mutate({ avatar_url: publicUrl });
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message || 'Could not upload avatar.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    const updates: { name?: string; exam_date?: string } = {};
+    if (profileName !== (profileData?.name || '')) updates.name = profileName;
+    if (profileExamDate) {
+      const dateStr = profileExamDate.toISOString().split('T')[0];
+      if (dateStr !== profileData?.exam_date) updates.exam_date = dateStr;
+    }
+    if (Object.keys(updates).length > 0) {
+      updateProfile.mutate(updates);
+      setProfileDirty(false);
+    }
   };
 
   const handleSignOut = () => {
@@ -167,6 +282,88 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Settings</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile</Text>
+
+          <TouchableOpacity style={styles.avatarContainer} onPress={handlePickAvatar} disabled={uploadingAvatar}>
+            {profileAvatarUrl ? (
+              <Image source={{ uri: profileAvatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitials}>{getInitials(profileName, user?.email)}</Text>
+              </View>
+            )}
+            {uploadingAvatar && (
+              <View style={styles.avatarOverlay}>
+                <ActivityIndicator size="small" color="#fff" />
+              </View>
+            )}
+            <Text style={styles.avatarHint}>Tap to change</Text>
+          </TouchableOpacity>
+
+          <View style={styles.profileField}>
+            <Text style={styles.paramLabel}>Name</Text>
+            <TextInput
+              style={styles.profileInput}
+              value={profileName}
+              onChangeText={(text) => { setProfileName(text); setProfileDirty(true); }}
+              placeholder="Your name"
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.paramRow}>
+            <Text style={styles.paramLabel}>Email</Text>
+            <Text style={styles.paramValue}>{user?.email || 'N/A'}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.profileField} onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.paramLabel}>Exam Date</Text>
+            <Text style={styles.profileDateText}>
+              {profileExamDate ? profileExamDate.toLocaleDateString() : 'Not set'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={profileExamDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={new Date()}
+              onChange={(event, date) => {
+                setShowDatePicker(Platform.OS === 'ios');
+                if (date) { setProfileExamDate(date); setProfileDirty(true); }
+              }}
+            />
+          )}
+
+          {profileDirty && (
+            <TouchableOpacity
+              style={styles.saveProfileButton}
+              onPress={handleSaveProfile}
+              disabled={updateProfile.isPending}
+            >
+              {updateProfile.isPending ? (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              ) : (
+                <Text style={styles.saveProfileText}>Save Changes</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <View style={styles.recoveryRow}>
+            <Text style={styles.paramLabel}>Dark Mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.text}
+            />
+          </View>
+        </View>
 
         {gamification && (
           <View style={styles.section}>
@@ -276,10 +473,6 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.paramRow}>
-            <Text style={styles.paramLabel}>Email</Text>
-            <Text style={styles.paramValue}>{user?.email || 'N/A'}</Text>
-          </View>
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
@@ -299,11 +492,37 @@ export default function SettingsScreen() {
                   style: 'destructive',
                   onPress: async () => {
                     setResetting(true);
+                    // Save profile values before reset so onboarding can pre-fill
+                    // Try Supabase first, fall back to local state
+                    let saveName = profileName || '';
+                    let saveDate = profileExamDate ? profileExamDate.toISOString().split('T')[0] : '';
+                    try {
+                      if (user?.id) {
+                        const { data: freshProfile } = await supabase
+                          .from('user_profiles')
+                          .select('name, exam_date')
+                          .eq('id', user.id)
+                          .single();
+                        if (freshProfile?.name) saveName = freshProfile.name;
+                        if (freshProfile?.exam_date) saveDate = freshProfile.exam_date;
+                      }
+                    } catch {
+                      // Use local state values
+                    }
+                    if (Platform.OS === 'web') {
+                      if (saveName) localStorage.setItem('prefill_name', saveName);
+                      if (saveDate) localStorage.setItem('prefill_exam_date', saveDate);
+                    } else {
+                      if (saveName) await AsyncStorage.setItem('prefill_name', saveName);
+                      if (saveDate) await AsyncStorage.setItem('prefill_exam_date', saveDate);
+                    }
                     try {
                       await api.resetOnboarding();
                     } catch {
                       // Continue even if API fails
                     }
+                    // Reset theme to light mode
+                    if (isDark) toggleTheme();
                     queryClient.clear();
                     if (Platform.OS === 'web') {
                       window.location.href = '/onboarding';
@@ -333,7 +552,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, padding: theme.spacing.lg },
   title: {
@@ -443,6 +662,73 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.sm,
     textAlign: 'center' as const,
+  },
+  avatarContainer: {
+    alignItems: 'center' as const,
+    marginBottom: theme.spacing.md,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  avatarPlaceholder: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: theme.colors.primary + '30',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  avatarInitials: {
+    fontSize: theme.fontSize.xl,
+    fontWeight: '700' as const,
+    color: theme.colors.primary,
+  },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 36,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    width: 72,
+    height: 72,
+    alignSelf: 'center' as const,
+    position: 'absolute' as const,
+    top: 0,
+  },
+  avatarHint: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
+  profileField: {
+    paddingVertical: theme.spacing.xs,
+  },
+  profileInput: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.text,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingVertical: theme.spacing.xs,
+  },
+  profileDateText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.text,
+    fontWeight: '600' as const,
+    paddingVertical: theme.spacing.xs,
+  },
+  saveProfileButton: {
+    backgroundColor: theme.colors.primary + '20',
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    alignItems: 'center' as const,
+    marginTop: theme.spacing.sm,
+  },
+  saveProfileText: {
+    color: theme.colors.primary,
+    fontSize: theme.fontSize.sm,
+    fontWeight: '600' as const,
   },
   signOutButton: {
     backgroundColor: theme.colors.error + '20',

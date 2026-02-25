@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { EnergyBattery } from './EnergyBattery';
 import type { EnergyLevel } from '../../types';
 
@@ -29,6 +30,8 @@ export function PlanHeader({
   isLightDay,
   onHoursPress,
 }: PlanHeaderProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.container}>
       <Text style={styles.dateText}>{formatDate(date)}</Text>
@@ -60,7 +63,7 @@ export function PlanHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

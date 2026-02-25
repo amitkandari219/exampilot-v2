@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { BurnoutStatus } from '../../types';
 
 interface BurnoutIndicatorProps {
@@ -10,12 +11,14 @@ interface BurnoutIndicatorProps {
   onPress?: () => void;
 }
 
-const statusColors: Record<BurnoutStatus, string> = {
-  low: theme.colors.success,
-  moderate: theme.colors.warning,
-  high: theme.colors.orange,
-  critical: theme.colors.error,
-};
+function getStatusColors(theme: Theme) {
+  return {
+    low: theme.colors.success,
+    moderate: theme.colors.warning,
+    high: theme.colors.orange,
+    critical: theme.colors.error,
+  };
+}
 
 const statusLabels: Record<BurnoutStatus, string> = {
   low: 'Feeling good',
@@ -25,7 +28,9 @@ const statusLabels: Record<BurnoutStatus, string> = {
 };
 
 export function BurnoutIndicator({ briScore, status, inRecovery, onPress }: BurnoutIndicatorProps) {
-  const color = statusColors[status];
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const color = getStatusColors(theme)[status];
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
@@ -38,7 +43,7 @@ export function BurnoutIndicator({ briScore, status, inRecovery, onPress }: Burn
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

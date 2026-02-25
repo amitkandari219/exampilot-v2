@@ -1,12 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React, {  useEffect, useRef , useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
 import { valuePropItems, alwaysValueProps } from '../../constants/onboardingData';
 import { Challenge } from '../../types';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 export default function ValuePropScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{
     name: string;
@@ -69,7 +72,7 @@ export default function ValuePropScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   list: {
     gap: theme.spacing.md,
   },

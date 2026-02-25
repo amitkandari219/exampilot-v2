@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { ConfidenceStatus } from '../../types';
 
 interface ConfidenceMeterProps {
@@ -8,16 +9,17 @@ interface ConfidenceMeterProps {
   status: ConfidenceStatus;
 }
 
-const STATUS_COLORS: Record<ConfidenceStatus, string> = {
-  fresh: theme.colors.success,
-  fading: theme.colors.warning,
-  stale: theme.colors.orange,
-  decayed: theme.colors.error,
-};
-
 export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statusColors: Record<ConfidenceStatus, string> = {
+    fresh: theme.colors.success,
+    fading: theme.colors.warning,
+    stale: theme.colors.orange,
+    decayed: theme.colors.error,
+  };
   const clampedScore = Math.max(0, Math.min(100, score));
-  const barColor = STATUS_COLORS[status];
+  const barColor = statusColors[status];
 
   return (
     <View style={styles.wrapper}>
@@ -40,7 +42,7 @@ export function ConfidenceMeter({ score, status }: ConfidenceMeterProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   wrapper: {
     flexDirection: 'column',
   },

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface RevisionItem {
   topic_id: string;
@@ -25,7 +26,7 @@ function formatDue(dateStr: string): string {
   return `In ${diffDays}d`;
 }
 
-function getDueColor(dateStr: string): string {
+function getDueColor(dateStr: string, theme: Theme): string {
   const due = new Date(dateStr);
   const now = new Date();
   const diffMs = due.getTime() - now.getTime();
@@ -37,6 +38,8 @@ function getDueColor(dateStr: string): string {
 }
 
 export function RevisionWidget({ revisions, onComplete }: RevisionWidgetProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   if (revisions.length === 0) return null;
 
   return (
@@ -62,7 +65,7 @@ export function RevisionWidget({ revisions, onComplete }: RevisionWidgetProps) {
             <Text style={styles.topicName} numberOfLines={1}>
               {revision.topic_name}
             </Text>
-            <Text style={[styles.dueText, { color: getDueColor(revision.due) }]}>
+            <Text style={[styles.dueText, { color: getDueColor(revision.due, theme) }]}>
               {formatDue(revision.due)}
             </Text>
           </View>
@@ -79,7 +82,7 @@ export function RevisionWidget({ revisions, onComplete }: RevisionWidgetProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

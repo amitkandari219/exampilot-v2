@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isDemoMode } from '../lib/supabase';
-import { theme } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
+import { Theme } from '../constants/theme';
 
 export default function Index() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { session, loading: authLoading } = useAuth();
   const [checking, setChecking] = useState(!isDemoMode);
   const [onboarded, setOnboarded] = useState(isDemoMode);
@@ -53,7 +56,7 @@ export default function Index() {
   return <Redirect href="/onboarding" />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',

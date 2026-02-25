@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useDailyPlan, useCompletePlanItem, useDeferPlanItem } from '../../hooks/usePlanner';
 import { PlanHeader } from '../../components/planner/PlanHeader';
 import { PlanItemCard } from '../../components/planner/PlanItemCard';
@@ -9,6 +10,8 @@ import { useBurnout } from '../../hooks/useBurnout';
 import { DailyPlanItem } from '../../types';
 
 export default function PlannerScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const today = new Date().toISOString().split('T')[0];
   const { data: plan, isLoading } = useDailyPlan(today);
   const { data: burnout } = useBurnout();
@@ -96,7 +99,7 @@ export default function PlannerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   list: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },

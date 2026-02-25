@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { TopicWithProgress, TopicStatus } from '../../types';
 import { PYQBadge } from './PYQBadge';
 import { ConfidenceMeter } from './ConfidenceMeter';
@@ -53,6 +54,8 @@ function statusLabel(status: TopicStatus): string {
 }
 
 export function TopicRow({ topic, onPress }: TopicRowProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [healthSheetVisible, setHealthSheetVisible] = useState(false);
   const progress = topic.user_progress;
   const status: TopicStatus = progress?.status ?? 'untouched';
@@ -103,7 +106,7 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,

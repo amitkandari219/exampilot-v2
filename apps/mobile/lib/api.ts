@@ -191,4 +191,10 @@ export const api = {
     request(`/api/ca/stats${month ? `?month=${month}` : ''}`),
   getCASubjectGaps: () =>
     request('/api/ca/subject-gaps'),
+
+  // Profile
+  getProfile: () =>
+    request('/api/profile'),
+  updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string }) =>
+    request('/api/profile', { method: 'PATCH', body: JSON.stringify(body) }),
 };

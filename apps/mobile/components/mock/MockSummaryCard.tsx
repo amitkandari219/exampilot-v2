@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { MockAnalytics } from '../../types';
 
 interface Props {
@@ -8,13 +9,15 @@ interface Props {
 }
 
 export function MockSummaryCard({ analytics }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.card}>
       <Text style={styles.sectionLabel}>MOCK TEST SUMMARY</Text>
       <View style={styles.metricsRow}>
-        <MetricPill label="Tests" value={String(analytics.tests_count)} />
-        <MetricPill label="Avg Score" value={`${analytics.avg_score_pct.toFixed(1)}%`} />
-        <MetricPill label="Best" value={`${analytics.best_score_pct.toFixed(1)}%`} />
+        <MetricPill styles={styles} label="Tests" value={String(analytics.tests_count)} />
+        <MetricPill styles={styles} label="Avg Score" value={`${analytics.avg_score_pct.toFixed(1)}%`} />
+        <MetricPill styles={styles} label="Best" value={`${analytics.best_score_pct.toFixed(1)}%`} />
       </View>
       {analytics.recommendation ? (
         <Text style={styles.recommendation}>{analytics.recommendation}</Text>
@@ -23,7 +26,7 @@ export function MockSummaryCard({ analytics }: Props) {
   );
 }
 
-function MetricPill({ label, value }: { label: string; value: string }) {
+function MetricPill({ label, value, styles }: { label: string; value: string; styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.pill}>
       <Text style={styles.pillValue}>{value}</Text>
@@ -32,7 +35,7 @@ function MetricPill({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

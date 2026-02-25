@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { ProgressRing } from './ProgressRing';
 import { Subject } from '../../types';
 
@@ -9,6 +10,8 @@ interface SubjectProgressGridProps {
 }
 
 export function SubjectProgressGrid({ subjects }: SubjectProgressGridProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const renderItem = ({ item }: { item: Subject }) => {
     const pct = (item.progress?.weighted_completion || 0) * 100;
 
@@ -37,7 +40,7 @@ export function SubjectProgressGrid({ subjects }: SubjectProgressGridProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

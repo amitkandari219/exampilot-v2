@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface ScenarioCardProps {
   icon: string;
@@ -10,6 +11,8 @@ interface ScenarioCardProps {
 }
 
 export function ScenarioCard({ icon, title, description, onPress }: ScenarioCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.iconCircle}>
@@ -24,7 +27,7 @@ export function ScenarioCard({ icon, title, description, onPress }: ScenarioCard
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',

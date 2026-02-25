@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, {  useEffect, useRef , useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface ChatBubbleProps {
   message: string;
@@ -9,6 +10,8 @@ interface ChatBubbleProps {
 }
 
 export function ChatBubble({ message, avatarEmoji = '🤖', delay = 0 }: ChatBubbleProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const opacity = useRef(new Animated.Value(delay > 0 ? 0 : 1)).current;
   const translateY = useRef(new Animated.Value(delay > 0 ? 8 : 0)).current;
 
@@ -44,7 +47,7 @@ export function ChatBubble({ message, avatarEmoji = '🤖', delay = 0 }: ChatBub
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
     alignItems: 'flex-start',

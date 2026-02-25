@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, {  useEffect, useRef , useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface OnboardingProgressBarProps {
   current: number;
@@ -8,6 +9,8 @@ interface OnboardingProgressBarProps {
 }
 
 export function OnboardingProgressBar({ current, total }: OnboardingProgressBarProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const widthAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export function OnboardingProgressBar({ current, total }: OnboardingProgressBarP
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface SelectionCardProps {
   icon: string;
@@ -21,6 +22,8 @@ export function SelectionCard({
   disabled,
   multiSelect,
 }: SelectionCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <TouchableOpacity
       style={[styles.card, selected && styles.cardSelected, disabled && styles.cardDisabled]}
@@ -42,7 +45,7 @@ export function SelectionCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',

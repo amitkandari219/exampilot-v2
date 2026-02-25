@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { HealthCategory } from '../../types';
 
 interface HealthBadgeProps {
@@ -9,13 +10,15 @@ interface HealthBadgeProps {
   onPress?: () => void;
 }
 
-const CATEGORY_COLORS: Record<HealthCategory, string> = {
-  critical: theme.colors.error,
-  weak: theme.colors.orange,
-  moderate: theme.colors.warning,
-  strong: theme.colors.success,
-  exam_ready: theme.colors.primary,
-};
+function getCategoryColors(theme: Theme) {
+  return {
+    critical: theme.colors.error,
+    weak: theme.colors.orange,
+    moderate: theme.colors.warning,
+    strong: theme.colors.success,
+    exam_ready: theme.colors.primary,
+  };
+}
 
 const CATEGORY_LABELS: Record<HealthCategory, string> = {
   critical: 'Critical',
@@ -34,8 +37,10 @@ function getCategory(score: number): HealthCategory {
 }
 
 export function HealthBadge({ score, category, onPress }: HealthBadgeProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const cat = category || getCategory(score);
-  const color = CATEGORY_COLORS[cat];
+  const color = getCategoryColors(theme)[cat];
 
   const content = (
     <View style={[styles.badge, { backgroundColor: color + '20' }]}>
@@ -56,7 +61,7 @@ export function HealthBadge({ score, category, onPress }: HealthBadgeProps) {
   return content;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',

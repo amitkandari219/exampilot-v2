@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { MockSubjectAccuracy, MockTrend } from '../../types';
 
 interface SubjectAccuracyRow extends MockSubjectAccuracy {
@@ -11,7 +12,7 @@ interface Props {
   data: SubjectAccuracyRow[];
 }
 
-function getAccuracyColor(accuracy: number): string {
+function getAccuracyColor(accuracy: number, theme: Theme): string {
   if (accuracy >= 0.7) return theme.colors.success;
   if (accuracy >= 0.5) return theme.colors.warning;
   return theme.colors.error;
@@ -23,13 +24,15 @@ function getTrendArrow(trend: MockTrend): string {
   return '\u2192';
 }
 
-function getTrendColor(trend: MockTrend): string {
+function getTrendColor(trend: MockTrend, theme: Theme): string {
   if (trend === 'improving') return theme.colors.success;
   if (trend === 'declining') return theme.colors.error;
   return theme.colors.textMuted;
 }
 
 export function SubjectAccuracyGrid({ data }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   if (data.length === 0) return null;
 
   return (
@@ -37,8 +40,8 @@ export function SubjectAccuracyGrid({ data }: Props) {
       <Text style={styles.sectionLabel}>SUBJECT ACCURACY</Text>
       <View style={styles.grid}>
         {data.map((item) => {
-          const color = getAccuracyColor(item.accuracy);
-          const trendColor = getTrendColor(item.trend);
+          const color = getAccuracyColor(item.accuracy, theme);
+          const trendColor = getTrendColor(item.trend, theme);
           return (
             <View key={item.subject_id} style={[styles.tile, { borderLeftColor: color }]}>
               <Text style={styles.subjectName} numberOfLines={1}>{item.subject_name}</Text>
@@ -59,7 +62,7 @@ export function SubjectAccuracyGrid({ data }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

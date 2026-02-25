@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { strategyModes, getModeDefinition, getDefaultParams } from '../../constants/strategyModes';
 import { ModeCard } from '../onboarding/ModeCard';
 import { StrategyMode, StrategyParams } from '../../types';
@@ -38,6 +39,8 @@ const paramLabels: Record<keyof StrategyParams, { label: string; min: number; ma
 };
 
 export function StrategyCard({ currentMode, params, onModeChange, onParamsChange }: StrategyCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [showModal, setShowModal] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const modeDef = getModeDefinition(currentMode);
@@ -133,7 +136,7 @@ export function StrategyCard({ currentMode, params, onModeChange, onParamsChange
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

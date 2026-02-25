@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useTopicHealth } from '../../hooks/useWeakness';
 import type { HealthCategory } from '../../types';
 
@@ -11,13 +12,15 @@ interface HealthDetailSheetProps {
   onClose: () => void;
 }
 
-const CATEGORY_COLORS: Record<HealthCategory, string> = {
-  critical: theme.colors.error,
-  weak: theme.colors.orange,
-  moderate: theme.colors.warning,
-  strong: theme.colors.success,
-  exam_ready: theme.colors.primary,
-};
+function getCategoryColors(theme: Theme) {
+  return {
+    critical: theme.colors.error,
+    weak: theme.colors.orange,
+    moderate: theme.colors.warning,
+    strong: theme.colors.success,
+    exam_ready: theme.colors.primary,
+  };
+}
 
 const CATEGORY_LABELS: Record<HealthCategory, string> = {
   critical: 'Critical',
@@ -34,13 +37,15 @@ const COMPONENTS: { key: 'confidence' | 'revision' | 'effort' | 'stability'; lab
   { key: 'stability', label: 'Stability', weight: '15%' },
 ];
 
-function getBarColor(score: number): string {
+function getBarColor(score: number, theme: Theme): string {
   if (score >= 70) return theme.colors.success;
   if (score >= 40) return theme.colors.warning;
   return theme.colors.error;
 }
 
 export function HealthDetailSheet({ visible, topicId, topicName, onClose }: HealthDetailSheetProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { data: health, isLoading } = useTopicHealth(topicId);
 
   return (
@@ -58,11 +63,11 @@ export function HealthDetailSheet({ visible, topicId, topicName, onClose }: Heal
           {health && (
             <>
               <View style={styles.scoreRow}>
-                <Text style={[styles.bigScore, { color: CATEGORY_COLORS[health.category] }]}>
+                <Text style={[styles.bigScore, { color: getCategoryColors(theme)[health.category] }]}>
                   {health.health_score}
                 </Text>
-                <View style={[styles.categoryPill, { backgroundColor: CATEGORY_COLORS[health.category] + '20' }]}>
-                  <Text style={[styles.categoryText, { color: CATEGORY_COLORS[health.category] }]}>
+                <View style={[styles.categoryPill, { backgroundColor: getCategoryColors(theme)[health.category] + '20' }]}>
+                  <Text style={[styles.categoryText, { color: getCategoryColors(theme)[health.category] }]}>
                     {CATEGORY_LABELS[health.category]}
                   </Text>
                 </View>
@@ -71,7 +76,7 @@ export function HealthDetailSheet({ visible, topicId, topicName, onClose }: Heal
               <View style={styles.componentsSection}>
                 {COMPONENTS.map(({ key, label, weight }) => {
                   const value = health.components[key];
-                  const barColor = getBarColor(value);
+                  const barColor = getBarColor(value, theme);
                   return (
                     <View key={key} style={styles.componentRow}>
                       <View style={styles.componentLabelRow}>
@@ -107,7 +112,7 @@ export function HealthDetailSheet({ visible, topicId, topicName, onClose }: Heal
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',

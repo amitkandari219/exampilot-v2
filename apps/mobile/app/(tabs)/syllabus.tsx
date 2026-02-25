@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useSyllabusProgress, useUpdateTopicProgress } from '../../hooks/useSyllabus';
 import { SummaryBar } from '../../components/syllabus/SummaryBar';
 import { SubjectCard } from '../../components/syllabus/SubjectCard';
@@ -8,6 +9,8 @@ import { TopicUpdateSheet } from '../../components/syllabus/TopicUpdateSheet';
 import { TopicWithProgress, Subject } from '../../types';
 
 export default function SyllabusScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { data: subjects, isLoading } = useSyllabusProgress();
   const updateProgress = useUpdateTopicProgress();
   const [selectedTopic, setSelectedTopic] = useState<TopicWithProgress | null>(null);
@@ -98,7 +101,7 @@ export default function SyllabusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   title: {
     fontSize: theme.fontSize.xxl,

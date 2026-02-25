@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { SimulationResult, VelocityStatus } from '../../types';
 
 interface SimulationResultCardProps {
   result: SimulationResult;
 }
 
-const STATUS_COLORS: Record<VelocityStatus, string> = {
-  ahead: theme.colors.success,
-  on_track: theme.colors.primary,
-  behind: theme.colors.warning,
-  at_risk: theme.colors.error,
-};
+function getStatusColors(theme: Theme) {
+  return {
+    ahead: theme.colors.success,
+    on_track: theme.colors.primary,
+    behind: theme.colors.warning,
+    at_risk: theme.colors.error,
+  };
+}
 
 function formatRatio(v: number): string {
   return `${v.toFixed(2)}x`;
@@ -28,12 +31,13 @@ function formatDeltaInt(v: number, suffix = ''): string {
   return `${sign}${v}${suffix}`;
 }
 
-function ComparisonRow({ label, baseline, projected, deltaText, deltaColor }: {
+function ComparisonRow({ label, baseline, projected, deltaText, deltaColor, styles }: {
   label: string;
   baseline: string;
   projected: string;
   deltaText: string;
   deltaColor: string;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={styles.row}>
@@ -48,10 +52,11 @@ function ComparisonRow({ label, baseline, projected, deltaText, deltaColor }: {
   );
 }
 
-function StatusBadge({ status }: { status: VelocityStatus }) {
+function StatusBadge({ status, theme, styles }: { status: VelocityStatus; theme: Theme; styles: ReturnType<typeof createStyles> }) {
+  const statusColors = getStatusColors(theme);
   return (
-    <View style={[styles.badge, { backgroundColor: STATUS_COLORS[status] + '22', borderColor: STATUS_COLORS[status] }]}>
-      <Text style={[styles.badgeText, { color: STATUS_COLORS[status] }]}>
+    <View style={[styles.badge, { backgroundColor: statusColors[status] + '22', borderColor: statusColors[status] }]}>
+      <Text style={[styles.badgeText, { color: statusColors[status] }]}>
         {status.replace('_', ' ')}
       </Text>
     </View>
@@ -59,6 +64,8 @@ function StatusBadge({ status }: { status: VelocityStatus }) {
 }
 
 export function SimulationResultCard({ result }: SimulationResultCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { baseline, projected, delta } = result;
 
   const velocityDeltaColor = delta.velocity_ratio_change >= 0 ? theme.colors.success : theme.colors.error;
@@ -75,6 +82,7 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
 
       {/* Velocity Ratio */}
       <ComparisonRow
+        styles={styles}
         label="Velocity"
         baseline={formatRatio(baseline.velocity_ratio)}
         projected={formatRatio(projected.velocity_ratio)}
@@ -86,11 +94,11 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
       <View style={styles.row}>
         <Text style={styles.rowLabel}>Status</Text>
         <View style={styles.statusRow}>
-          <StatusBadge status={baseline.status} />
+          <StatusBadge status={baseline.status} theme={theme} styles={styles} />
           {delta.status_change !== 'no change' && (
             <>
               <Text style={styles.arrow}>-&gt;</Text>
-              <StatusBadge status={projected.status} />
+              <StatusBadge status={projected.status} theme={theme} styles={styles} />
             </>
           )}
           {delta.status_change === 'no change' && (
@@ -102,6 +110,7 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
       {/* Days Remaining */}
       {showDaysRemaining && (
         <ComparisonRow
+          styles={styles}
           label="Days Left"
           baseline={String(baseline.days_remaining)}
           projected={String(projected.days_remaining)}
@@ -128,6 +137,7 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
       {/* Buffer Balance */}
       {showBuffer && (
         <ComparisonRow
+          styles={styles}
           label="Buffer"
           baseline={baseline.buffer_balance.toFixed(1)}
           projected={projected.buffer_balance.toFixed(1)}
@@ -138,6 +148,7 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
 
       {/* Completion % */}
       <ComparisonRow
+        styles={styles}
         label="Progress"
         baseline={`${(baseline.weighted_completion_pct * 100).toFixed(1)}%`}
         projected={`${(projected.weighted_completion_pct * 100).toFixed(1)}%`}
@@ -176,7 +187,7 @@ function getSummaryText(result: SimulationResult): string {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

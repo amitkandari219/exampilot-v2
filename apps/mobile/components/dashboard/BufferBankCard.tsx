@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { Sparkline } from '../common/Sparkline';
 
 interface BufferBankCardProps {
@@ -11,6 +12,8 @@ interface BufferBankCardProps {
 }
 
 export function BufferBankCard({ balance, capacity, lastTransaction, history }: BufferBankCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const fillPct = capacity > 0 ? Math.min(1, balance / (capacity * 100)) : 0;
   const color = fillPct > 0.5 ? theme.colors.success : fillPct > 0.2 ? theme.colors.warning : theme.colors.error;
 
@@ -42,7 +45,7 @@ export function BufferBankCard({ balance, capacity, lastTransaction, history }: 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

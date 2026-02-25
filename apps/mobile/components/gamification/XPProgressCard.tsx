@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { GamificationProfile } from '../../types';
 
 interface Props {
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export function XPProgressCard({ profile }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const progressPct = profile.xp_for_next_level > 0
     ? Math.min(1, profile.xp_progress_in_level / profile.xp_for_next_level)
     : 0;
@@ -54,7 +57,7 @@ export function XPProgressCard({ profile }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

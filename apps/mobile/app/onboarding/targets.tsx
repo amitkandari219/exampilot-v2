@@ -5,7 +5,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
 import { getDefaultTargets } from '../../constants/onboardingData';
 import { OnboardingV2Answers, UserTargets, Challenge, StrategyMode } from '../../types';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface SliderRowProps {
   label: string;
@@ -17,7 +18,7 @@ interface SliderRowProps {
   onChange: (v: number) => void;
 }
 
-function SliderRow({ label, value, min, max, step, unit, onChange }: SliderRowProps) {
+function SliderRow({ label, value, min, max, step, unit, onChange, theme, styles }: SliderRowProps & { theme: import('../../constants/theme').Theme; styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.sliderRow}>
       <View style={styles.sliderHeader}>
@@ -42,6 +43,8 @@ function SliderRow({ label, value, min, max, step, unit, onChange }: SliderRowPr
 }
 
 export default function TargetsScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const params = useLocalSearchParams<{
     name: string;
@@ -85,6 +88,8 @@ export default function TargetsScreen() {
     >
       <View style={styles.sliders}>
         <SliderRow
+          theme={theme}
+          styles={styles}
           label="Daily study hours"
           value={targets.daily_hours}
           min={2}
@@ -94,6 +99,8 @@ export default function TargetsScreen() {
           onChange={(v) => update('daily_hours', v)}
         />
         <SliderRow
+          theme={theme}
+          styles={styles}
           label="New topics/day"
           value={targets.daily_new_topics}
           min={1}
@@ -103,6 +110,8 @@ export default function TargetsScreen() {
           onChange={(v) => update('daily_new_topics', v)}
         />
         <SliderRow
+          theme={theme}
+          styles={styles}
           label="Revisions/week"
           value={targets.weekly_revisions}
           min={1}
@@ -112,6 +121,8 @@ export default function TargetsScreen() {
           onChange={(v) => update('weekly_revisions', v)}
         />
         <SliderRow
+          theme={theme}
+          styles={styles}
           label="Tests/month"
           value={targets.weekly_tests}
           min={1}
@@ -121,6 +132,8 @@ export default function TargetsScreen() {
           onChange={(v) => update('weekly_tests', v)}
         />
         <SliderRow
+          theme={theme}
+          styles={styles}
           label="Answer writing/week"
           value={targets.weekly_answer_writing}
           min={0}
@@ -130,6 +143,8 @@ export default function TargetsScreen() {
           onChange={(v) => update('weekly_answer_writing', v)}
         />
         <SliderRow
+          theme={theme}
+          styles={styles}
           label="CA hours/week"
           value={targets.weekly_ca_hours}
           min={2}
@@ -143,7 +158,7 @@ export default function TargetsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   sliders: {
     gap: theme.spacing.md,
   },

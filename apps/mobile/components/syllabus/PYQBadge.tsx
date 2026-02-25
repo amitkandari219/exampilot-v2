@@ -1,22 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 
 interface PYQBadgeProps {
   weight: number;
 }
 
-const DOT_COLORS: Record<number, string> = {
-  1: theme.colors.textMuted,
-  2: theme.colors.primary,
-  3: theme.colors.success,
-  4: theme.colors.warning,
-  5: theme.colors.orange,
-};
-
-const EMPTY_COLOR = theme.colors.surface;
-
 export function PYQBadge({ weight }: PYQBadgeProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const DOT_COLORS: Record<number, string> = {
+    1: theme.colors.textMuted,
+    2: theme.colors.primary,
+    3: theme.colors.success,
+    4: theme.colors.warning,
+    5: theme.colors.orange,
+  };
+  const EMPTY_COLOR = theme.colors.surface;
   const clampedWeight = Math.max(1, Math.min(5, Math.round(weight)));
 
   return (
@@ -41,7 +42,7 @@ export function PYQBadge({ weight }: PYQBadgeProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

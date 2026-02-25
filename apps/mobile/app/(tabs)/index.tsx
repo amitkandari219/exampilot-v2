@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, {  useState, useEffect , useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useStress } from '../../hooks/useStress';
 import { useSwitchExamMode } from '../../hooks/useStrategy';
@@ -26,6 +27,8 @@ import { WeaknessRadarCard } from '../../components/weakness/WeaknessRadarCard';
 import { ConfidenceStatus, ExamMode } from '../../types';
 
 export default function DashboardScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const { user } = useAuth();
   const { data: stress, isLoading: stressLoading } = useStress();
@@ -231,7 +234,7 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, padding: theme.spacing.lg },
   header: {

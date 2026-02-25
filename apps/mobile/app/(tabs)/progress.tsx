@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useSyllabusProgress } from '../../hooks/useSyllabus';
 import { useVelocity, useVelocityHistory, useBuffer } from '../../hooks/useVelocity';
 import { useStress } from '../../hooks/useStress';
@@ -21,6 +22,8 @@ import { useCAStats, useCASubjectGaps } from '../../hooks/useCurrentAffairs';
 import { CAStatsCard } from '../../components/ca/CAStatsCard';
 
 export default function ProgressScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { data: subjects, isLoading: syllabusLoading } = useSyllabusProgress();
   const { data: velocity } = useVelocity();
   const { data: velocityHistory } = useVelocityHistory(30);
@@ -179,15 +182,17 @@ export default function ProgressScreen() {
 }
 
 function StatBox({ label, value }: { label: string; value: string }) {
+  const { theme } = useTheme();
+  const sStyles = useMemo(() => createStatStyles(theme), [theme]);
   return (
-    <View style={statStyles.box}>
-      <Text style={statStyles.value}>{value}</Text>
-      <Text style={statStyles.label}>{label}</Text>
+    <View style={sStyles.box}>
+      <Text style={sStyles.value}>{value}</Text>
+      <Text style={sStyles.label}>{label}</Text>
     </View>
   );
 }
 
-const statStyles = StyleSheet.create({
+const createStatStyles = (theme: Theme) => StyleSheet.create({
   box: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
@@ -210,7 +215,7 @@ const statStyles = StyleSheet.create({
   },
 });
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, padding: theme.spacing.lg },
   title: {

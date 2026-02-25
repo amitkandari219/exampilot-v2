@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { useCreateMock } from '../../hooks/useMockTest';
 import { useSyllabusProgress } from '../../hooks/useSyllabus';
 
@@ -28,6 +29,8 @@ interface QuestionRow {
 }
 
 export function MockEntrySheet({ visible, onClose }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [mode, setMode] = useState<EntryMode>('quick');
   const [testName, setTestName] = useState('');
   const [totalQuestions, setTotalQuestions] = useState('100');
@@ -342,7 +345,7 @@ export function MockEntrySheet({ visible, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

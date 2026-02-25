@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { ChapterWithTopics } from '../../types';
 import { TopicRow } from './TopicRow';
 
@@ -10,6 +11,8 @@ interface ChapterAccordionProps {
 }
 
 export function ChapterAccordion({ chapter, onTopicPress }: ChapterAccordionProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [expanded, setExpanded] = useState(false);
 
   const totalTopics = chapter.topics.length;
@@ -50,7 +53,7 @@ export function ChapterAccordion({ chapter, onTopicPress }: ChapterAccordionProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,

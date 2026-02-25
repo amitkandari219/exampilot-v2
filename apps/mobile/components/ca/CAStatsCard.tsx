@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { CAStats, CASubjectGap } from '../../types';
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function CAStatsCard({ stats, gaps }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const daysInMonth = stats.monthly_heatmap.length;
   const firstDayOfMonth = new Date(stats.monthly_heatmap[0]?.date || new Date());
   const startDayOffset = firstDayOfMonth.getDay(); // 0=Sun
@@ -93,7 +96,7 @@ export function CAStatsCard({ stats, gaps }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

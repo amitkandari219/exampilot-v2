@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { BadgeWithStatus, BadgeCategory } from '../../types';
 
 interface Props {
@@ -18,6 +19,8 @@ const CATEGORY_LABELS: Record<BadgeCategory, string> = {
 const CATEGORY_ORDER: BadgeCategory[] = ['streak', 'study', 'milestone', 'recovery', 'special'];
 
 export function BadgeGrid({ badges }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const grouped = CATEGORY_ORDER
     .map((cat) => ({
       category: cat,
@@ -58,7 +61,7 @@ export function BadgeGrid({ badges }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   group: {
     marginTop: theme.spacing.sm,
   },

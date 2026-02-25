@@ -24,6 +24,18 @@ export async function calculateStress(userId: string) {
     .eq('id', userId)
     .single();
 
+  // If no velocity data exists yet, return a clean baseline
+  if (!velocitySnapshot) {
+    return {
+      score: 0,
+      status: 'optimal',
+      label: 'On Track',
+      signals: { velocity: 0, buffer: 0, time: 0, confidence: 0 },
+      recommendation: 'Complete your first study session to start tracking stress levels.',
+      history: [],
+    };
+  }
+
   // Signal: Velocity (0.35)
   // velocity_ratio 1.0+ = optimal, <0.5 = worst
   const velocityRatio = velocitySnapshot?.velocity_ratio || 1.0;

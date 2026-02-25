@@ -1,9 +1,10 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { Tabs } from 'expo-router';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function TabsLayout() {
+  const { theme } = useTheme();
   return (
     <Tabs
       screenOptions={{

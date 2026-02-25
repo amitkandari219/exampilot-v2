@@ -1,21 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { EnergyLevel } from '../../types';
 
 interface EnergyBatteryProps {
   level: EnergyLevel;
 }
 
-const LEVEL_CONFIG: Record<EnergyLevel, { color: string; fill: number }> = {
-  full: { color: theme.colors.success, fill: 1 },
-  moderate: { color: theme.colors.warning, fill: 0.66 },
-  low: { color: theme.colors.orange, fill: 0.33 },
-  empty: { color: theme.colors.error, fill: 0 },
-};
-
 export function EnergyBattery({ level }: EnergyBatteryProps) {
-  const { color, fill } = LEVEL_CONFIG[level];
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const levelConfig: Record<EnergyLevel, { color: string; fill: number }> = {
+    full: { color: theme.colors.success, fill: 1 },
+    moderate: { color: theme.colors.warning, fill: 0.66 },
+    low: { color: theme.colors.orange, fill: 0.33 },
+    empty: { color: theme.colors.error, fill: 0 },
+  };
+  const { color, fill } = levelConfig[level];
 
   return (
     <View style={styles.container}>
@@ -35,7 +37,7 @@ export function EnergyBattery({ level }: EnergyBatteryProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

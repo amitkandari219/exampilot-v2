@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { DailyPlanItem, PlanItemType } from '../../types';
 
 interface PlanItemCardProps {
@@ -11,25 +12,14 @@ interface PlanItemCardProps {
 
 const TYPE_CONFIG: Record<PlanItemType, { label: string; color: string }> = {
   new: { label: 'NEW', color: '#3B82F6' },
-  revision: { label: 'REVISION', color: theme.colors.purple },
+  revision: { label: 'REVISION', color: '#A855F7' },
   decay_revision: { label: 'DECAY', color: '#F59E0B' },
   stretch: { label: 'STRETCH', color: '#6366F1' },
 };
 
-function PyqDots({ weight }: { weight: number }) {
-  const dotCount = Math.min(Math.round(weight), 5);
-  if (dotCount <= 0) return null;
-
-  return (
-    <View style={styles.pyqContainer}>
-      {Array.from({ length: dotCount }).map((_, i) => (
-        <View key={i} style={styles.pyqDot} />
-      ))}
-    </View>
-  );
-}
-
 export function PlanItemCard({ item, onComplete, onDefer }: PlanItemCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isCompleted = item.status === 'completed';
   const typeConfig = TYPE_CONFIG[item.type];
   const pyqWeight = item.topic?.pyq_weight ?? 0;
@@ -75,7 +65,7 @@ export function PlanItemCard({ item, onComplete, onDefer }: PlanItemCardProps) {
         </View>
 
         <View style={styles.footerRow}>
-          <PyqDots weight={pyqWeight} />
+          <PyqDots weight={pyqWeight} styles={styles} />
           <Text style={[styles.timeText, isCompleted && styles.textDimmed]}>
             {item.estimated_hours}h
           </Text>
@@ -96,7 +86,20 @@ export function PlanItemCard({ item, onComplete, onDefer }: PlanItemCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function PyqDots({ weight, styles }: { weight: number; styles: ReturnType<typeof createStyles> }) {
+  const dotCount = Math.min(Math.round(weight), 5);
+  if (dotCount <= 0) return null;
+
+  return (
+    <View style={styles.pyqContainer}>
+      {Array.from({ length: dotCount }).map((_, i) => (
+        <View key={i} style={styles.pyqDot} />
+      ))}
+    </View>
+  );
+}
+
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',

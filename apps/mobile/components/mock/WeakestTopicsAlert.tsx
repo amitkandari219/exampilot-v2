@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { MockTrend } from '../../types';
 
 interface WeakTopic {
@@ -21,13 +22,15 @@ function getTrendArrow(trend: MockTrend): string {
   return '\u2192';
 }
 
-function getTrendColor(trend: MockTrend): string {
+function getTrendColor(trend: MockTrend, theme: Theme): string {
   if (trend === 'improving') return theme.colors.success;
   if (trend === 'declining') return theme.colors.error;
   return theme.colors.textMuted;
 }
 
 export function WeakestTopicsAlert({ topics }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   if (topics.length === 0) return null;
 
   return (
@@ -38,7 +41,7 @@ export function WeakestTopicsAlert({ topics }: Props) {
           <Text style={styles.topicName} numberOfLines={1}>{topic.topic_name}</Text>
           <View style={styles.rightSide}>
             <Text style={styles.accuracy}>{(topic.accuracy * 100).toFixed(0)}%</Text>
-            <Text style={[styles.trend, { color: getTrendColor(topic.trend) }]}>
+            <Text style={[styles.trend, { color: getTrendColor(topic.trend, theme) }]}>
               {getTrendArrow(topic.trend)}
             </Text>
           </View>
@@ -48,7 +51,7 @@ export function WeakestTopicsAlert({ topics }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

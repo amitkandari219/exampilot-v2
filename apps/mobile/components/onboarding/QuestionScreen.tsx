@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { OnboardingProgressBar } from './OnboardingProgressBar';
 import { ChatBubble } from './ChatBubble';
 
@@ -32,6 +33,8 @@ export function QuestionScreen({
   nextDisabled = false,
   showNext = true,
 }: QuestionScreenProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
 
   return (
@@ -90,7 +93,7 @@ export function QuestionScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: theme.colors.background,

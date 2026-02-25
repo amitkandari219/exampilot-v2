@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import { HealthDetailSheet } from './HealthDetailSheet';
 import type { WeaknessOverview, HealthCategory } from '../../types';
 
@@ -8,15 +9,19 @@ interface WeaknessRadarCardProps {
   data: WeaknessOverview;
 }
 
-const CATEGORY_COLORS: Record<HealthCategory, string> = {
-  critical: theme.colors.error,
-  weak: theme.colors.orange,
-  moderate: theme.colors.warning,
-  strong: theme.colors.success,
-  exam_ready: theme.colors.primary,
-};
+function getCategoryColors(theme: Theme) {
+  return {
+    critical: theme.colors.error,
+    weak: theme.colors.orange,
+    moderate: theme.colors.warning,
+    strong: theme.colors.success,
+    exam_ready: theme.colors.primary,
+  };
+}
 
 export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedTopic, setSelectedTopic] = useState<{ id: string; name: string } | null>(null);
   const { summary, weakest_topics } = data;
   const alertCount = summary.critical + summary.weak;
@@ -36,7 +41,7 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
       <View style={styles.summaryRow}>
         {(['critical', 'weak', 'moderate', 'strong', 'exam_ready'] as HealthCategory[]).map((cat) => {
           const count = summary[cat];
-          const color = CATEGORY_COLORS[cat];
+          const color = getCategoryColors(theme)[cat];
           const label = cat === 'exam_ready' ? 'ready' : cat;
           return (
             <View key={cat} style={styles.summaryItem}>
@@ -57,13 +62,13 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
               activeOpacity={0.7}
               onPress={() => setSelectedTopic({ id: t.topic_id, name: t.topic_name })}
             >
-              <View style={[styles.dot, { backgroundColor: CATEGORY_COLORS[t.category] }]} />
+              <View style={[styles.dot, { backgroundColor: getCategoryColors(theme)[t.category] }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.weakName} numberOfLines={1}>{t.topic_name}</Text>
                 <Text style={styles.weakSubject}>{t.subject_name}</Text>
                 <Text style={styles.weakRec} numberOfLines={2}>{t.recommendation}</Text>
               </View>
-              <Text style={[styles.weakScore, { color: CATEGORY_COLORS[t.category] }]}>
+              <Text style={[styles.weakScore, { color: getCategoryColors(theme)[t.category] }]}>
                 {t.health_score}
               </Text>
             </TouchableOpacity>
@@ -83,7 +88,7 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,

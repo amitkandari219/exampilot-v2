@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {  useState, useEffect , useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
 import type { TopicWithProgress, TopicStatus } from '../../types';
 
 interface TopicUpdateSheetProps {
@@ -33,6 +34,8 @@ const ALL_STATUSES: { value: TopicStatus; label: string }[] = [
 ];
 
 export function TopicUpdateSheet({ visible, topic, onClose, onSave }: TopicUpdateSheetProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [status, setStatus] = useState<TopicStatus>('untouched');
   const [hoursSpent, setHoursSpent] = useState('0');
   const [confidence, setConfidence] = useState(0);
@@ -180,7 +183,7 @@ export function TopicUpdateSheet({ visible, topic, onClose, onSave }: TopicUpdat
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',

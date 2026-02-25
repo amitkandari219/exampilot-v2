@@ -77,6 +77,9 @@ export function getPersonaDefaults(mode: StrategyMode): PersonaParams {
 }
 
 export async function completeOnboarding(userId: string, payload: OnboardingPayload) {
+  // Reset all previous session data before saving new onboarding
+  await resetUserData(userId);
+
   const params = await getDefaultParams(payload.chosen_mode);
   const persona = getPersonaDefaults(payload.chosen_mode);
 
@@ -132,6 +135,9 @@ function classifyModeV2Server(answers: OnboardingV2Answers): StrategyMode {
 }
 
 export async function completeOnboardingV2(userId: string, payload: OnboardingV2Payload) {
+  // Reset all previous session data before saving new onboarding
+  await resetUserData(userId);
+
   const mode = payload.chosen_mode || classifyModeV2Server(payload.answers);
   const params = await getDefaultParams(mode);
   const persona = getPersonaDefaults(mode);
@@ -325,16 +331,27 @@ export async function resetUserData(userId: string) {
       strategy_params: null,
       daily_hours: 6,
       exam_date: null,
+      prelims_date: null,
       name: null,
+      current_mode: 'mains',
+      mode_switched_at: null,
       target_exam_year: null,
       attempt_number: null,
       user_type: null,
       challenges: null,
       onboarding_version: null,
       buffer_balance: 0,
+      fatigue_threshold: 85,
+      buffer_capacity: 0.15,
+      fsrs_target_retention: 0.9,
+      burnout_threshold: 75,
       recovery_mode_active: false,
       recovery_mode_start: null,
       recovery_mode_end: null,
+      auto_recalibrate: true,
+      last_recalibrated_at: null,
+      xp_total: 0,
+      current_level: 1,
     })
     .eq('id', userId);
 
@@ -350,9 +367,15 @@ export async function resetUserData(userId: string) {
         exam_date: null,
         name: null,
         buffer_balance: 0,
+        fatigue_threshold: 85,
+        buffer_capacity: 0.15,
+        fsrs_target_retention: 0.9,
+        burnout_threshold: 75,
         recovery_mode_active: false,
         recovery_mode_start: null,
         recovery_mode_end: null,
+        xp_total: 0,
+        current_level: 1,
       })
       .eq('id', userId);
 

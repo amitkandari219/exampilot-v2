@@ -1,12 +1,49 @@
-import React, { useState } from 'react';
-import { TextInput, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
-import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Theme } from '../../constants/theme';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function NameScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
+  const { session } = useAuth();
   const [name, setName] = useState('');
+
+  useEffect(() => {
+    // Try localStorage/AsyncStorage first (set by redo onboarding)
+    const readPrefill = Platform.OS === 'web'
+      ? () => {
+          const val = localStorage.getItem('prefill_name');
+          if (val) { localStorage.removeItem('prefill_name'); }
+          return Promise.resolve(val);
+        }
+      : () => AsyncStorage.getItem('prefill_name').then((val) => {
+          if (val) AsyncStorage.removeItem('prefill_name');
+          return val;
+        });
+
+    readPrefill().then((val) => {
+      if (val) {
+        setName(val);
+      } else if (session?.user?.id) {
+        // Fallback: read from Supabase directly
+        supabase
+          .from('user_profiles')
+          .select('name')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.name) setName(data.name);
+          });
+      }
+    });
+  }, [session?.user?.id]);
 
   return (
     <QuestionScreen
@@ -34,7 +71,7 @@ export default function NameScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   input: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,

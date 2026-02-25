@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, {  useState , useMemo } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
   TouchableOpacity, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { theme } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
+import { Theme } from '../constants/theme';
 import { useSimulator } from '../hooks/useSimulator';
 import { ScenarioCard } from '../components/simulator/ScenarioCard';
 import { SimulationResultCard } from '../components/simulator/SimulationResultCard';
@@ -33,6 +34,8 @@ const STRATEGY_OPTIONS: { value: StrategyMode; label: string }[] = [
 type Phase = 'select' | 'input' | 'result';
 
 export default function SimulatorScreen() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const simulator = useSimulator();
 
@@ -245,7 +248,7 @@ export default function SimulatorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   header: {
     flexDirection: 'row',
