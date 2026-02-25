@@ -523,6 +523,16 @@ export interface MockTopicHistory {
   history: Array<{ test_date: string; questions: number; correct: number; accuracy: number }>;
 }
 
+export interface PyqSubjectStats {
+  id: string;
+  subject_id: string;
+  avg_questions_per_year: number;
+  total_questions_10yr: number;
+  trend: PyqTrend;
+  highest_year: number | null;
+  highest_count: number;
+}
+
 // Simulation types
 export type SimulationScenarioType = 'skip_days' | 'change_hours' | 'change_strategy' | 'change_exam_date' | 'defer_topics';
 

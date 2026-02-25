@@ -7,20 +7,25 @@ import { Sparkline } from '../common/Sparkline';
 interface BufferBankCardProps {
   balance: number;
   capacity: number;
+  maxBuffer?: number;
+  status?: 'debt' | 'low' | 'moderate' | 'healthy';
   lastTransaction?: { type: string; amount: number } | null;
   history?: number[];
 }
 
-export function BufferBankCard({ balance, capacity, lastTransaction, history }: BufferBankCardProps) {
+export function BufferBankCard({ balance, capacity, maxBuffer, status, lastTransaction, history }: BufferBankCardProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const fillPct = capacity > 0 ? Math.min(1, balance / (capacity * 100)) : 0;
-  const color = fillPct > 0.5 ? theme.colors.success : fillPct > 0.2 ? theme.colors.warning : theme.colors.error;
+  // CHANGED: use maxBuffer when available, handle negative balance (debt mode)
+  const effectiveMax = maxBuffer || capacity * 100;
+  const fillPct = effectiveMax > 0 ? Math.max(0, Math.min(1, balance / effectiveMax)) : 0;
+  const inDebt = status === 'debt' || balance < 0;
+  const color = inDebt ? theme.colors.error : fillPct > 0.5 ? theme.colors.success : fillPct > 0.2 ? theme.colors.warning : theme.colors.error;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.label}>Buffer Bank</Text>
+        <Text style={styles.label}>{inDebt ? 'Buffer Bank (DEBT)' : 'Buffer Bank'}</Text>
         {lastTransaction && (
           <Text style={[styles.txText, { color: lastTransaction.amount >= 0 ? theme.colors.success : theme.colors.error }]}>
             {lastTransaction.amount >= 0 ? '+' : ''}{lastTransaction.amount.toFixed(1)}
@@ -31,7 +36,7 @@ export function BufferBankCard({ balance, capacity, lastTransaction, history }: 
       <View style={styles.row}>
         <View>
           <Text style={[styles.balance, { color }]}>{balance.toFixed(1)}</Text>
-          <Text style={styles.unit}>days banked</Text>
+          <Text style={styles.unit}>{inDebt ? 'days in debt' : 'days banked'}</Text>
         </View>
         {history && history.length > 1 && (
           <Sparkline data={history} color={color} />

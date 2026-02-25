@@ -280,7 +280,7 @@ function clampWithDrift(value: number, param: keyof PersonaParams, modeDefault: 
 
 // --- Main Recalibration Runner ---
 
-export async function runRecalibration(userId: string, triggerType: 'auto_daily' | 'manual'): Promise<RecalibrationResult> {
+export async function runRecalibration(userId: string, triggerType: 'auto_daily' | 'manual' | 'buffer_debt'): Promise<RecalibrationResult> {
   // 1. Fetch profile
   const { data: profile } = await supabase
     .from('user_profiles')

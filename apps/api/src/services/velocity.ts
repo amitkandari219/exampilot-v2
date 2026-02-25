@@ -19,10 +19,10 @@ export async function calculateVelocity(userId: string) {
   const examDate = new Date(targetDate);
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
 
-  // Get all topics with their gravity
+  // Get all topics — gravity = pyq_weight only
   const { data: topics } = await supabase
     .from('topics')
-    .select('id, pyq_weight, difficulty, estimated_hours');
+    .select('id, pyq_weight');
 
   // Get user progress
   const { data: progress } = await supabase
@@ -35,13 +35,17 @@ export async function calculateVelocity(userId: string) {
 
   let totalGravity = 0;
   let completedGravity = 0;
+  let totalTopics = 0;
+  let completedTopicCount = 0;
 
   for (const t of topics || []) {
-    const gravity = t.pyq_weight * t.difficulty * t.estimated_hours;
+    const gravity = t.pyq_weight; // CHANGED: gravity = pyq_weight only (1-5 per topic)
     totalGravity += gravity;
+    totalTopics++;
     const status = progressMap.get(t.id) || 'untouched';
     if (completedStatuses.includes(status)) {
       completedGravity += gravity;
+      completedTopicCount++;
     }
   }
 
@@ -82,12 +86,8 @@ export async function calculateVelocity(userId: string) {
   else if (velocityRatio >= 0.7) status = 'behind';
   else status = 'at_risk';
 
-  // Determine trend
-  const recent3 = sevenDayLogs.slice(0, 3);
-  const prior3 = sevenDayLogs.slice(3, 6);
-  const recentAvg = recent3.length > 0 ? recent3.reduce((s, l) => s + l.gravity_completed, 0) / recent3.length : 0;
-  const priorAvg = prior3.length > 0 ? prior3.reduce((s, l) => s + l.gravity_completed, 0) / prior3.length : 0;
-  const trend = priorAvg > 0 ? (recentAvg > priorAvg * 1.05 ? 'improving' : recentAvg < priorAvg * 0.95 ? 'declining' : 'stable') : 'stable';
+  // CHANGED: trend detection — compare 7d avg vs 14d avg
+  const trend = avg14d > 0 ? (avg7d > avg14d * 1.05 ? 'improving' : avg7d < avg14d * 0.95 ? 'declining' : 'stable') : 'stable';
 
   const weightedCompletion = totalGravity > 0 ? completedGravity / totalGravity : 0;
 
@@ -120,6 +120,9 @@ export async function calculateVelocity(userId: string) {
       projected_completion_date: projectedDate,
     }, { onConflict: 'user_id,snapshot_date' });
 
+  // ADDED: unweighted_completion_pct (topic count based)
+  const unweightedCompletion = totalTopics > 0 ? completedTopicCount / totalTopics : 0;
+
   return {
     velocity_ratio: velocityRatio,
     status,
@@ -127,9 +130,13 @@ export async function calculateVelocity(userId: string) {
     actual_velocity_14d: avg14d,
     required_velocity: requiredVelocity,
     weighted_completion_pct: weightedCompletion,
+    unweighted_completion_pct: unweightedCompletion, // ADDED
     trend,
     projected_completion_date: projectedDate,
     days_remaining: daysRemaining,
+    total_gravity: totalGravity, // ADDED: expose for consumers
+    completed_gravity: completedGravity, // ADDED
+    remaining_gravity: remainingGravity, // ADDED
   };
 }
 
@@ -170,6 +177,10 @@ export async function updateBuffer(userId: string, date: string) {
   const required = snapshot?.required_velocity || 0;
   const delta = gravityToday - required;
 
+  // CHANGED: Read rates from profile with corrected defaults (deposit < withdrawal)
+  const depositRate = (profile as any).buffer_deposit_rate ?? 0.30;   // CHANGED default from 0.8
+  const withdrawalRate = (profile as any).buffer_withdrawal_rate ?? 0.50; // CHANGED default from 1.0
+
   let amount = 0;
   let type: string;
   let notes: string;
@@ -180,23 +191,27 @@ export async function updateBuffer(userId: string, date: string) {
     type = 'zero_day_penalty';
     notes = 'Zero study day penalty';
   } else if (delta > 0) {
-    // Deposit: surplus capped at 20% of days_remaining
-    const depositRate = (profile as any).buffer_deposit_rate ?? 0.8;
+    // Deposit: surplus × deposit_rate, capped at 20% of days_remaining
     amount = Math.min(delta * depositRate, daysRemaining * 0.2);
     type = 'deposit';
     notes = `Surplus gravity: ${delta.toFixed(2)}`;
-  } else {
-    // Withdrawal: deficit with floor
-    const withdrawalRate = (profile as any).buffer_withdrawal_rate ?? 1.0;
+  } else if (delta < 0) {
+    // Withdrawal: deficit × withdrawal_rate, floored at -5
     amount = Math.max(delta * withdrawalRate, -5);
     type = 'withdrawal';
     notes = `Deficit gravity: ${delta.toFixed(2)}`;
+  } else {
+    // ADDED: delta === 0 means exact target hit — daily consistency reward
+    amount = 0.1;
+    type = 'consistency_reward';
+    notes = 'Exact target hit bonus';
   }
 
   let newBalance = (profile.buffer_balance || 0) + amount;
-  newBalance = Math.max(0, Math.min(newBalance, maxBuffer));
+  // CHANGED: floor is -5 (debt mode), not 0
+  newBalance = Math.max(-5, Math.min(newBalance, maxBuffer));
 
-  // Check consistency reward (7+ day streak)
+  // Check streak-based consistency reward (7+ day streak milestone)
   const { data: streak } = await supabase
     .from('streaks')
     .select('current_count')
@@ -214,7 +229,8 @@ export async function updateBuffer(userId: string, date: string) {
       type: 'consistency_reward',
       amount: bonus,
       balance_after: newBalance,
-      notes: `7-day consistency reward (streak: ${streak.current_count})`,
+      notes: `7-day streak milestone (streak: ${streak.current_count})`,
+      delta_gravity: 0,
     });
   }
 
@@ -226,6 +242,7 @@ export async function updateBuffer(userId: string, date: string) {
     amount,
     balance_after: newBalance,
     notes,
+    delta_gravity: delta,  // ADDED: track the raw gravity delta
   });
 
   // Update profile balance
@@ -233,6 +250,15 @@ export async function updateBuffer(userId: string, date: string) {
     .from('user_profiles')
     .update({ buffer_balance: newBalance })
     .eq('id', userId);
+
+  // ADDED: Debt mode — trigger recalibration when balance goes negative
+  if (newBalance < 0) {
+    try {
+      await runRecalibration(userId, 'buffer_debt');
+    } catch {
+      // Recalibration is non-critical
+    }
+  }
 
   return { balance: newBalance, transaction: { type, amount, balance_after: newBalance } };
 }
@@ -249,7 +275,7 @@ export async function processEndOfDay(userId: string, date: string) {
   if (plan) {
     const { data: items } = await supabase
       .from('daily_plan_items')
-      .select('*, topics!inner(pyq_weight, difficulty, estimated_hours, chapter_id)')
+      .select('*, topics!inner(pyq_weight, difficulty, chapter_id)')
       .eq('plan_id', plan.id)
       .eq('status', 'completed');
 
@@ -262,7 +288,7 @@ export async function processEndOfDay(userId: string, date: string) {
     for (const item of items || []) {
       topicsCompleted++;
       const t = (item as any).topics;
-      gravityCompleted += t.pyq_weight * t.difficulty * t.estimated_hours;
+      gravityCompleted += t.pyq_weight; // CHANGED: gravity = pyq_weight only
       hoursStudied += item.actual_hours || item.estimated_hours;
       difficultySum += t.difficulty;
       subjects.add(t.chapter_id);
@@ -401,12 +427,17 @@ export async function getBufferDetails(userId: string) {
     .order('valid_from', { ascending: false })
     .limit(20);
 
+  // ADDED: debt status when balance is negative
+  const balance = profile.buffer_balance ?? 0;
+  const status = balance < 0 ? 'debt' : balance < maxBuffer * 0.2 ? 'low' : balance < maxBuffer * 0.5 ? 'moderate' : 'healthy';
+
   return {
-    balance: profile.buffer_balance || 0,
+    balance,
     capacity: profile.buffer_capacity || 0.15,
     buffer_initial: profile.buffer_initial ?? null,
     balance_days: balanceDays,
     max_buffer: maxBuffer,
+    status,  // ADDED: 'debt' | 'low' | 'moderate' | 'healthy'
     transactions: transactions || [],
   };
 }

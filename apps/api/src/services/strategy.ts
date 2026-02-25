@@ -31,13 +31,14 @@ const modeDefaults: Record<StrategyMode, StrategyParams> = {
 };
 
 const personaDefaults: Record<StrategyMode, PersonaParams> = {
+  // CHANGED: deposit < withdrawal (asymmetry: losing buffer is harder than gaining)
   conservative: {
     fatigue_threshold: 85,
     buffer_capacity: 0.20,
     fsrs_target_retention: 0.85,
     burnout_threshold: 65,
-    buffer_deposit_rate: 0.9,
-    buffer_withdrawal_rate: 0.7,
+    buffer_deposit_rate: 0.30,    // CHANGED from 0.9
+    buffer_withdrawal_rate: 0.40, // CHANGED from 0.7
     velocity_target_multiplier: 0.85,
   },
   balanced: {
@@ -45,8 +46,8 @@ const personaDefaults: Record<StrategyMode, PersonaParams> = {
     buffer_capacity: 0.15,
     fsrs_target_retention: 0.90,
     burnout_threshold: 75,
-    buffer_deposit_rate: 0.8,
-    buffer_withdrawal_rate: 1.0,
+    buffer_deposit_rate: 0.30,    // CHANGED from 0.8
+    buffer_withdrawal_rate: 0.50, // CHANGED from 1.0
     velocity_target_multiplier: 1.0,
   },
   aggressive: {
@@ -54,8 +55,8 @@ const personaDefaults: Record<StrategyMode, PersonaParams> = {
     buffer_capacity: 0.10,
     fsrs_target_retention: 0.95,
     burnout_threshold: 80,
-    buffer_deposit_rate: 0.6,
-    buffer_withdrawal_rate: 1.2,
+    buffer_deposit_rate: 0.25,    // CHANGED from 0.6
+    buffer_withdrawal_rate: 0.50, // CHANGED from 1.2
     velocity_target_multiplier: 1.15,
   },
   working_professional: {
@@ -63,8 +64,8 @@ const personaDefaults: Record<StrategyMode, PersonaParams> = {
     buffer_capacity: 0.25,
     fsrs_target_retention: 0.85,
     burnout_threshold: 65,
-    buffer_deposit_rate: 0.9,
-    buffer_withdrawal_rate: 0.8,
+    buffer_deposit_rate: 0.35,    // CHANGED from 0.9
+    buffer_withdrawal_rate: 0.40, // CHANGED from 0.8
     velocity_target_multiplier: 0.90,
   },
 };
@@ -120,6 +121,7 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
       buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
       velocity_target_multiplier: persona.velocity_target_multiplier,
       buffer_initial: bufferInitial,
+      buffer_balance: bufferInitial, // ADDED: seed balance = initial
     })
     .select()
     .single();
@@ -192,6 +194,7 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
       buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
       velocity_target_multiplier: persona.velocity_target_multiplier,
       buffer_initial: bufferInitial,
+      buffer_balance: bufferInitial, // ADDED: seed balance = initial
       target_exam_year: payload.answers.target_exam_year,
       attempt_number: payload.answers.attempt_number,
       user_type: payload.answers.user_type,
@@ -316,7 +319,7 @@ export async function switchMode(userId: string, mode: StrategyMode) {
 
   await supabase
     .from('user_profiles')
-    .update({ buffer_initial: bufferInitial, buffer_balance: 0 })
+    .update({ buffer_initial: bufferInitial, buffer_balance: bufferInitial }) // CHANGED: seed balance = initial on mode switch
     .eq('id', userId);
 
   // Insert new snapshot

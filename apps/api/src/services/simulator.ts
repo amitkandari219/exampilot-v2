@@ -25,9 +25,10 @@ async function getProfileData(userId: string) {
 }
 
 async function getGravityData(userId: string) {
+  // CHANGED: gravity = pyq_weight only (no difficulty * estimated_hours)
   const { data: topics } = await supabase
     .from('topics')
-    .select('id, pyq_weight, difficulty, estimated_hours');
+    .select('id, pyq_weight');
 
   const { data: progress } = await supabase
     .from('user_progress')
@@ -41,7 +42,7 @@ async function getGravityData(userId: string) {
   let completedGravity = 0;
 
   for (const t of topics || []) {
-    const gravity = t.pyq_weight * t.difficulty * t.estimated_hours;
+    const gravity = t.pyq_weight; // CHANGED: gravity = pyq_weight only
     totalGravity += gravity;
     const status = progressMap.get(t.id) || 'untouched';
     if (completedStatuses.includes(status)) {
@@ -210,7 +211,7 @@ async function applyDeferTopics(userId: string, snapshot: SimulationSnapshot, pa
   // Get untouched topics sorted by lowest pyq_weight (lowest priority first)
   const { data: topics } = await supabase
     .from('topics')
-    .select('id, pyq_weight, difficulty, estimated_hours')
+    .select('id, pyq_weight')
     .order('pyq_weight', { ascending: true });
 
   const { data: progress } = await supabase
@@ -228,7 +229,7 @@ async function applyDeferTopics(userId: string, snapshot: SimulationSnapshot, pa
   const toDefer = untouched.slice(0, count);
   let deferredGravity = 0;
   for (const t of toDefer) {
-    deferredGravity += t.pyq_weight * t.difficulty * t.estimated_hours;
+    deferredGravity += t.pyq_weight; // CHANGED: gravity = pyq_weight only
   }
 
   const modified = { ...snapshot };

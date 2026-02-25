@@ -43,13 +43,14 @@ export async function calculateStress(userId: string) {
 
   // Signal: Buffer (0.25)
   // Buffer above 50% capacity = good, depleted = bad
+  // CHANGED: signal_buffer = 0 when in debt (balance < 0)
   const bufferCapacity = profile?.buffer_capacity || 0.15;
   const examDate = profile?.exam_date ? new Date(profile.exam_date) : new Date();
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
   // Use fixed buffer_initial set at onboarding; fall back to dynamic calc for legacy users
   const maxBuffer = profile?.buffer_initial ?? daysRemaining * bufferCapacity;
-  const bufferRatio = maxBuffer > 0 ? (profile?.buffer_balance || 0) / maxBuffer : 0;
-  const signalBuffer = linearInterpolate(bufferRatio, 0, 0.5);
+  const bufferBalance = profile?.buffer_balance ?? 0;
+  const signalBuffer = bufferBalance < 0 ? 0 : linearInterpolate(maxBuffer > 0 ? bufferBalance / maxBuffer : 0, 0, 0.5);
 
   // Signal: Time (0.20)
   // More days remaining = less pressure

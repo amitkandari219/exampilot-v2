@@ -723,7 +723,7 @@ export const demoWeeklyReview = {
   generated_at: '2026-02-22T23:59:00.000Z',
   total_hours: 38.5,
   topics_completed: 12,
-  gravity_completed: 18.4,
+  gravity_completed: 38, // CHANGED: gravity = pyq_weight only (~3.2 avg × 12 topics)
   avg_hours_per_day: 5.5,
   subjects_touched: 4,
   avg_velocity_ratio: 1.08,

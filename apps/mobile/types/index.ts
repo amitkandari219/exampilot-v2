@@ -198,8 +198,12 @@ export interface PYQStats {
   total_gravity: number;
   completed_gravity: number;
   remaining_gravity: number;
-  high_gravity_untouched: number;
-  trending_topics: TopicWithProgress[];
+  weighted_completion_pct: number;
+  unweighted_completion_pct: number;
+  high_gravity_untouched: Array<{ id: string; name: string; pyq_weight: number; gravity: number }>;
+  subject_gravity: Array<{ subject_id: string; name: string; total_gravity: number; completed_gravity: number; pct: number }>;
+  trending_up: Array<{ id: string; name: string; pyq_weight: number; pyq_trend: string }>;
+  trending_down: Array<{ id: string; name: string; pyq_weight: number; pyq_trend: string }>;
 }
 
 export interface VelocityData {
@@ -209,8 +213,13 @@ export interface VelocityData {
   actual_velocity_14d: number;
   required_velocity: number;
   weighted_completion_pct: number;
+  unweighted_completion_pct: number; // ADDED: topic count / total topics
   trend: string | null;
   projected_completion_date: string | null;
+  days_remaining: number;
+  total_gravity: number; // ADDED: sum of pyq_weight across all topics
+  completed_gravity: number; // ADDED
+  remaining_gravity: number; // ADDED
   streak: { current_count: number; best_count: number } | null;
   buffer_balance: number;
   buffer_capacity: number;
@@ -219,7 +228,10 @@ export interface VelocityData {
 export interface BufferData {
   balance: number;
   capacity: number;
+  buffer_initial: number | null;
   balance_days: number;
+  max_buffer: number;
+  status: 'debt' | 'low' | 'moderate' | 'healthy'; // ADDED: debt when balance < 0
   transactions: BufferTransaction[];
 }
 
