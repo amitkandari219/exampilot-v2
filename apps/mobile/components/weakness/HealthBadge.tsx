@@ -30,9 +30,9 @@ const CATEGORY_LABELS: Record<HealthCategory, string> = {
 
 function getCategory(score: number): HealthCategory {
   if (score >= 80) return 'exam_ready';
-  if (score >= 65) return 'strong';
-  if (score >= 45) return 'moderate';
-  if (score >= 25) return 'weak';
+  if (score >= 60) return 'strong';
+  if (score >= 40) return 'moderate';
+  if (score >= 20) return 'weak';
   return 'critical';
 }
 

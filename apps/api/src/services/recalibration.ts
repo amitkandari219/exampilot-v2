@@ -1,5 +1,13 @@
 import { supabase } from '../lib/supabase.js';
-import type { StrategyMode, PersonaParams } from '../types/index.js';
+import type { StrategyMode } from '../types/index.js';
+
+// Tunable persona params (subset of full TunableParams)
+interface TunableParams {
+  fatigue_threshold: number;
+  buffer_capacity: number;
+  fsrs_target_retention: number;
+  burnout_threshold: number;
+}
 
 // --- Constants ---
 
@@ -13,7 +21,7 @@ const BOUNDS = {
   burnout_threshold: [50, 90] as const,
 };
 
-const MODE_DEFAULTS: Record<StrategyMode, PersonaParams> = {
+const MODE_DEFAULTS: Record<StrategyMode, TunableParams> = {
   conservative: { fatigue_threshold: 85, buffer_capacity: 0.20, fsrs_target_retention: 0.85, burnout_threshold: 65 },
   balanced: { fatigue_threshold: 85, buffer_capacity: 0.15, fsrs_target_retention: 0.90, burnout_threshold: 75 },
   aggressive: { fatigue_threshold: 85, buffer_capacity: 0.10, fsrs_target_retention: 0.95, burnout_threshold: 80 },
@@ -35,7 +43,7 @@ export interface RecalibrationSignals {
 }
 
 interface ParamAdjustment {
-  param: keyof PersonaParams;
+  param: keyof TunableParams;
   oldValue: number;
   newValue: number;
   step: number;
@@ -47,7 +55,7 @@ export interface RecalibrationResult {
   skipped_reason?: string;
   signals?: RecalibrationSignals;
   adjustments?: ParamAdjustment[];
-  newParams?: PersonaParams;
+  newParams?: TunableParams;
 }
 
 export interface RecalibrationLogEntry {
@@ -160,10 +168,10 @@ export async function gatherSignals(userId: string, windowDays = 7): Promise<Rec
 // --- Pure Adjustment Computation ---
 
 export function computeAdjustments(
-  current: PersonaParams,
+  current: TunableParams,
   signals: RecalibrationSignals,
   mode: StrategyMode
-): { newParams: PersonaParams; adjustments: ParamAdjustment[] } {
+): { newParams: TunableParams; adjustments: ParamAdjustment[] } {
   const defaults = MODE_DEFAULTS[mode] || MODE_DEFAULTS.balanced;
   const adjustments: ParamAdjustment[] = [];
   const newParams = { ...current };
@@ -265,7 +273,7 @@ export function computeAdjustments(
 
 // --- Guardrail: clamp within absolute bounds AND ±20% of mode default ---
 
-function clampWithDrift(value: number, param: keyof PersonaParams, modeDefault: number): number {
+function clampWithDrift(value: number, param: keyof TunableParams, modeDefault: number): number {
   const [min, max] = BOUNDS[param];
   const driftMin = modeDefault * (1 - MODE_DRIFT_LIMIT);
   const driftMax = modeDefault * (1 + MODE_DRIFT_LIMIT);
@@ -325,7 +333,7 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
     return { status: 'skipped', skipped_reason: 'insufficient_data' };
   }
 
-  const current: PersonaParams = {
+  const current: TunableParams = {
     fatigue_threshold: profile.fatigue_threshold,
     buffer_capacity: profile.buffer_capacity,
     fsrs_target_retention: profile.fsrs_target_retention,

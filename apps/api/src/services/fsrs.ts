@@ -141,16 +141,20 @@ export async function recordReview(userId: string, topicId: string, rating: numb
   // Auto-upgrade topic status
   const { data: progress } = await supabase
     .from('user_progress')
-    .select('status, revision_count')
+    .select('status, revision_count, mock_accuracy')
     .eq('user_id', userId)
     .eq('topic_id', topicId)
     .single();
 
   if (progress) {
     const revCount = (progress.revision_count || 0) + 1;
+    const mockAcc = (progress as any).mock_accuracy;
     let newStatus = progress.status;
 
     if (revCount >= 3 && confidenceScore >= 70) {
+      newStatus = 'exam_ready';
+    } else if (mockAcc != null && mockAcc >= 0.8 && revCount >= 2) {
+      // Fast-track: high mock accuracy + adequate revisions
       newStatus = 'exam_ready';
     } else if (revCount >= 2) {
       newStatus = 'revised';
@@ -212,14 +216,16 @@ export function calculateRetrievability(card: { stability: number; elapsed_days:
 }
 
 export async function batchRecalculateConfidence(userId: string) {
-  const { data: cards, error } = await supabase
-    .from('fsrs_cards')
-    .select('*')
-    .eq('user_id', userId);
+  const [cardsRes, mockRes] = await Promise.all([
+    supabase.from('fsrs_cards').select('*').eq('user_id', userId),
+    supabase.from('mock_topic_accuracy').select('topic_id, accuracy, total_questions').eq('user_id', userId),
+  ]);
 
-  if (error) throw error;
+  if (cardsRes.error) throw cardsRes.error;
 
-  for (const card of cards || []) {
+  const mockMap = new Map((mockRes.data || []).map((m: any) => [m.topic_id, m]));
+
+  for (const card of cardsRes.data || []) {
     const now = new Date();
     const lastReview = card.last_review ? new Date(card.last_review) : now;
     const elapsedDays = Math.floor((now.getTime() - lastReview.getTime()) / 86400000);
@@ -229,7 +235,13 @@ export async function batchRecalculateConfidence(userId: string) {
       elapsed_days: elapsedDays,
     });
 
-    const confidenceScore = Math.round(retrievability * 100);
+    // Apply mock accuracy adjustment (consistent with decayTrigger.ts)
+    const mock = mockMap.get(card.topic_id);
+    const mockAccuracy = (mock && mock.total_questions > 0) ? mock.accuracy : null;
+    const accuracyFactor = mockAccuracy != null ? (0.7 + 0.3 * mockAccuracy) : 1.0;
+    const adjusted = retrievability * accuracyFactor;
+
+    const confidenceScore = Math.round(Math.min(100, Math.max(0, adjusted * 100)));
     const confidenceStatus = confidenceScore >= 70 ? 'fresh'
       : confidenceScore >= 45 ? 'fading'
       : confidenceScore >= 20 ? 'stale' : 'decayed';
@@ -240,8 +252,8 @@ export async function batchRecalculateConfidence(userId: string) {
       .eq('user_id', userId)
       .eq('topic_id', card.topic_id);
 
-    // Auto-downgrade if decayed
-    if (confidenceScore < 30) {
+    // Auto-downgrade when decayed (score < 20) — consistent with decayTrigger.ts
+    if (confidenceStatus === 'decayed') {
       const { data: progress } = await supabase
         .from('user_progress')
         .select('status')
@@ -274,7 +286,7 @@ export async function batchRecalculateConfidence(userId: string) {
       raw_retention: retrievability,
       stability: card.stability,
       difficulty: card.difficulty,
-      accuracy_factor: 1.0,
+      accuracy_factor: accuracyFactor,
     });
   }
 }
@@ -302,10 +314,48 @@ export async function getRevisionsDue(userId: string, date: string) {
   if (e2) throw e2;
 
   // Split due today into overdue and today
-  const overdue = (dueToday || []).filter((c) => new Date(c.due) < new Date(date + 'T00:00:00'));
-  const today = (dueToday || []).filter((c) => new Date(c.due) >= new Date(date + 'T00:00:00'));
+  const todayStart = new Date(date + 'T00:00:00');
+  const overdue = (dueToday || [])
+    .filter((c) => new Date(c.due) < todayStart)
+    .map((c) => ({
+      ...c,
+      overdue_by_days: Math.floor((todayStart.getTime() - new Date(c.due).getTime()) / 86400000),
+    }));
+  const today = (dueToday || []).filter((c) => new Date(c.due) >= todayStart);
 
   return { overdue, today, upcoming: upcoming || [] };
+}
+
+export async function getRevisionsCalendar(userId: string, month: string) {
+  // month format: YYYY-MM
+  const startDate = new Date(month + '-01');
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + 1);
+
+  const { data: cards, error } = await supabase
+    .from('fsrs_cards')
+    .select('topic_id, due, topics!inner(name, pyq_weight, difficulty)')
+    .eq('user_id', userId)
+    .gte('due', startDate.toISOString())
+    .lt('due', endDate.toISOString())
+    .order('due', { ascending: true });
+
+  if (error) throw error;
+
+  // Group by date
+  const calendar: Record<string, Array<{ topic_id: string; topic_name: string; pyq_weight: number; difficulty: number }>> = {};
+  for (const card of cards || []) {
+    const dateKey = new Date(card.due).toISOString().split('T')[0];
+    if (!calendar[dateKey]) calendar[dateKey] = [];
+    calendar[dateKey].push({
+      topic_id: card.topic_id,
+      topic_name: (card as any).topics?.name || '',
+      pyq_weight: (card as any).topics?.pyq_weight || 0,
+      difficulty: (card as any).topics?.difficulty || 0,
+    });
+  }
+
+  return { month, calendar };
 }
 
 export async function getConfidenceOverview(userId: string) {

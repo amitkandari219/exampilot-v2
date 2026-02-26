@@ -231,7 +231,7 @@ export interface BufferData {
   buffer_initial: number | null;
   balance_days: number;
   max_buffer: number;
-  status: 'debt' | 'low' | 'moderate' | 'healthy'; // ADDED: debt when balance < 0
+  status: 'debt' | 'critical' | 'caution' | 'healthy';
   transactions: BufferTransaction[];
 }
 

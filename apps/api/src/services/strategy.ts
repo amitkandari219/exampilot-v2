@@ -349,18 +349,9 @@ export async function switchMode(userId: string, mode: StrategyMode) {
 }
 
 export async function switchExamMode(userId: string, examMode: ExamMode) {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .update({
-      current_mode: examMode,
-      mode_switched_at: new Date().toISOString(),
-    })
-    .eq('id', userId)
-    .select('current_mode, mode_switched_at')
-    .single();
-
-  if (error) throw error;
-  return data;
+  // Delegate to mode service for full cascade
+  const { switchExamMode: switchMode } = await import('./mode.js');
+  return switchMode(userId, examMode);
 }
 
 export async function resetUserData(userId: string) {

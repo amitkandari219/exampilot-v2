@@ -586,9 +586,9 @@ export const demoWeakness = {
 
 function healthCategory(score: number) {
   if (score >= 80) return 'exam_ready' as const;
-  if (score >= 65) return 'strong' as const;
-  if (score >= 45) return 'moderate' as const;
-  if (score >= 25) return 'weak' as const;
+  if (score >= 60) return 'strong' as const;
+  if (score >= 40) return 'moderate' as const;
+  if (score >= 20) return 'weak' as const;
   return 'critical' as const;
 }
 

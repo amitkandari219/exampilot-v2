@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { runRecalibration } from './recalibration.js';
+import { getActiveSubjectIds } from './mode.js';
 
 export async function calculateVelocity(userId: string) {
   // Get user profile
@@ -20,9 +21,18 @@ export async function calculateVelocity(userId: string) {
   const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
 
   // Get all topics — gravity = pyq_weight only
-  const { data: topics } = await supabase
+  const { data: topicsRaw } = await supabase
     .from('topics')
-    .select('id, pyq_weight');
+    .select('id, pyq_weight, chapters!inner(subject_id)');
+
+  // Filter out paused subjects based on current exam mode
+  const activeSubjectIds = await getActiveSubjectIds(userId);
+  const topics = activeSubjectIds
+    ? (topicsRaw || []).filter((t: any) => {
+        const subjectId = t.chapters?.subject_id;
+        return !subjectId || activeSubjectIds.has(subjectId);
+      })
+    : (topicsRaw || []);
 
   // Get user progress
   const { data: progress } = await supabase
@@ -39,7 +49,7 @@ export async function calculateVelocity(userId: string) {
   let completedTopicCount = 0;
 
   for (const t of topics || []) {
-    const gravity = t.pyq_weight; // CHANGED: gravity = pyq_weight only (1-5 per topic)
+    const gravity = t.pyq_weight; // gravity = pyq_weight only (1-5 per topic)
     totalGravity += gravity;
     totalTopics++;
     const status = progressMap.get(t.id) || 'untouched';
@@ -87,7 +97,7 @@ export async function calculateVelocity(userId: string) {
   else status = 'at_risk';
 
   // CHANGED: trend detection — compare 7d avg vs 14d avg
-  const trend = avg14d > 0 ? (avg7d > avg14d * 1.05 ? 'improving' : avg7d < avg14d * 0.95 ? 'declining' : 'stable') : 'stable';
+  const trend = avg14d > 0 ? (avg7d > avg14d * 1.1 ? 'improving' : avg7d < avg14d * 0.9 ? 'declining' : 'stable') : 'stable';
 
   const weightedCompletion = totalGravity > 0 ? completedGravity / totalGravity : 0;
 
@@ -116,6 +126,7 @@ export async function calculateVelocity(userId: string) {
       velocity_ratio: velocityRatio,
       status,
       weighted_completion_pct: weightedCompletion,
+      unweighted_completion_pct: totalTopics > 0 ? completedTopicCount / totalTopics : 0,
       trend,
       projected_completion_date: projectedDate,
     }, { onConflict: 'user_id,snapshot_date' });
@@ -324,6 +335,14 @@ export async function processEndOfDay(userId: string, date: string) {
   } catch {
     // Benchmark is non-critical
   }
+
+  // Recalculate confidence decay and schedule revisions
+  try {
+    const { recalculateAllConfidence } = await import('./decayTrigger.js');
+    await recalculateAllConfidence(userId);
+  } catch {
+    // Decay trigger is non-critical
+  }
 }
 
 async function updateStreaks(userId: string, date: string) {
@@ -429,7 +448,7 @@ export async function getBufferDetails(userId: string) {
 
   // ADDED: debt status when balance is negative
   const balance = profile.buffer_balance ?? 0;
-  const status = balance < 0 ? 'debt' : balance < maxBuffer * 0.2 ? 'low' : balance < maxBuffer * 0.5 ? 'moderate' : 'healthy';
+  const status = balance < 0 ? 'debt' : balance <= 0 ? 'critical' : balance < maxBuffer * 0.2 ? 'critical' : balance < maxBuffer * 0.8 ? 'caution' : 'healthy';
 
   return {
     balance,
@@ -437,7 +456,7 @@ export async function getBufferDetails(userId: string) {
     buffer_initial: profile.buffer_initial ?? null,
     balance_days: balanceDays,
     max_buffer: maxBuffer,
-    status,  // ADDED: 'debt' | 'low' | 'moderate' | 'healthy'
+    status,
     transactions: transactions || [],
   };
 }

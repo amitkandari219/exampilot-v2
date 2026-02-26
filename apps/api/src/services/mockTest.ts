@@ -91,6 +91,14 @@ export async function createMockTest(userId: string, payload: CreateMockPayload)
     // Gamification is non-critical
   }
 
+  // Recalculate confidence with updated mock accuracy (non-critical)
+  try {
+    const { recalculateAllConfidence } = await import('./decayTrigger.js');
+    await recalculateAllConfidence(userId);
+  } catch {
+    // Decay trigger is non-critical
+  }
+
   return mockTest as MockTest;
 }
 
@@ -159,13 +167,7 @@ async function aggregateAccuracy(
     }
   }
 
-  // Trigger confidence recalc (non-critical)
-  try {
-    const { batchRecalculateConfidence } = await import('./fsrs.js');
-    await batchRecalculateConfidence(userId);
-  } catch {
-    // Non-critical
-  }
+  // Confidence recalc handled by recalculateAllConfidence in createMockTest
 }
 
 async function upsertTopicAccuracy(

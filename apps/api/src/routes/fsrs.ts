@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { recordReview, batchRecalculateConfidence, getRevisionsDue, getConfidenceOverview } from '../services/fsrs.js';
+import { recordReview, batchRecalculateConfidence, getRevisionsDue, getRevisionsCalendar } from '../services/fsrs.js';
 
 export async function fsrsRoutes(app: FastifyInstance) {
   app.post<{
@@ -29,8 +29,13 @@ export async function fsrsRoutes(app: FastifyInstance) {
     return reply.status(200).send(result);
   });
 
-  app.get('/api/confidence/overview', async (request, reply) => {
-    const result = await getConfidenceOverview(request.userId);
+  // Confidence overview moved to decayTrigger routes (GET /api/confidence/overview)
+
+  app.get<{
+    Querystring: { month?: string };
+  }>('/api/revisions/calendar', async (request, reply) => {
+    const month = (request.query as any).month || new Date().toISOString().slice(0, 7);
+    const result = await getRevisionsCalendar(request.userId, month);
     return reply.status(200).send(result);
   });
 }

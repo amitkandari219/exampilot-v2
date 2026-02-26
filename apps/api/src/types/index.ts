@@ -36,7 +36,7 @@ export interface WeaknessSnapshot {
   valid_from: string;
 }
 
-export type BufferTransactionType = 'deposit' | 'withdrawal' | 'zero_day_penalty' | 'initial' | 'consistency_reward';
+export type BufferTransactionType = 'deposit' | 'withdrawal' | 'zero_day_penalty' | 'initial' | 'consistency_reward' | 'recalibration_adjustment';
 
 export interface StrategyParams {
   revision_frequency: number;

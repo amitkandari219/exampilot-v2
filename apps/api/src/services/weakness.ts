@@ -1,96 +1,159 @@
 import { supabase } from '../lib/supabase.js';
 import type { HealthCategory } from '../types/index.js';
+import { getActiveSubjectIds } from './mode.js';
 
+// Health zone thresholds — single source of truth
+// DB enum: critical | weak | moderate | strong | exam_ready
+// Display: Critical | Weak | Vulnerable | Adequate | Strong
+// Thresholds: <20 | 20-39 | 40-59 | 60-79 | 80+
+const ZONE_THRESHOLDS: { min: number; db: HealthCategory; label: string }[] = [
+  { min: 80, db: 'exam_ready', label: 'strong' },
+  { min: 60, db: 'strong', label: 'adequate' },
+  { min: 40, db: 'moderate', label: 'vulnerable' },
+  { min: 20, db: 'weak', label: 'weak' },
+  { min: 0, db: 'critical', label: 'critical' },
+];
+
+// For DB writes (weakness_snapshots.category)
 function categorize(score: number): HealthCategory {
-  if (score >= 80) return 'exam_ready';
-  if (score >= 65) return 'strong';
-  if (score >= 45) return 'moderate';
-  if (score >= 25) return 'weak';
+  for (const z of ZONE_THRESHOLDS) {
+    if (score >= z.min) return z.db;
+  }
   return 'critical';
 }
 
-function recommend(category: HealthCategory, weakestComponent: string): string {
-  if (category === 'critical') {
-    return `Urgent: This topic needs immediate attention. Start with a focused study session.`;
+// For API display labels
+function categorizeZone(score: number): string {
+  for (const z of ZONE_THRESHOLDS) {
+    if (score >= z.min) return z.label;
   }
+  return 'critical';
+}
+
+const ZONE_LABELS = ZONE_THRESHOLDS.map((z) => z.label);
+
+function recommend(category: HealthCategory, weakestComponent: string): string {
+  // critical (<20)
+  if (category === 'critical') {
+    return 'Urgent: This topic needs immediate attention. Start with a focused study session.';
+  }
+  // weak (20-39)
   if (category === 'weak') {
     switch (weakestComponent) {
-      case 'confidence': return 'Low confidence — do a quick revision and attempt practice questions.';
+      case 'completion': return 'Incomplete — do a full first pass or revision to solidify the basics.';
       case 'revision': return 'Insufficient revisions — schedule a revision session soon.';
-      case 'effort': return 'Not enough time spent — allocate more study hours to this topic.';
-      case 'stability': return 'Memory decaying — review before it fades further.';
+      case 'accuracy': return 'Low accuracy — practice questions and review weak areas.';
+      case 'recency': return 'Getting stale — revisit this topic before it fades further.';
     }
   }
+  // moderate/vulnerable (40-59)
   if (category === 'moderate') {
-    return 'Getting there — one more revision should push this into the strong zone.';
+    return 'Getting there — one more revision should push this into the adequate zone.';
   }
+  // strong/adequate (60-79)
   if (category === 'strong') {
     return 'Good shape — periodic revision will maintain your edge.';
   }
-  return 'Exam ready — maintain with light periodic reviews.';
+  // exam_ready/strong (80+)
+  return 'Strong — maintain with light periodic reviews.';
+}
+
+// ---- Completion base score (weight 0.25) ----
+function completionScore(status: string): number {
+  switch (status) {
+    case 'in_progress': return 20;
+    case 'first_pass': return 40;
+    case 'revised': return 65;
+    case 'exam_ready': return 85;
+    default: return 0; // untouched, deferred_scope
+  }
+}
+
+// ---- Revision score (weight 0.20) ----
+function revisionScore(revisionCount: number, importance: number): number {
+  const expected = importance >= 4 ? 4 : 3;
+  return Math.min(100, (revisionCount / expected) * 100);
+}
+
+// ---- Accuracy score (weight 0.30) ----
+// Mock accuracy takes priority over FSRS confidence
+function accuracyScore(mockAccuracy: number | null, confidenceScore: number): number {
+  if (mockAccuracy != null) return mockAccuracy * 100;
+  if (confidenceScore > 0) return confidenceScore;
+  return 50; // neutral default
+}
+
+// ---- Recency score (weight 0.25) ----
+function recencyScore(daysSinceTouch: number): number {
+  if (daysSinceTouch <= 7) return 100;
+  if (daysSinceTouch <= 14) return 80;
+  if (daysSinceTouch <= 30) return 60;
+  if (daysSinceTouch <= 45) return 35;
+  if (daysSinceTouch <= 60) return 15;
+  return 0;
 }
 
 export async function calculateHealthScores(userId: string) {
-  // Fetch all topics with their chapters and subjects
-  const { data: topics } = await supabase
-    .from('topics')
-    .select(`
-      id, name, difficulty, estimated_hours, pyq_weight,
-      chapters!inner(id, name, subjects!inner(id, name))
-    `);
+  // Fetch all needed data in parallel
+  const [topicsRes, progressRes, mockAccuracyRes] = await Promise.all([
+    supabase
+      .from('topics')
+      .select('id, name, importance, difficulty, estimated_hours, pyq_weight, chapters!inner(id, name, subjects!inner(id, name))')
+      .order('pyq_weight', { ascending: false }),
+    supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId),
+    supabase
+      .from('mock_topic_accuracy')
+      .select('topic_id, accuracy, total_questions')
+      .eq('user_id', userId),
+  ]);
 
-  if (!topics || topics.length === 0) return { updated: 0 };
+  // Filter by active subjects in current exam mode
+  const activeSubjectIds = await getActiveSubjectIds(userId);
+  const topics = activeSubjectIds
+    ? (topicsRes.data || []).filter((t: any) => {
+        const subjectId = t.chapters?.subjects?.id;
+        return !subjectId || activeSubjectIds.has(subjectId);
+      })
+    : (topicsRes.data || []);
+  if (topics.length === 0) return { updated: 0 };
 
-  // Fetch user progress for all topics
-  const { data: progressRows } = await supabase
-    .from('user_progress')
-    .select('*')
-    .eq('user_id', userId);
-
-  const progressMap = new Map(
-    (progressRows || []).map((p: any) => [p.topic_id, p])
-  );
-
-  // Fetch FSRS cards for stability
-  const { data: fsrsCards } = await supabase
-    .from('fsrs_cards')
-    .select('topic_id, stability')
-    .eq('user_id', userId);
-
-  const stabilityMap = new Map(
-    (fsrsCards || []).map((c: any) => [c.topic_id, c.stability])
-  );
+  const progressMap = new Map((progressRes.data || []).map((p: any) => [p.topic_id, p]));
+  const mockMap = new Map((mockAccuracyRes.data || []).map((m: any) => [m.topic_id, m]));
 
   const snapshotDate = new Date().toISOString().split('T')[0];
+  const now = Date.now();
   const results: any[] = [];
 
   for (const topic of topics) {
     const progress = progressMap.get(topic.id);
-    const stability = stabilityMap.get(topic.id) || 0;
+    const mock = mockMap.get(topic.id);
+    const status = progress?.status || 'untouched';
 
-    // Confidence component (40%) — direct from confidence_score
-    const confidenceRaw = progress?.confidence_score || 0;
-    const confidenceComponent = Math.min(100, confidenceRaw);
+    // 1. Completion (0.25)
+    const completion = completionScore(status);
 
-    // Revision adequacy component (25%)
-    const revisionCount = progress?.revision_count || 0;
-    const recommendedRevisions = Math.max(1, Math.ceil((topic.difficulty * topic.pyq_weight) / 2));
-    const revisionComponent = Math.min(100, (revisionCount / recommendedRevisions) * 100);
+    // 2. Revision (0.20)
+    const revision = revisionScore(progress?.revision_count || 0, topic.importance);
 
-    // Effort component (20%)
-    const actualHours = progress?.actual_hours_spent || 0;
-    const estimatedHours = topic.estimated_hours || 1;
-    const effortComponent = Math.min(100, (actualHours / estimatedHours) * 100);
+    // 3. Accuracy (0.30) — mock takes priority over FSRS
+    const mockAcc = (mock && mock.total_questions > 0) ? mock.accuracy : null;
+    const accuracy = accuracyScore(mockAcc, progress?.confidence_score || 0);
 
-    // Stability component (15%) — stability normalized (stability/50 * 100, capped)
-    const stabilityComponent = Math.min(100, (stability / 50) * 100);
+    // 4. Recency (0.25)
+    const daysSinceTouch = progress?.last_touched
+      ? Math.max(0, Math.floor((now - new Date(progress.last_touched).getTime()) / 86400000))
+      : 999;
+    const recency = recencyScore(daysSinceTouch);
 
     // Weighted composite
     const healthScore = Math.round(
-      confidenceComponent * 0.40 +
-      revisionComponent * 0.25 +
-      effortComponent * 0.20 +
-      stabilityComponent * 0.15
+      completion * 0.25 +
+      revision * 0.20 +
+      accuracy * 0.30 +
+      recency * 0.25
     );
     const clampedScore = Math.max(0, Math.min(100, healthScore));
     const category = categorize(clampedScore);
@@ -101,10 +164,10 @@ export async function calculateHealthScores(userId: string) {
       chapter: (topic as any).chapters,
       health_score: clampedScore,
       category,
-      confidence_component: Math.round(confidenceComponent),
-      revision_component: Math.round(revisionComponent),
-      effort_component: Math.round(effortComponent),
-      stability_component: Math.round(stabilityComponent),
+      completion_component: Math.round(completion),
+      revision_component: Math.round(revision),
+      accuracy_component: Math.round(accuracy),
+      recency_component: Math.round(recency),
     });
 
     // Update user_progress.health_score
@@ -124,14 +187,133 @@ export async function calculateHealthScores(userId: string) {
         snapshot_date: snapshotDate,
         health_score: clampedScore,
         category,
-        confidence_component: confidenceComponent,
-        revision_component: revisionComponent,
-        effort_component: effortComponent,
-        stability_component: stabilityComponent,
+        confidence_component: completion,  // repurposed: completion
+        revision_component: revision,
+        effort_component: accuracy,        // repurposed: accuracy
+        stability_component: recency,      // repurposed: recency
       }, { onConflict: 'user_id,topic_id,snapshot_date' });
   }
 
   return { updated: results.length, snapshot_date: snapshotDate };
+}
+
+// ---- RADAR INSIGHTS ----
+
+export interface RadarInsight {
+  topic_id: string;
+  topic_name: string;
+  subject_name: string;
+  chapter_name: string;
+  importance: number;
+  pyq_weight: number;
+  health_score: number;
+  status: string;
+  revision_count: number;
+  insight_type: 'false_security' | 'blind_spot' | 'over_revised';
+}
+
+export async function getRadarInsights(userId: string): Promise<{
+  false_security: RadarInsight[];
+  blind_spots: RadarInsight[];
+  over_revised: RadarInsight[];
+}> {
+  // Fetch progress + topic metadata in one query
+  const { data: progressRows } = await supabase
+    .from('user_progress')
+    .select('topic_id, status, health_score, revision_count, topics!inner(name, importance, pyq_weight, chapters!inner(name, subjects!inner(id, name)))')
+    .eq('user_id', userId);
+
+  // Filter by active subjects in current exam mode
+  const activeSubjectIds = await getActiveSubjectIds(userId);
+  const rows = activeSubjectIds
+    ? (progressRows || []).filter((r: any) => {
+        const subjectId = r.topics?.chapters?.subjects?.id;
+        return !subjectId || activeSubjectIds.has(subjectId);
+      })
+    : (progressRows || []);
+
+  // False Security: thinks they know it but health says otherwise
+  const falseSecurity = rows
+    .filter((r: any) =>
+      (r.status === 'first_pass' || r.status === 'revised') &&
+      r.health_score < 40
+    )
+    .sort((a: any, b: any) => {
+      const scoreA = a.topics.importance * a.topics.pyq_weight;
+      const scoreB = b.topics.importance * b.topics.pyq_weight;
+      return scoreB - scoreA;
+    })
+    .slice(0, 15)
+    .map((r: any) => formatInsight(r, 'false_security'));
+
+  // Blind Spots: high-importance topics not started at all
+  // Need untouched topics — they won't be in user_progress, so query separately
+  const { data: allTopics } = await supabase
+    .from('topics')
+    .select('id, name, importance, pyq_weight, chapters!inner(name, subjects!inner(id, name))')
+    .gte('importance', 4);
+
+  const progressTopicIds = new Set(rows.map((r: any) => r.topic_id));
+  const filteredTopics = activeSubjectIds
+    ? (allTopics || []).filter((t: any) => {
+        const subjectId = t.chapters?.subjects?.id;
+        return !subjectId || activeSubjectIds.has(subjectId);
+      })
+    : (allTopics || []);
+  const untouchedHighImportance = filteredTopics
+    .filter((t: any) => !progressTopicIds.has(t.id))
+    .sort((a: any, b: any) => (b.importance * b.pyq_weight) - (a.importance * a.pyq_weight))
+    .slice(0, 10)
+    .map((t: any) => ({
+      topic_id: t.id,
+      topic_name: t.name,
+      subject_name: (t as any).chapters?.subjects?.name || '',
+      chapter_name: (t as any).chapters?.name || '',
+      importance: t.importance,
+      pyq_weight: t.pyq_weight,
+      health_score: 0,
+      status: 'untouched',
+      revision_count: 0,
+      insight_type: 'blind_spot' as const,
+    }));
+
+  // Also include topics with status='untouched' that have a progress row
+  const untouchedInProgress = rows
+    .filter((r: any) => r.status === 'untouched' && r.topics.importance >= 4)
+    .sort((a: any, b: any) => (b.topics.importance * b.topics.pyq_weight) - (a.topics.importance * a.topics.pyq_weight))
+    .slice(0, 10)
+    .map((r: any) => formatInsight(r, 'blind_spot'));
+
+  const blindSpots = [...untouchedHighImportance, ...untouchedInProgress]
+    .sort((a, b) => (b.importance * b.pyq_weight) - (a.importance * a.pyq_weight))
+    .slice(0, 10);
+
+  // Over-Revised: diminishing returns — too many revisions on low-importance topics
+  const overRevised = rows
+    .filter((r: any) =>
+      r.revision_count >= 4 &&
+      r.health_score >= 80 &&
+      r.topics.importance <= 3
+    )
+    .sort((a: any, b: any) => b.revision_count - a.revision_count)
+    .map((r: any) => formatInsight(r, 'over_revised'));
+
+  return { false_security: falseSecurity, blind_spots: blindSpots, over_revised: overRevised };
+}
+
+function formatInsight(row: any, type: RadarInsight['insight_type']): RadarInsight {
+  return {
+    topic_id: row.topic_id,
+    topic_name: row.topics.name,
+    subject_name: row.topics.chapters?.subjects?.name || '',
+    chapter_name: row.topics.chapters?.name || '',
+    importance: row.topics.importance,
+    pyq_weight: row.topics.pyq_weight,
+    health_score: row.health_score,
+    status: row.status,
+    revision_count: row.revision_count,
+    insight_type: type,
+  };
 }
 
 export async function getWeaknessOverview(userId: string) {
@@ -148,27 +330,47 @@ export async function getWeaknessOverview(userId: string) {
 
   if (!snapshots || snapshots.length === 0) {
     return {
-      summary: { critical: 0, weak: 0, moderate: 0, strong: 0, exam_ready: 0 },
+      overall_health: 0,
+      zone_distribution: { strong: { count: 0, pct: 0 }, adequate: { count: 0, pct: 0 }, vulnerable: { count: 0, pct: 0 }, weak: { count: 0, pct: 0 }, critical: { count: 0, pct: 0 } },
       weakest_topics: [],
       by_subject: [],
+      subject_health: [],
+      insights: { false_security: [], blind_spots: [], over_revised: [] },
     };
   }
+
+  // Filter by active subjects in current exam mode
+  const activeSubjectIdsForOverview = await getActiveSubjectIds(userId);
+  const filteredSnapshots = activeSubjectIdsForOverview
+    ? snapshots.filter((s: any) => {
+        const subjectId = s.topics?.chapters?.subjects?.id;
+        return !subjectId || activeSubjectIdsForOverview.has(subjectId);
+      })
+    : snapshots;
 
   // Deduplicate — keep latest snapshot per topic
   const seen = new Set<string>();
   const latest: any[] = [];
-  for (const s of snapshots) {
+  for (const s of filteredSnapshots) {
     if (!seen.has(s.topic_id)) {
       seen.add(s.topic_id);
       latest.push(s);
     }
   }
 
-  // Summary counts
-  const summary = { critical: 0, weak: 0, moderate: 0, strong: 0, exam_ready: 0 };
+  // Overall health (single number)
+  const totalHealth = latest.reduce((sum, s) => sum + s.health_score, 0);
+  const overallHealth = latest.length > 0 ? Math.round(totalHealth / latest.length) : 0;
+
+  // Zone distribution using 6-zone spec thresholds
+  const zones: Record<string, number> = { strong: 0, adequate: 0, vulnerable: 0, weak: 0, critical: 0 };
   for (const s of latest) {
-    summary[s.category as keyof typeof summary]++;
+    const zone = categorizeZone(s.health_score);
+    zones[zone]++;
   }
+  const zoneDistribution = Object.fromEntries(
+    Object.entries(zones).map(([zone, count]) => [zone, { count, pct: latest.length > 0 ? Math.round((count / latest.length) * 1000) / 10 : 0 }])
+  );
 
   // Build weak areas (critical + weak only)
   const weakAreas = latest
@@ -178,11 +380,12 @@ export async function getWeaknessOverview(userId: string) {
       const topic = (s as any).topics;
       const chapter = topic.chapters;
       const subject = chapter.subjects;
+      // Map DB columns to new component names
       const components = {
-        confidence: s.confidence_component,
+        completion: s.confidence_component,  // repurposed
         revision: s.revision_component,
-        effort: s.effort_component,
-        stability: s.stability_component,
+        accuracy: s.effort_component,        // repurposed
+        recency: s.stability_component,      // repurposed
       };
       const weakest = Object.entries(components).sort(([, a], [, b]) => (a as number) - (b as number))[0][0];
       return {
@@ -194,6 +397,7 @@ export async function getWeaknessOverview(userId: string) {
         topic_name: topic.name,
         health_score: s.health_score,
         category: s.category,
+        components,
         recommendation: recommend(s.category as HealthCategory, weakest),
       };
     });
@@ -216,10 +420,38 @@ export async function getWeaknessOverview(userId: string) {
     else group.weak_count++;
   }
 
+  // Subject health: all subjects with avg health score
+  const subjectHealthMap = new Map<string, { id: string; name: string; sum: number; count: number }>();
+  for (const s of latest) {
+    const topic = (s as any).topics;
+    const subject = topic?.chapters?.subjects;
+    if (subject) {
+      const existing = subjectHealthMap.get(subject.id) || { id: subject.id, name: subject.name, sum: 0, count: 0 };
+      existing.sum += s.health_score;
+      existing.count++;
+      subjectHealthMap.set(subject.id, existing);
+    }
+  }
+  const subjectHealth = Array.from(subjectHealthMap.values())
+    .map((s) => ({
+      subject_id: s.id,
+      subject_name: s.name,
+      avg_health: Math.round(s.sum / s.count),
+      topic_count: s.count,
+      zone: categorizeZone(Math.round(s.sum / s.count)),
+    }))
+    .sort((a, b) => a.avg_health - b.avg_health);
+
+  // Get radar insights
+  const insights = await getRadarInsights(userId);
+
   return {
-    summary,
+    overall_health: overallHealth,
+    zone_distribution: zoneDistribution,
     weakest_topics: weakAreas.slice(0, 10),
     by_subject: Array.from(subjectMap.values()).sort((a, b) => b.critical_count - a.critical_count),
+    subject_health: subjectHealth,
+    insights,
   };
 }
 
@@ -247,17 +479,17 @@ export async function getTopicHealth(userId: string, topicId: string) {
       topic_name: topic?.name || 'Unknown',
       health_score: 0,
       category: 'critical' as HealthCategory,
-      components: { confidence: 0, revision: 0, effort: 0, stability: 0 },
+      components: { completion: 0, revision: 0, accuracy: 0, recency: 0 },
       recommendation: 'No data yet — start studying this topic to generate health insights.',
       trend: [],
     };
   }
 
   const components = {
-    confidence: snapshot.confidence_component,
+    completion: snapshot.confidence_component,  // repurposed
     revision: snapshot.revision_component,
-    effort: snapshot.effort_component,
-    stability: snapshot.stability_component,
+    accuracy: snapshot.effort_component,        // repurposed
+    recency: snapshot.stability_component,      // repurposed
   };
   const weakest = Object.entries(components).sort(([, a], [, b]) => a - b)[0][0];
 

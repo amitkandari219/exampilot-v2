@@ -8,7 +8,7 @@ interface BufferBankCardProps {
   balance: number;
   capacity: number;
   maxBuffer?: number;
-  status?: 'debt' | 'low' | 'moderate' | 'healthy';
+  status?: 'debt' | 'critical' | 'caution' | 'healthy';
   lastTransaction?: { type: string; amount: number } | null;
   history?: number[];
 }
@@ -20,7 +20,7 @@ export function BufferBankCard({ balance, capacity, maxBuffer, status, lastTrans
   const effectiveMax = maxBuffer || capacity * 100;
   const fillPct = effectiveMax > 0 ? Math.max(0, Math.min(1, balance / effectiveMax)) : 0;
   const inDebt = status === 'debt' || balance < 0;
-  const color = inDebt ? theme.colors.error : fillPct > 0.5 ? theme.colors.success : fillPct > 0.2 ? theme.colors.warning : theme.colors.error;
+  const color = inDebt || status === 'critical' ? theme.colors.error : status === 'caution' ? theme.colors.warning : theme.colors.success;
 
   return (
     <View style={styles.card}>
