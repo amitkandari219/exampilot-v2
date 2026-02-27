@@ -9,8 +9,8 @@ export function useWeeklyReview(weekEnd?: string) {
     queryKey: ['weekly-review', weekEnd],
     queryFn: () =>
       isDemoMode
-        ? Promise.resolve(demoWeeklyReview as WeeklyReviewSummary)
-        : api.getWeeklyReview(weekEnd) as Promise<WeeklyReviewSummary>,
+        ? Promise.resolve(demoWeeklyReview as unknown as WeeklyReviewSummary)
+        : api.getWeeklyReview(weekEnd),
   });
 }
 
@@ -19,8 +19,8 @@ export function useWeeklyReviewHistory(limit = 8) {
     queryKey: ['weekly-review-history', limit],
     queryFn: () =>
       isDemoMode
-        ? Promise.resolve([demoWeeklyReview as WeeklyReviewSummary])
-        : api.getWeeklyReviewHistory(limit) as Promise<WeeklyReviewSummary[]>,
+        ? Promise.resolve([demoWeeklyReview as unknown as WeeklyReviewSummary])
+        : api.getWeeklyReviewHistory(limit),
   });
 }
 

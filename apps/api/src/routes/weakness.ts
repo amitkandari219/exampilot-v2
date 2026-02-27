@@ -2,6 +2,11 @@ import { FastifyInstance } from 'fastify';
 import { calculateHealthScores, getWeaknessOverview, getTopicHealth, getHealthTrend, getRadarInsights } from '../services/weakness.js';
 
 export async function weaknessRoutes(app: FastifyInstance) {
+  app.get('/api/weakness', async (request, reply) => {
+    const result = await getWeaknessOverview(request.userId);
+    return reply.status(200).send(result);
+  });
+
   app.get('/api/weakness/overview', async (request, reply) => {
     const result = await getWeaknessOverview(request.userId);
     return reply.status(200).send(result);

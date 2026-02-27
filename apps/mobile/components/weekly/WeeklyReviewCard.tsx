@@ -64,7 +64,7 @@ function GridItem({ label, value, color }: { label: string; value: string; color
 
 const createGridStyles = (theme: Theme) => StyleSheet.create({
   item: {
-    width: '50%' as any,
+    width: '50%',
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
   },

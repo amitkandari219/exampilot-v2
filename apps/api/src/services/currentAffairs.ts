@@ -1,11 +1,28 @@
 import { supabase } from '../lib/supabase.js';
 import type { CAStats, CASubjectGap } from '../types/index.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+
+// Typed interfaces for Supabase join results
+interface CATagWithSubject {
+  subject_id: string;
+  subjects: { name: string } | null;
+}
+interface CADailyLogWithTags {
+  id: string;
+  user_id: string;
+  log_date: string;
+  completed: boolean;
+  hours_spent: number;
+  notes: string | null;
+  created_at: string;
+  ca_tags: Array<{ id: string; subject_id: string; tag_text?: string }>;
+}
 
 export async function logCA(
   userId: string,
   payload: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[] }
 ): Promise<{ success: boolean }> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateString(new Date());
 
   // Upsert daily log (idempotent per day)
   const { data: log, error: logError } = await supabase
@@ -51,9 +68,7 @@ async function updateStreak(userId: string, todayStr: string): Promise<void> {
     .eq('user_id', userId)
     .single();
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  const yesterdayStr = toDateString(daysAgo(1));
 
   let currentStreak: number;
   let bestStreak: number;
@@ -96,7 +111,7 @@ async function updateStreak(userId: string, todayStr: string): Promise<void> {
 }
 
 export async function getCAStats(userId: string, month?: string): Promise<CAStats> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateString(new Date());
 
   // Streak
   const { data: streakRow } = await supabase
@@ -140,9 +155,9 @@ export async function getCAStats(userId: string, month?: string): Promise<CAStat
     );
 
   const subjectMap: Record<string, { name: string; count: number }> = {};
-  for (const tag of tagCounts || []) {
+  for (const tag of (tagCounts || []) as unknown as CATagWithSubject[]) {
     const sid = tag.subject_id;
-    const sname = (tag as any).subjects?.name || 'Unknown';
+    const sname = tag.subjects?.name || 'Unknown';
     if (!subjectMap[sid]) subjectMap[sid] = { name: sname, count: 0 };
     subjectMap[sid].count++;
   }
@@ -160,7 +175,7 @@ export async function getCAStats(userId: string, month?: string): Promise<CAStat
   const targetMonth = month || today.slice(0, 7); // YYYY-MM
   const monthStart = `${targetMonth}-01`;
   const monthEndDate = new Date(parseInt(targetMonth.slice(0, 4)), parseInt(targetMonth.slice(5, 7)), 0);
-  const monthEnd = monthEndDate.toISOString().split('T')[0];
+  const monthEnd = toDateString(monthEndDate);
 
   const { data: monthLogs } = await supabase
     .from('ca_daily_logs')
@@ -178,18 +193,21 @@ export async function getCAStats(userId: string, month?: string): Promise<CAStat
   }
 
   // Format today's log with tags
-  let formattedTodayLog = null;
+  // Cast via unknown because Supabase returns ca_tags without ca_log_id in each row,
+  // which doesn't match the CATag interface's required ca_log_id field.
+  let formattedTodayLog: import('../types/index.js').CADailyLog | null = null;
   if (todayLog) {
+    const typedTodayLog = todayLog as unknown as CADailyLogWithTags;
     formattedTodayLog = {
-      id: todayLog.id,
-      user_id: todayLog.user_id,
-      log_date: todayLog.log_date,
-      completed: todayLog.completed,
-      hours_spent: todayLog.hours_spent,
-      notes: todayLog.notes,
-      created_at: todayLog.created_at,
-      tags: (todayLog as any).ca_tags || [],
-    };
+      id: typedTodayLog.id,
+      user_id: typedTodayLog.user_id,
+      log_date: typedTodayLog.log_date,
+      completed: typedTodayLog.completed,
+      hours_spent: typedTodayLog.hours_spent,
+      notes: typedTodayLog.notes,
+      created_at: typedTodayLog.created_at,
+      tags: typedTodayLog.ca_tags || [],
+    } as unknown as import('../types/index.js').CADailyLog;
   }
 
   return {

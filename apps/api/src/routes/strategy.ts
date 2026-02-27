@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getStrategy, switchMode, switchExamMode, customizeParams } from '../services/strategy.js';
-import { SwitchModePayload, CustomizePayload, ExamMode } from '../types/index.js';
+import { SwitchModePayload, CustomizePayload, ExamMode, STRATEGY_MODES, EXAM_MODES } from '../types/index.js';
 
 export async function strategyRoutes(app: FastifyInstance) {
   app.get('/api/strategy', async (request, reply) => {
@@ -17,9 +17,8 @@ export async function strategyRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'mode is required' });
     }
 
-    const validModes = ['conservative', 'aggressive', 'balanced', 'working_professional'];
-    if (!validModes.includes(mode)) {
-      return reply.status(400).send({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
+    if (!STRATEGY_MODES.includes(mode)) {
+      return reply.status(400).send({ error: `Invalid mode. Must be one of: ${STRATEGY_MODES.join(', ')}` });
     }
 
     const result = await switchMode(request.userId, mode);
@@ -31,9 +30,8 @@ export async function strategyRoutes(app: FastifyInstance) {
   }>('/api/strategy/exam-mode', async (request, reply) => {
     const { examMode } = request.body;
 
-    const validModes: ExamMode[] = ['mains', 'prelims', 'post_prelims'];
-    if (!examMode || !validModes.includes(examMode as ExamMode)) {
-      return reply.status(400).send({ error: `Invalid examMode. Must be one of: ${validModes.join(', ')}` });
+    if (!examMode || !EXAM_MODES.includes(examMode as ExamMode)) {
+      return reply.status(400).send({ error: `Invalid examMode. Must be one of: ${EXAM_MODES.join(', ')}` });
     }
 
     const result = await switchExamMode(request.userId, examMode as ExamMode);

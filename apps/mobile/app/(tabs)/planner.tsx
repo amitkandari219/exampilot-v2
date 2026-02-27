@@ -8,11 +8,12 @@ import { PlanItemCard } from '../../components/planner/PlanItemCard';
 import { RecoveryBanner } from '../../components/planner/RecoveryBanner';
 import { useBurnout } from '../../hooks/useBurnout';
 import { DailyPlanItem } from '../../types';
+import { toDateString } from '../../lib/dateUtils';
 
 export default function PlannerScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateString(new Date());
   const { data: plan, isLoading } = useDailyPlan(today);
   const { data: burnout } = useBurnout();
   const completeMutation = useCompletePlanItem();

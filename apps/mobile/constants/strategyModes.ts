@@ -1,5 +1,8 @@
 import { ModeDefinition, StrategyParams } from '../types';
 
+// These are display-only fallback defaults. The API (modeConfig.ts) is the source of truth.
+// Once useStrategy() hook data loads, these are overridden.
+
 const conservativeParams: StrategyParams = {
   revision_frequency: 5,
   daily_new_topics: 1,

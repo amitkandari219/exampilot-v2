@@ -1,18 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, StrategyData } from '../lib/api';
 import { StrategyMode, StrategyParams, ExamMode } from '../types';
-
-interface StrategyData {
-  strategy_mode: StrategyMode;
-  strategy_params: StrategyParams;
-  daily_hours: number;
-  current_mode: ExamMode;
-}
 
 export function useStrategy() {
   return useQuery<StrategyData>({
     queryKey: ['strategy'],
-    queryFn: () => api.getStrategy() as Promise<StrategyData>,
+    queryFn: () => api.getStrategy(),
   });
 }
 

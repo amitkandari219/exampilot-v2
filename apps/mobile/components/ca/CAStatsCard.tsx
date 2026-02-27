@@ -141,7 +141,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: 2,
   },
   dayLabel: {
-    width: `${100 / 7}%` as any,
+    width: `${100 / 7}%`,
     textAlign: 'center',
     fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
@@ -151,7 +151,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flexWrap: 'wrap',
   },
   heatmapCell: {
-    width: `${100 / 7}%` as any,
+    width: `${100 / 7}%`,
     aspectRatio: 1,
     padding: 2,
   },

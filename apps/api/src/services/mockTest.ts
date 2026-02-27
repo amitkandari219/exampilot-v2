@@ -1,10 +1,18 @@
 import { supabase } from '../lib/supabase.js';
 import type { MockTest, MockAnalytics, MockTopicHistory, MockTrend } from '../types/index.js';
+import { toDateString } from '../utils/dateUtils.js';
+import { appEvents } from './events.js';
 
 interface SubjectBreakdown {
   subject_id: string;
   total: number;
   correct: number;
+}
+
+// Typed interface for mock_questions joined with mock_tests
+interface MockQuestionWithTest {
+  is_correct: boolean;
+  mock_tests: { test_date: string } | null;
 }
 
 interface QuestionEntry {
@@ -48,7 +56,7 @@ export async function createMockTest(userId: string, payload: CreateMockPayload)
     .insert({
       user_id: userId,
       test_name,
-      test_date: test_date || new Date().toISOString().split('T')[0],
+      test_date: test_date || toDateString(new Date()),
       total_questions,
       attempted,
       correct,
@@ -83,20 +91,66 @@ export async function createMockTest(userId: string, payload: CreateMockPayload)
   // Aggregate accuracy
   await aggregateAccuracy(userId, mockTest.id, mockTest.test_date, subject_breakdown, !!questions);
 
-  // Award XP (non-critical)
-  try {
-    const { awardXP } = await import('./gamification.js');
-    await awardXP(userId, { triggerType: 'mock_completion', metadata: { mock_test_id: mockTest.id } });
-  } catch {
-    // Gamification is non-critical
-  }
+  appEvents.emit('xp:award', { userId, triggerType: 'mock_completion' });
 
   // Recalculate confidence with updated mock accuracy (non-critical)
   try {
     const { recalculateAllConfidence } = await import('./decayTrigger.js');
     await recalculateAllConfidence(userId);
-  } catch {
+  } catch (e) { console.warn('[mockTest:decay-trigger]', e);
     // Decay trigger is non-critical
+  }
+
+  // Check for mock score improvement and notify
+  try {
+    const { data: prevTests } = await supabase
+      .from('mock_tests')
+      .select('score, max_score')
+      .eq('user_id', userId)
+      .order('test_date', { ascending: false })
+      .limit(2);
+
+    if (prevTests && prevTests.length >= 2) {
+      const currentPct = prevTests[0].max_score > 0 ? (prevTests[0].score / prevTests[0].max_score) * 100 : 0;
+      const prevPct = prevTests[1].max_score > 0 ? (prevTests[1].score / prevTests[1].max_score) * 100 : 0;
+      if (currentPct > prevPct + 2) {
+        appEvents.emit('notification:queue', { userId, type: 'mock_improvement', metadata: { subject: test_name, pct: Math.round(currentPct - prevPct) } });
+      }
+    }
+  } catch (e) { console.warn('[mockTest:notification]', e); }
+
+  // Recalculate health scores after mock import (non-critical)
+  try {
+    const { calculateHealthScores } = await import('./weakness.js');
+    await calculateHealthScores(userId);
+  } catch (e) { console.warn('[mockTest:health-scores]', e);
+    // Health recalc is non-critical
+  }
+
+  // Schedule immediate revision for very low accuracy topics (non-critical)
+  try {
+    if (questions && questions.length > 0) {
+      const { scheduleImmediateRevision } = await import('./planner.js');
+      // Find topics with accuracy < 0.3 from this mock
+      const topicCorrect = new Map<string, { correct: number; total: number }>();
+      for (const q of questions) {
+        if (q.topic_id) {
+          const entry = topicCorrect.get(q.topic_id) || { correct: 0, total: 0 };
+          entry.total++;
+          if (q.is_correct) entry.correct++;
+          topicCorrect.set(q.topic_id, entry);
+        }
+      }
+      const lowAccuracyTopics = Array.from(topicCorrect.entries())
+        .filter(([, v]) => v.total >= 2 && v.correct / v.total < 0.3)
+        .map(([topicId]) => topicId);
+
+      if (lowAccuracyTopics.length > 0 && typeof scheduleImmediateRevision === 'function') {
+        await scheduleImmediateRevision(userId, lowAccuracyTopics);
+      }
+    }
+  } catch (e) { console.warn('[mockTest:immediate-revision]', e);
+    // Immediate revision is non-critical
   }
 
   return mockTest as MockTest;
@@ -114,6 +168,27 @@ async function aggregateAccuracy(
     for (const sb of subjectBreakdown) {
       const accuracy = sb.total > 0 ? sb.correct / sb.total : 0;
       await upsertSubjectAccuracy(userId, sb.subject_id, sb.total, sb.correct, accuracy, testDate);
+
+      // Update mock_accuracy on user_progress for all topics in this subject
+      const { data: chapters } = await supabase
+        .from('chapters')
+        .select('id')
+        .eq('subject_id', sb.subject_id);
+      if (chapters && chapters.length > 0) {
+        const chapterIds = chapters.map((c: any) => c.id);
+        const { data: topics } = await supabase
+          .from('topics')
+          .select('id')
+          .in('chapter_id', chapterIds);
+        if (topics && topics.length > 0) {
+          const topicIds = topics.map((t: any) => t.id);
+          await supabase
+            .from('user_progress')
+            .update({ mock_accuracy: accuracy })
+            .eq('user_id', userId)
+            .in('topic_id', topicIds);
+        }
+      }
     }
   }
 
@@ -365,12 +440,12 @@ export async function getTopicMockHistory(userId: string, topicId: string): Prom
     .select('is_correct, mock_tests!inner(test_date)')
     .eq('topic_id', topicId)
     .eq('mock_tests.user_id', userId)
-    .order('mock_tests(test_date)', { ascending: true } as any);
+    .order('mock_tests(test_date)', { ascending: true });
 
   // Group by test date
   const dateMap = new Map<string, { questions: number; correct: number }>();
-  for (const q of questions || []) {
-    const date = (q as any).mock_tests?.test_date;
+  for (const q of (questions || []) as unknown as MockQuestionWithTest[]) {
+    const date = q.mock_tests?.test_date;
     if (!date) continue;
     const entry = dateMap.get(date) || { questions: 0, correct: 0 };
     entry.questions++;

@@ -1,95 +1,12 @@
 import { supabase } from '../lib/supabase.js';
 import { StrategyMode, StrategyParams, OnboardingPayload, OnboardingV2Payload, OnboardingV2Answers, CustomizePayload, PersonaParams, ExamMode } from '../types/index.js';
+import { getDefaultParams, getPersonaDefaults } from './modeConfig.js';
 import { calculateVelocity } from './velocity.js';
 import { regeneratePlan } from './planner.js';
+import { toDateString, daysUntil } from '../utils/dateUtils.js';
 
-const modeDefaults: Record<StrategyMode, StrategyParams> = {
-  conservative: {
-    revision_frequency: 5, daily_new_topics: 1, pyq_weight: 35,
-    answer_writing_sessions: 3, current_affairs_time: 45, optional_ratio: 20,
-    test_frequency: 3, break_days: 4, deep_study_hours: 3,
-    revision_backlog_limit: 10, csat_time: 20, essay_practice: 2,
-  },
-  aggressive: {
-    revision_frequency: 3, daily_new_topics: 3, pyq_weight: 50,
-    answer_writing_sessions: 6, current_affairs_time: 60, optional_ratio: 25,
-    test_frequency: 6, break_days: 2, deep_study_hours: 5,
-    revision_backlog_limit: 15, csat_time: 30, essay_practice: 4,
-  },
-  balanced: {
-    revision_frequency: 4, daily_new_topics: 2, pyq_weight: 40,
-    answer_writing_sessions: 4, current_affairs_time: 50, optional_ratio: 22,
-    test_frequency: 4, break_days: 3, deep_study_hours: 4,
-    revision_backlog_limit: 12, csat_time: 25, essay_practice: 3,
-  },
-  working_professional: {
-    revision_frequency: 7, daily_new_topics: 1, pyq_weight: 45,
-    answer_writing_sessions: 3, current_affairs_time: 30, optional_ratio: 20,
-    test_frequency: 2, break_days: 4, deep_study_hours: 2,
-    revision_backlog_limit: 8, csat_time: 15, essay_practice: 2,
-  },
-};
-
-const personaDefaults: Record<StrategyMode, PersonaParams> = {
-  // CHANGED: deposit < withdrawal (asymmetry: losing buffer is harder than gaining)
-  conservative: {
-    fatigue_threshold: 85,
-    buffer_capacity: 0.20,
-    fsrs_target_retention: 0.85,
-    burnout_threshold: 65,
-    buffer_deposit_rate: 0.30,    // CHANGED from 0.9
-    buffer_withdrawal_rate: 0.40, // CHANGED from 0.7
-    velocity_target_multiplier: 0.85,
-  },
-  balanced: {
-    fatigue_threshold: 85,
-    buffer_capacity: 0.15,
-    fsrs_target_retention: 0.90,
-    burnout_threshold: 75,
-    buffer_deposit_rate: 0.30,    // CHANGED from 0.8
-    buffer_withdrawal_rate: 0.50, // CHANGED from 1.0
-    velocity_target_multiplier: 1.0,
-  },
-  aggressive: {
-    fatigue_threshold: 85,
-    buffer_capacity: 0.10,
-    fsrs_target_retention: 0.95,
-    burnout_threshold: 80,
-    buffer_deposit_rate: 0.25,    // CHANGED from 0.6
-    buffer_withdrawal_rate: 0.50, // CHANGED from 1.2
-    velocity_target_multiplier: 1.15,
-  },
-  working_professional: {
-    fatigue_threshold: 85,
-    buffer_capacity: 0.25,
-    fsrs_target_retention: 0.85,
-    burnout_threshold: 65,
-    buffer_deposit_rate: 0.35,    // CHANGED from 0.9
-    buffer_withdrawal_rate: 0.40, // CHANGED from 0.8
-    velocity_target_multiplier: 0.90,
-  },
-};
-
-export async function getDefaultParams(mode: StrategyMode): Promise<StrategyParams> {
-  const { data } = await supabase
-    .from('strategy_mode_defaults')
-    .select('param_name, param_value')
-    .eq('mode', mode);
-
-  if (data && data.length > 0) {
-    const params: Record<string, number> = {};
-    for (const row of data) {
-      params[row.param_name] = parseFloat(row.param_value);
-    }
-    return params as unknown as StrategyParams;
-  }
-
-  return modeDefaults[mode];
-}
-
-export function getPersonaDefaults(mode: StrategyMode): PersonaParams {
-  return personaDefaults[mode];
-}
+// Re-export from modeConfig for backward compatibility
+export { getDefaultParams, getPersonaDefaults } from './modeConfig.js';
 
 export async function completeOnboarding(userId: string, payload: OnboardingPayload) {
   // Reset all previous session data before saving new onboarding
@@ -100,7 +17,7 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
 
   // Compute fixed buffer_initial: days_remaining × buffer_capacity
   const examDate = new Date(payload.exam_date);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const daysRemaining = daysUntil(examDate);
   const bufferInitial = daysRemaining * persona.buffer_capacity;
 
   const { data, error } = await supabase
@@ -120,8 +37,14 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
       buffer_deposit_rate: persona.buffer_deposit_rate,
       buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
       velocity_target_multiplier: persona.velocity_target_multiplier,
+      revision_ratio_in_plan: persona.revision_ratio_in_plan,
+      fatigue_sensitivity: persona.fatigue_sensitivity,
+      recalibration_order: persona.recalibration_order,
+      scope_reduction_threshold: persona.scope_reduction_threshold === Infinity ? null : persona.scope_reduction_threshold,
+      pyq_weight_minimum: persona.pyq_weight_minimum,
+      weekend_boost: persona.weekend_boost,
       buffer_initial: bufferInitial,
-      buffer_balance: bufferInitial, // ADDED: seed balance = initial
+      buffer_balance: bufferInitial,
     })
     .select()
     .single();
@@ -140,15 +63,31 @@ export async function completeOnboarding(userId: string, payload: OnboardingPayl
     buffer_deposit_rate: persona.buffer_deposit_rate,
     buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
     velocity_target_multiplier: persona.velocity_target_multiplier,
+    revision_ratio_in_plan: persona.revision_ratio_in_plan,
+    fatigue_sensitivity: persona.fatigue_sensitivity,
+    recalibration_order: persona.recalibration_order,
+    scope_reduction_threshold: persona.scope_reduction_threshold === Infinity ? null : persona.scope_reduction_threshold,
+    pyq_weight_minimum: persona.pyq_weight_minimum,
+    weekend_boost: persona.weekend_boost,
     change_reason: 'initial_onboarding',
   });
 
   return data;
 }
 
-function classifyModeV2Server(answers: OnboardingV2Answers): StrategyMode {
+function classifyModeV2Server(answers: OnboardingV2Answers & { daily_hours?: number; study_approach?: string }): StrategyMode {
   if (answers.user_type === 'working') return 'working_professional';
   let score = 0;
+
+  // Daily hours signal (matches V1: 7+ → aggressive leaning)
+  const dailyHours = answers.daily_hours || 0;
+  if (dailyHours >= 7) score += 2;
+  else if (dailyHours >= 5) score += 1;
+
+  // Study approach signal (matches V1: "cover everything" → conservative)
+  if (answers.study_approach === 'cover_everything' || answers.study_approach === 'thorough') score -= 2;
+  else if (answers.study_approach === 'selective' || answers.study_approach === 'high_yield') score += 1;
+
   if (answers.attempt_number === 'third_plus') score += 2;
   else if (answers.attempt_number === 'second') score += 1;
   else score -= 1;
@@ -166,13 +105,16 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
   // Reset all previous session data before saving new onboarding
   await resetUserData(userId);
 
-  const mode = payload.chosen_mode || classifyModeV2Server(payload.answers);
+  const mode = payload.chosen_mode || classifyModeV2Server({
+    ...payload.answers,
+    daily_hours: payload.targets?.daily_hours,
+  });
   const params = await getDefaultParams(mode);
   const persona = getPersonaDefaults(mode);
 
   // Compute fixed buffer_initial: days_remaining × buffer_capacity
   const examDate = new Date(payload.exam_date);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const daysRemaining = daysUntil(examDate);
   const bufferInitial = daysRemaining * persona.buffer_capacity;
 
   // Upsert user profile with V2 fields
@@ -193,8 +135,14 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
       buffer_deposit_rate: persona.buffer_deposit_rate,
       buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
       velocity_target_multiplier: persona.velocity_target_multiplier,
+      revision_ratio_in_plan: persona.revision_ratio_in_plan,
+      fatigue_sensitivity: persona.fatigue_sensitivity,
+      recalibration_order: persona.recalibration_order,
+      scope_reduction_threshold: persona.scope_reduction_threshold === Infinity ? null : persona.scope_reduction_threshold,
+      pyq_weight_minimum: persona.pyq_weight_minimum,
+      weekend_boost: persona.weekend_boost,
       buffer_initial: bufferInitial,
-      buffer_balance: bufferInitial, // ADDED: seed balance = initial
+      buffer_balance: bufferInitial,
       target_exam_year: payload.answers.target_exam_year,
       attempt_number: payload.answers.attempt_number,
       user_type: payload.answers.user_type,
@@ -239,6 +187,12 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
     buffer_deposit_rate: persona.buffer_deposit_rate,
     buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
     velocity_target_multiplier: persona.velocity_target_multiplier,
+    revision_ratio_in_plan: persona.revision_ratio_in_plan,
+    fatigue_sensitivity: persona.fatigue_sensitivity,
+    recalibration_order: persona.recalibration_order,
+    scope_reduction_threshold: persona.scope_reduction_threshold === Infinity ? null : persona.scope_reduction_threshold,
+    pyq_weight_minimum: persona.pyq_weight_minimum,
+    weekend_boost: persona.weekend_boost,
     change_reason: 'initial_onboarding_v2',
   });
 
@@ -305,6 +259,12 @@ export async function switchMode(userId: string, mode: StrategyMode) {
       buffer_deposit_rate: persona.buffer_deposit_rate,
       buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
       velocity_target_multiplier: persona.velocity_target_multiplier,
+      revision_ratio_in_plan: persona.revision_ratio_in_plan,
+      fatigue_sensitivity: persona.fatigue_sensitivity,
+      recalibration_order: persona.recalibration_order,
+      scope_reduction_threshold: persona.scope_reduction_threshold === Infinity ? null : persona.scope_reduction_threshold,
+      pyq_weight_minimum: persona.pyq_weight_minimum,
+      weekend_boost: persona.weekend_boost,
     })
     .eq('id', userId)
     .select()
@@ -314,7 +274,7 @@ export async function switchMode(userId: string, mode: StrategyMode) {
 
   // Reinitialize buffer_initial from new buffer_capacity
   const examDate = new Date(data.exam_date);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const daysRemaining = daysUntil(examDate);
   const bufferInitial = daysRemaining * persona.buffer_capacity;
 
   await supabase
@@ -334,13 +294,19 @@ export async function switchMode(userId: string, mode: StrategyMode) {
     buffer_deposit_rate: persona.buffer_deposit_rate,
     buffer_withdrawal_rate: persona.buffer_withdrawal_rate,
     velocity_target_multiplier: persona.velocity_target_multiplier,
+    revision_ratio_in_plan: persona.revision_ratio_in_plan,
+    fatigue_sensitivity: persona.fatigue_sensitivity,
+    recalibration_order: persona.recalibration_order,
+    scope_reduction_threshold: persona.scope_reduction_threshold === Infinity ? null : persona.scope_reduction_threshold,
+    pyq_weight_minimum: persona.pyq_weight_minimum,
+    weekend_boost: persona.weekend_boost,
     change_reason: 'mode_switch',
   });
 
   // Cascade: recalculate velocity with new params, regenerate tomorrow's plan
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = toDateString(tomorrow);
 
   await calculateVelocity(userId);
   await regeneratePlan(userId, tomorrowStr);
@@ -404,6 +370,7 @@ export async function resetUserData(userId: string) {
   await safeDelete('persona_snapshots');
 
   // Reset user_profiles to defaults (keep the row, clear onboarding)
+  const balancedPersona = getPersonaDefaults('balanced');
   const { error: profileError } = await supabase
     .from('user_profiles')
     .update({
@@ -423,13 +390,19 @@ export async function resetUserData(userId: string) {
       onboarding_version: null,
       buffer_balance: 0,
       buffer_initial: null,
-      fatigue_threshold: 85,
-      buffer_capacity: 0.15,
-      fsrs_target_retention: 0.9,
-      burnout_threshold: 75,
+      fatigue_threshold: balancedPersona.fatigue_threshold,
+      buffer_capacity: balancedPersona.buffer_capacity,
+      fsrs_target_retention: balancedPersona.fsrs_target_retention,
+      burnout_threshold: balancedPersona.burnout_threshold,
       buffer_deposit_rate: null,
       buffer_withdrawal_rate: null,
       velocity_target_multiplier: null,
+      revision_ratio_in_plan: null,
+      fatigue_sensitivity: null,
+      recalibration_order: null,
+      scope_reduction_threshold: null,
+      pyq_weight_minimum: null,
+      weekend_boost: false,
       recovery_mode_active: false,
       recovery_mode_start: null,
       recovery_mode_end: null,
@@ -453,10 +426,10 @@ export async function resetUserData(userId: string) {
         name: null,
         buffer_balance: 0,
         buffer_initial: null,
-        fatigue_threshold: 85,
-        buffer_capacity: 0.15,
-        fsrs_target_retention: 0.9,
-        burnout_threshold: 75,
+        fatigue_threshold: balancedPersona.fatigue_threshold,
+        buffer_capacity: balancedPersona.buffer_capacity,
+        fsrs_target_retention: balancedPersona.fsrs_target_retention,
+        burnout_threshold: balancedPersona.burnout_threshold,
         buffer_deposit_rate: null,
         buffer_withdrawal_rate: null,
         velocity_target_multiplier: null,

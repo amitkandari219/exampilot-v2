@@ -127,6 +127,6 @@ describe('onboarding routes', () => {
     });
 
     expect(res.statusCode).toBe(500);
-    expect(res.json().error).toBe('Reset failed');
+    expect(res.json().error).toBeTruthy();
   });
 });

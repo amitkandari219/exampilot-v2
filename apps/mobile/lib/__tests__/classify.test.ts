@@ -115,6 +115,40 @@ describe('classifyModeV2', () => {
     })).toBe('balanced');
   });
 
+  it('daily_hours >= 7 pushes toward aggressive', () => {
+    // first + student = score -1, but daily_hours=8 adds +2 → score 1 → balanced
+    expect(classifyModeV2(base, { daily_hours: 8 })).toBe('balanced');
+    // second + student + daily_hours=8: +1 +2 = 3 → aggressive
+    expect(classifyModeV2(
+      { ...base, attempt_number: 'second' },
+      { daily_hours: 8 },
+    )).toBe('aggressive');
+  });
+
+  it('daily_hours >= 5 adds +1', () => {
+    // second + student = +1, daily_hours=5 adds +1 → score 2 → balanced
+    expect(classifyModeV2(
+      { ...base, attempt_number: 'second' },
+      { daily_hours: 5 },
+    )).toBe('balanced');
+  });
+
+  it('study_approach thorough pushes toward conservative', () => {
+    // second + student = +1, thorough = -2 → score -1 → conservative
+    expect(classifyModeV2(
+      { ...base, attempt_number: 'second' },
+      { study_approach: 'thorough' },
+    )).toBe('conservative');
+  });
+
+  it('study_approach selective adds +1', () => {
+    // second + student = +1, selective = +1 → score 2 → balanced
+    expect(classifyModeV2(
+      { ...base, attempt_number: 'second' },
+      { study_approach: 'selective' },
+    )).toBe('balanced');
+  });
+
   it('syllabus_coverage challenge adds +1', () => {
     const withoutChallenge = classifyModeV2({
       ...base,

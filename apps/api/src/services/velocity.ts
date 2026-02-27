@@ -1,14 +1,42 @@
 import { supabase } from '../lib/supabase.js';
 import { runRecalibration } from './recalibration.js';
-import { getActiveSubjectIds } from './mode.js';
+import { getActiveSubjectIds } from './modeConfig.js';
+import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
+import { VELOCITY as VELOCITY_THRESHOLDS, BUFFER, VELOCITY_WEIGHTING } from '../constants/thresholds.js';
+import { appEvents } from './events.js';
+
+interface VelocityProfile {
+  exam_date: string;
+  buffer_capacity: number;
+  daily_hours: number;
+  strategy_params: { revision_frequency?: number; [key: string]: any };
+  current_mode: string;
+  prelims_date: string | null;
+  velocity_target_multiplier: number;
+  recovery_mode_active: boolean;
+}
+
+interface BufferProfile {
+  buffer_balance: number;
+  buffer_capacity: number;
+  buffer_initial: number | null;
+  exam_date: string;
+  current_mode: string;
+  prelims_date: string | null;
+  buffer_deposit_rate: number;
+  buffer_withdrawal_rate: number;
+  recovery_mode_active: boolean;
+}
 
 export async function calculateVelocity(userId: string) {
   // Get user profile
-  const { data: profile } = await supabase
+  const { data: profileRaw } = await supabase
     .from('user_profiles')
-    .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date, velocity_target_multiplier')
+    .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date, velocity_target_multiplier, recovery_mode_active')
     .eq('id', userId)
     .single();
+
+  const profile = profileRaw as VelocityProfile | null;
 
   if (!profile || !profile.exam_date) {
     throw new Error('User profile or exam date not found');
@@ -18,7 +46,7 @@ export async function calculateVelocity(userId: string) {
   const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
     ? profile.prelims_date : profile.exam_date;
   const examDate = new Date(targetDate);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
+  const daysRemaining = daysUntil(examDate, now);
 
   // Get all topics — gravity = pyq_weight only
   const { data: topicsRaw } = await supabase
@@ -61,21 +89,18 @@ export async function calculateVelocity(userId: string) {
 
   const remainingGravity = totalGravity - completedGravity;
   const bufferPct = profile.buffer_capacity || 0.15;
-  const revisionPct = (profile.strategy_params as any)?.revision_frequency
-    ? 1 / (profile.strategy_params as any).revision_frequency : 0.25;
+  const revisionPct = profile.strategy_params?.revision_frequency
+    ? 1 / profile.strategy_params.revision_frequency : 0.25;
   const effectiveDays = daysRemaining * (1 - bufferPct - revisionPct);
   const rawRequiredVelocity = effectiveDays > 0 ? remainingGravity / effectiveDays : 0;
-  const requiredVelocity = rawRequiredVelocity * ((profile as any).velocity_target_multiplier ?? 1.0);
+  const requiredVelocity = rawRequiredVelocity * (profile.velocity_target_multiplier ?? 1.0);
 
   // Get last 14 days of daily logs
-  const fourteenDaysAgo = new Date(now);
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
   const { data: logs } = await supabase
     .from('daily_logs')
     .select('log_date, gravity_completed')
     .eq('user_id', userId)
-    .gte('log_date', fourteenDaysAgo.toISOString().split('T')[0])
+    .gte('log_date', toDateString(daysAgo(14, now)))
     .order('log_date', { ascending: false });
 
   // Calculate weighted velocity
@@ -87,13 +112,18 @@ export async function calculateVelocity(userId: string) {
   const avg14d = fourteenDayLogs.length > 0
     ? fourteenDayLogs.reduce((sum, l) => sum + l.gravity_completed, 0) / fourteenDayLogs.length : 0;
 
-  const actualVelocity = avg7d * 0.6 + avg14d * 0.4;
+  const actualVelocity = avg7d * VELOCITY_WEIGHTING.WEIGHT_7D + avg14d * VELOCITY_WEIGHTING.WEIGHT_14D;
   const velocityRatio = requiredVelocity > 0 ? actualVelocity / requiredVelocity : 1;
 
+  // During recovery mode, velocity target is FROZEN — user is not "falling behind"
+  const inRecovery = profile.recovery_mode_active === true;
+
   let status: string;
-  if (velocityRatio >= 1.1) status = 'ahead';
-  else if (velocityRatio >= 0.9) status = 'on_track';
-  else if (velocityRatio >= 0.7) status = 'behind';
+  if (inRecovery) {
+    status = 'on_track'; // Frozen — don't penalize during recovery
+  } else if (velocityRatio >= VELOCITY_THRESHOLDS.AHEAD) status = 'ahead';
+  else if (velocityRatio >= VELOCITY_THRESHOLDS.ON_TRACK) status = 'on_track';
+  else if (velocityRatio >= VELOCITY_THRESHOLDS.BEHIND) status = 'behind';
   else status = 'at_risk';
 
   // CHANGED: trend detection — compare 7d avg vs 14d avg
@@ -107,10 +137,10 @@ export async function calculateVelocity(userId: string) {
     const daysToComplete = remainingGravity / actualVelocity;
     const projected = new Date(now);
     projected.setDate(projected.getDate() + Math.ceil(daysToComplete));
-    projectedDate = projected.toISOString().split('T')[0];
+    projectedDate = toDateString(projected);
   }
 
-  const snapshotDate = now.toISOString().split('T')[0];
+  const snapshotDate = toDateString(now);
 
   // Upsert velocity snapshot
   await supabase
@@ -152,19 +182,26 @@ export async function calculateVelocity(userId: string) {
 }
 
 export async function updateBuffer(userId: string, date: string) {
-  const { data: profile } = await supabase
+  const { data: profileRaw } = await supabase
     .from('user_profiles')
-    .select('buffer_balance, buffer_capacity, buffer_initial, exam_date, current_mode, prelims_date, buffer_deposit_rate, buffer_withdrawal_rate')
+    .select('buffer_balance, buffer_capacity, buffer_initial, exam_date, current_mode, prelims_date, buffer_deposit_rate, buffer_withdrawal_rate, recovery_mode_active')
     .eq('id', userId)
     .single();
 
+  const profile = profileRaw as BufferProfile | null;
+
   if (!profile) throw new Error('Profile not found');
+
+  // Buffer is PAUSED during recovery mode — no deposits or withdrawals
+  if (profile.recovery_mode_active) {
+    return { balance: profile.buffer_balance || 0, transaction: null, recovery_paused: true };
+  }
 
   const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
     ? profile.prelims_date : profile.exam_date;
   const examDate = new Date(targetDate);
   const now = new Date(date);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
+  const daysRemaining = daysUntil(examDate, now);
   // Use fixed buffer_initial set at onboarding; fall back to dynamic calc for legacy users
   const maxBuffer = profile.buffer_initial ?? daysRemaining * (profile.buffer_capacity || 0.15);
 
@@ -189,8 +226,8 @@ export async function updateBuffer(userId: string, date: string) {
   const delta = gravityToday - required;
 
   // CHANGED: Read rates from profile with corrected defaults (deposit < withdrawal)
-  const depositRate = (profile as any).buffer_deposit_rate ?? 0.30;   // CHANGED default from 0.8
-  const withdrawalRate = (profile as any).buffer_withdrawal_rate ?? 0.50; // CHANGED default from 1.0
+  const depositRate = profile.buffer_deposit_rate ?? BUFFER.DEPOSIT_RATE;   // CHANGED default from 0.8
+  const withdrawalRate = profile.buffer_withdrawal_rate ?? BUFFER.WITHDRAWAL_RATE; // CHANGED default from 1.0
 
   let amount = 0;
   let type: string;
@@ -198,7 +235,7 @@ export async function updateBuffer(userId: string, date: string) {
 
   if (gravityToday === 0) {
     // Zero-day penalty
-    amount = -1.0;
+    amount = BUFFER.ZERO_DAY_PENALTY;
     type = 'zero_day_penalty';
     notes = 'Zero study day penalty';
   } else if (delta > 0) {
@@ -208,19 +245,19 @@ export async function updateBuffer(userId: string, date: string) {
     notes = `Surplus gravity: ${delta.toFixed(2)}`;
   } else if (delta < 0) {
     // Withdrawal: deficit × withdrawal_rate, floored at -5
-    amount = Math.max(delta * withdrawalRate, -5);
+    amount = Math.max(delta * withdrawalRate, BUFFER.DEBT_FLOOR);
     type = 'withdrawal';
     notes = `Deficit gravity: ${delta.toFixed(2)}`;
   } else {
     // ADDED: delta === 0 means exact target hit — daily consistency reward
-    amount = 0.1;
+    amount = BUFFER.CONSISTENCY_REWARD;
     type = 'consistency_reward';
     notes = 'Exact target hit bonus';
   }
 
   let newBalance = (profile.buffer_balance || 0) + amount;
   // CHANGED: floor is -5 (debt mode), not 0
-  newBalance = Math.max(-5, Math.min(newBalance, maxBuffer));
+  newBalance = Math.max(BUFFER.DEBT_FLOOR, Math.min(newBalance, maxBuffer));
 
   // Check streak-based consistency reward (7+ day streak milestone)
   const { data: streak } = await supabase
@@ -231,7 +268,7 @@ export async function updateBuffer(userId: string, date: string) {
     .single();
 
   if (streak && streak.current_count > 0 && streak.current_count % 7 === 0) {
-    const bonus = 0.1;
+    const bonus = BUFFER.CONSISTENCY_REWARD;
     newBalance = Math.min(newBalance + bonus, maxBuffer);
 
     await supabase.from('buffer_transactions').insert({
@@ -245,16 +282,29 @@ export async function updateBuffer(userId: string, date: string) {
     });
   }
 
-  // Insert main transaction
-  await supabase.from('buffer_transactions').insert({
+  // Upsert main transaction (idempotent — won't double-count on re-run)
+  // Uses partial unique index on (user_id, transaction_date, type) for daily types
+  const { error: txErr } = await supabase.from('buffer_transactions').upsert({
     user_id: userId,
     transaction_date: date,
     type,
     amount,
     balance_after: newBalance,
     notes,
-    delta_gravity: delta,  // ADDED: track the raw gravity delta
-  });
+    delta_gravity: delta,
+  }, { onConflict: 'user_id,transaction_date,type', ignoreDuplicates: false });
+  // If upsert fails (e.g., no unique index yet), fall back to insert
+  if (txErr) {
+    await supabase.from('buffer_transactions').insert({
+      user_id: userId,
+      transaction_date: date,
+      type,
+      amount,
+      balance_after: newBalance,
+      notes,
+      delta_gravity: delta,
+    });
+  }
 
   // Update profile balance
   await supabase
@@ -266,157 +316,46 @@ export async function updateBuffer(userId: string, date: string) {
   if (newBalance < 0) {
     try {
       await runRecalibration(userId, 'buffer_debt');
-    } catch {
+    } catch (e) { console.warn('[velocity:recalibration]', e);
       // Recalibration is non-critical
     }
+
+    appEvents.emit('notification:queue', { userId, type: 'buffer_debt' });
   }
 
   return { balance: newBalance, transaction: { type, amount, balance_after: newBalance } };
 }
 
-export async function processEndOfDay(userId: string, date: string) {
-  // Aggregate daily logs from completed plan items
-  const { data: plan } = await supabase
-    .from('daily_plans')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('plan_date', date)
-    .single();
-
-  if (plan) {
-    const { data: items } = await supabase
-      .from('daily_plan_items')
-      .select('*, topics!inner(pyq_weight, difficulty, chapter_id)')
-      .eq('plan_id', plan.id)
-      .eq('status', 'completed');
-
-    const subjects = new Set<string>();
-    let topicsCompleted = 0;
-    let gravityCompleted = 0;
-    let hoursStudied = 0;
-    let difficultySum = 0;
-
-    for (const item of items || []) {
-      topicsCompleted++;
-      const t = (item as any).topics;
-      gravityCompleted += t.pyq_weight; // CHANGED: gravity = pyq_weight only
-      hoursStudied += item.actual_hours || item.estimated_hours;
-      difficultySum += t.difficulty;
-      subjects.add(t.chapter_id);
-    }
-
-    await supabase.from('daily_logs').upsert({
-      user_id: userId,
-      log_date: date,
-      topics_completed: topicsCompleted,
-      gravity_completed: gravityCompleted,
-      hours_studied: hoursStudied,
-      subjects_touched: subjects.size,
-      avg_difficulty: topicsCompleted > 0 ? difficultySum / topicsCompleted : 0,
-    }, { onConflict: 'user_id,log_date' });
-  }
-
-  // Calculate velocity and update buffer
-  await calculateVelocity(userId);
-  await updateBuffer(userId, date);
-  await updateStreaks(userId, date);
-
-  // Auto-recalibrate persona params if enabled
-  try {
-    await runRecalibration(userId, 'auto_daily');
-  } catch {
-    // Recalibration is non-critical — don't fail end-of-day processing
-  }
-
-  // Calculate benchmark readiness score
-  try {
-    const { calculateBenchmark } = await import('./benchmark.js');
-    await calculateBenchmark(userId);
-  } catch {
-    // Benchmark is non-critical
-  }
-
-  // Recalculate confidence decay and schedule revisions
-  try {
-    const { recalculateAllConfidence } = await import('./decayTrigger.js');
-    await recalculateAllConfidence(userId);
-  } catch {
-    // Decay trigger is non-critical
-  }
-}
-
-async function updateStreaks(userId: string, date: string) {
-  const { data: todayLog } = await supabase
-    .from('daily_logs')
-    .select('hours_studied')
-    .eq('user_id', userId)
-    .eq('log_date', date)
-    .single();
-
-  const studied = (todayLog?.hours_studied || 0) > 0;
+export async function getVelocityDashboard(userId: string) {
+  const velocity = await calculateVelocity(userId);
 
   const { data: streak } = await supabase
     .from('streaks')
-    .select('*')
+    .select('current_count, best_count')
     .eq('user_id', userId)
     .eq('streak_type', 'study')
     .single();
 
-  if (!streak) {
-    await supabase.from('streaks').insert({
-      user_id: userId,
-      streak_type: 'study',
-      current_count: studied ? 1 : 0,
-      best_count: studied ? 1 : 0,
-      last_active_date: studied ? date : null,
-    });
-    return;
-  }
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('buffer_balance, buffer_capacity')
+    .eq('id', userId)
+    .single();
 
-  if (studied) {
-    const lastDate = streak.last_active_date ? new Date(streak.last_active_date) : null;
-    const today = new Date(date);
-    const isConsecutive = lastDate && (today.getTime() - lastDate.getTime()) <= 86400000 * 1.5;
-
-    const newCount = isConsecutive ? streak.current_count + 1 : 1;
-    const bestCount = Math.max(streak.best_count, newCount);
-
-    await supabase
-      .from('streaks')
-      .update({ current_count: newCount, best_count: bestCount, last_active_date: date })
-      .eq('id', streak.id);
-
-    // Award XP for streak milestones (non-critical)
-    try {
-      const milestones: Record<number, number> = { 7: 200, 14: 400, 30: 1000, 100: 2500 };
-      if (milestones[newCount]) {
-        const { awardXP } = await import('./gamification.js');
-        await awardXP(userId, {
-          triggerType: 'streak_milestone',
-          xpAmount: milestones[newCount],
-          metadata: { streak_days: newCount },
-        });
-      }
-    } catch {
-      // Gamification is non-critical
-    }
-  } else {
-    await supabase
-      .from('streaks')
-      .update({ current_count: 0 })
-      .eq('id', streak.id);
-  }
+  return {
+    ...velocity,
+    streak: streak || null,
+    buffer_balance: profile?.buffer_balance || 0,
+    buffer_capacity: profile?.buffer_capacity || 0.15,
+  };
 }
 
 export async function getVelocityHistory(userId: string, days: number) {
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
   const { data, error } = await supabase
     .from('velocity_snapshots')
     .select('snapshot_date, velocity_ratio, status, weighted_completion_pct, stress_score')
     .eq('user_id', userId)
-    .gte('snapshot_date', since.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(days)))
     .order('snapshot_date', { ascending: true });
 
   if (error) throw error;
@@ -435,7 +374,7 @@ export async function getBufferDetails(userId: string) {
   const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
     ? profile.prelims_date : profile.exam_date;
   const examDate = new Date(targetDate);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const daysRemaining = daysUntil(examDate);
   const balanceDays = profile.buffer_balance || 0;
   const maxBuffer = profile.buffer_initial ?? daysRemaining * (profile.buffer_capacity || 0.15);
 
@@ -450,6 +389,15 @@ export async function getBufferDetails(userId: string) {
   const balance = profile.buffer_balance ?? 0;
   const status = balance < 0 ? 'debt' : balance <= 0 ? 'critical' : balance < maxBuffer * 0.2 ? 'critical' : balance < maxBuffer * 0.8 ? 'caution' : 'healthy';
 
+  // Calculate trend from recent transactions
+  const txList = transactions || [];
+  let trend: string = 'stable';
+  if (txList.length >= 3) {
+    const recent3 = txList.slice(0, 3);
+    const netRecent = recent3.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+    trend = netRecent > 0.5 ? 'growing' : netRecent < -0.5 ? 'shrinking' : 'stable';
+  }
+
   return {
     balance,
     capacity: profile.buffer_capacity || 0.15,
@@ -457,6 +405,7 @@ export async function getBufferDetails(userId: string) {
     balance_days: balanceDays,
     max_buffer: maxBuffer,
     status,
-    transactions: transactions || [],
+    trend,
+    transactions: txList.slice(0, 7),
   };
 }

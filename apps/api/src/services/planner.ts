@@ -1,20 +1,111 @@
 import { supabase } from '../lib/supabase.js';
 import { calculateFatigueScore } from './burnout.js';
-import { getActiveSubjectIds, getImportanceModifiers } from './mode.js';
-import type { ExamMode } from '../types/index.js';
+import { getActiveSubjectIds, getImportanceModifiers } from './modeConfig.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { PLANNER, BURNOUT } from '../constants/thresholds.js';
+import type { ExamMode, StrategyParams } from '../types/index.js';
 
-export async function generateDailyPlan(userId: string, date: string) {
-  // Check if plan already exists
-  const { data: existing } = await supabase
-    .from('daily_plans')
-    .select('*, daily_plan_items(*)')
-    .eq('user_id', userId)
-    .eq('plan_date', date)
-    .single();
+// ── Types for internal planner context ──
 
-  if (existing) return formatPlan(existing);
+interface TopicWithJoins {
+  id: string;
+  name: string;
+  chapter_id: string;
+  importance: number;
+  difficulty: number;
+  estimated_hours: number;
+  pyq_weight: number;
+  pyq_frequency: number;
+  display_order: number;
+  chapters: {
+    subject_id: string;
+    name: string;
+    subjects: { name: string; papers: string[] };
+  };
+}
 
-  // Get user profile
+interface PlanItemWithJoins {
+  id: string;
+  plan_id: string;
+  topic_id: string;
+  type: string;
+  estimated_hours: number;
+  priority_score: number;
+  display_order: number;
+  status: string;
+  completed_at: string | null;
+  actual_hours: number | null;
+  daily_plans: { user_id: string; plan_date: string };
+}
+
+interface ProgressEntry {
+  topic_id: string;
+  status: string;
+  last_touched?: string | null;
+  confidence_status?: string | null;
+  actual_hours_spent?: number | null;
+  mock_accuracy?: number | null;
+}
+
+interface PlannerProfile {
+  daily_hours: number;
+  strategy_mode: string;
+  strategy_params: StrategyParams | null;
+  current_mode: string;
+  recovery_mode_active: boolean;
+  recovery_mode_end: string | null;
+  fatigue_threshold: number;
+  pyq_weight_minimum: number;
+}
+
+interface DailyLogEntry {
+  log_date: string;
+  hours_studied: number;
+  avg_difficulty: number;
+}
+
+interface ScoredCandidate {
+  topic: TopicWithJoins;
+  priority: number;
+  type: 'new' | 'revision';
+  subjectId: string | undefined;
+}
+
+interface PlanItem {
+  topic_id: string;
+  type: string;
+  estimated_hours: number;
+  priority_score: number;
+  display_order: number;
+}
+
+interface PlannerContext {
+  profile: PlannerProfile;
+  fatigueScore: number;
+  recentLogs: DailyLogEntry[];
+  allTopics: TopicWithJoins[];
+  progressMap: Map<string, ProgressEntry>;
+  revisionTopicIds: Set<string>;
+  deferredTopicIds: Set<string>;
+  subjectPlanCount: Map<string, number>;
+  subjectTopicCounts: Map<string, { total: number; done: number }>;
+  importanceModifiers: Map<string, number>;
+  falseSecurityIds: Set<string>;
+  blindSpotIds: Set<string>;
+  overRevisedIds: Set<string>;
+  availableHours: number;
+  isLightDay: boolean;
+  isPostHeavy: boolean;
+  energyLevel: string;
+  maxTopics: number;
+  maxAvgDifficulty: number;
+  date: string;
+  revisionRatio: number;
+}
+
+// ── 1. Data fetching ──
+
+async function fetchPlannerData(userId: string, date: string): Promise<PlannerContext> {
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('*')
@@ -22,86 +113,31 @@ export async function generateDailyPlan(userId: string, date: string) {
     .single();
 
   if (!profile) throw new Error('Profile not found');
+  const typedProfile = profile as unknown as PlannerProfile;
 
-  // Check fatigue
   const fatigueScore = await calculateFatigueScore(userId);
-  const fatigue_threshold = profile.fatigue_threshold || 85;
 
-  // Get recent daily logs (include avg_difficulty for heavy-day check)
   const { data: recentLogs } = await supabase
     .from('daily_logs')
     .select('log_date, hours_studied, avg_difficulty')
     .eq('user_id', userId)
     .order('log_date', { ascending: false })
-    .limit(7);
+    .limit(PLANNER.RECENT_LOGS_LIMIT);
 
-  let consecutiveDays = 0;
-  const today = new Date(date);
-  for (let i = 1; i <= 7; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split('T')[0];
-    const log = (recentLogs || []).find((l) => l.log_date === dateStr);
-    if (log && log.hours_studied > 0) consecutiveDays++;
-    else break;
-  }
-
-  const isLightDay = fatigueScore > fatigue_threshold || consecutiveDays >= 6;
-
-  // Heavy-day constraint: 2 consecutive heavy days (avg_difficulty ≥ 4) → max 3 topics
-  const last2Logs = (recentLogs || []).slice(0, 2);
-  const isPostHeavy = last2Logs.length >= 2 && last2Logs.every((l) => (l.avg_difficulty || 0) >= 4);
-
-  // Calculate available hours
-  let availableHours = profile.daily_hours || 6;
-  if (profile.recovery_mode_active) {
-    if (profile.recovery_mode_end) {
-      const endDate = new Date(profile.recovery_mode_end);
-      const planDate = new Date(date);
-      if (planDate > endDate) {
-        const rampDay = Math.ceil((planDate.getTime() - endDate.getTime()) / 86400000);
-        if (rampDay === 1) availableHours *= 0.7;
-        else if (rampDay === 2) availableHours *= 0.85;
-      } else {
-        availableHours *= 0.5;
-      }
-    } else {
-      availableHours *= 0.5;
-    }
-  }
-  if (isLightDay) availableHours *= 0.6;
-
-  // Determine energy level
-  let energyLevel: string;
-  if (fatigueScore < 30) energyLevel = 'full';
-  else if (fatigueScore < 55) energyLevel = 'moderate';
-  else if (fatigueScore < 80) energyLevel = 'low';
-  else energyLevel = 'empty';
-
-  // Determine max topic count based on fatigue and heavy days
-  let maxTopics = Infinity;
-  if (isPostHeavy) maxTopics = 3;
-  if (fatigueScore > 70 && !isLightDay) {
-    const defaultTopicCount = Math.floor(availableHours / 1.5);
-    maxTopics = Math.min(maxTopics, Math.max(1, defaultTopicCount - 1));
-  }
-
-  // Get eligible topics
+  // Get eligible topics filtered by active subjects
   const { data: allTopicsRaw } = await supabase
     .from('topics')
     .select('*, chapters!inner(subject_id, name, subjects!inner(name, papers))')
     .order('pyq_weight', { ascending: false });
 
-  // Filter out paused subjects based on current exam mode
   const activeSubjectIds = await getActiveSubjectIds(userId);
-  const allTopics = activeSubjectIds
+  const allTopics = (activeSubjectIds
     ? (allTopicsRaw || []).filter((t) => {
-        const subjectId = (t as any).chapters?.subject_id;
+        const subjectId = (t as TopicWithJoins).chapters?.subject_id;
         return !subjectId || activeSubjectIds.has(subjectId);
       })
-    : (allTopicsRaw || []);
+    : (allTopicsRaw || [])) as TopicWithJoins[];
 
-  // Get importance modifiers for current mode
   const currentMode = (profile.current_mode || 'mains') as ExamMode;
   const importanceModifiers = await getImportanceModifiers(currentMode);
 
@@ -110,12 +146,12 @@ export async function generateDailyPlan(userId: string, date: string) {
     .select('*')
     .eq('user_id', userId);
 
-  const progressMap = new Map((userProgress || []).map((p) => [p.topic_id, p]));
+  const progressMap = new Map((userProgress || []).map((p) => [p.topic_id, p as ProgressEntry]));
 
-  // Compute subject-level completion gaps (only active subjects)
+  // Subject-level completion gaps
   const subjectTopicCounts = new Map<string, { total: number; done: number }>();
   for (const t of allTopics || []) {
-    const subjectId = (t as any).chapters?.subject_id;
+    const subjectId = t.chapters?.subject_id;
     if (!subjectId) continue;
     const entry = subjectTopicCounts.get(subjectId) || { total: 0, done: 0 };
     entry.total++;
@@ -126,10 +162,8 @@ export async function generateDailyPlan(userId: string, date: string) {
     subjectTopicCounts.set(subjectId, entry);
   }
 
-  // Get yesterday's deferred items for +1 priority boost
-  const yesterday = new Date(date);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  // Yesterday's deferred items
+  const yesterdayStr = toDateString(daysAgo(1, new Date(date)));
   const { data: yesterdayPlan } = await supabase
     .from('daily_plans')
     .select('id')
@@ -147,18 +181,18 @@ export async function generateDailyPlan(userId: string, date: string) {
     for (const d of deferredItems || []) deferredTopicIds.add(d.topic_id);
   }
 
-  // Get subject frequency from last 4 plans (for repetition penalty)
+  // Subject frequency from last 4 plans
   const { data: recentPlans } = await supabase
     .from('daily_plans')
     .select('id')
     .eq('user_id', userId)
     .lt('plan_date', date)
     .order('plan_date', { ascending: false })
-    .limit(4);
+    .limit(PLANNER.RECENT_PLANS_LIMIT);
 
   const subjectPlanCount = new Map<string, number>();
   if (recentPlans && recentPlans.length > 0) {
-    const planIds = recentPlans.map((p: any) => p.id);
+    const planIds = recentPlans.map((p) => p.id);
     const { data: recentPlanItems } = await supabase
       .from('daily_plan_items')
       .select('topic_id')
@@ -166,14 +200,14 @@ export async function generateDailyPlan(userId: string, date: string) {
 
     for (const item of recentPlanItems || []) {
       const topic = (allTopics || []).find((t) => t.id === item.topic_id);
-      const subjectId = (topic as any)?.chapters?.subject_id;
+      const subjectId = topic?.chapters?.subject_id;
       if (subjectId) {
         subjectPlanCount.set(subjectId, (subjectPlanCount.get(subjectId) || 0) + 1);
       }
     }
   }
 
-  // Build radar insight sets for priority adjustments
+  // Radar insights
   const falseSecurityIds = new Set<string>();
   const blindSpotIds = new Set<string>();
   const overRevisedIds = new Set<string>();
@@ -183,11 +217,11 @@ export async function generateDailyPlan(userId: string, date: string) {
     for (const t of insights.false_security) falseSecurityIds.add(t.topic_id);
     for (const t of insights.blind_spots) blindSpotIds.add(t.topic_id);
     for (const t of insights.over_revised) overRevisedIds.add(t.topic_id);
-  } catch {
+  } catch (e) { console.warn('[planner:radar-insights]', e);
     // Radar insights are non-critical for plan generation
   }
 
-  // Get revisions due
+  // Revisions due
   const { data: revisionsDue } = await supabase
     .from('fsrs_cards')
     .select('topic_id')
@@ -196,122 +230,170 @@ export async function generateDailyPlan(userId: string, date: string) {
 
   const revisionTopicIds = new Set((revisionsDue || []).map((r) => r.topic_id));
 
-  // Working Professional filters
-  const isWorkingProfessional = profile.strategy_mode === 'working_professional';
-  const pyqWeightMinimum = isWorkingProfessional
-    ? ((profile.strategy_params as any)?.pyq_weight_minimum ?? 0.3) : 0;
-  const planDate = new Date(date);
-  const isWeekend = planDate.getDay() === 0 || planDate.getDay() === 6;
+  // Assess capacity
+  const typedLogs = (recentLogs || []) as unknown as DailyLogEntry[];
+  const capacity = assessCapacity(typedProfile, fatigueScore, typedLogs, date);
 
-  // Filter eligible topics
-  const excludeStatuses = ['exam_ready', 'deferred_scope'];
-  const eligibleNew = (allTopics || []).filter((t) => {
-    const prog = progressMap.get(t.id);
+  // Compute revision ratio
+  const revisionRatio = typedProfile.strategy_params?.revision_frequency
+    ? 1 / typedProfile.strategy_params.revision_frequency : PLANNER.DEFAULT_REVISION_RATIO;
+
+  return {
+    profile: typedProfile, fatigueScore, recentLogs: typedLogs, allTopics,
+    progressMap, revisionTopicIds, deferredTopicIds, subjectPlanCount,
+    subjectTopicCounts, importanceModifiers, falseSecurityIds, blindSpotIds, overRevisedIds,
+    ...capacity, date, revisionRatio,
+  };
+}
+
+// ── Capacity assessment (private helper) ──
+
+function assessCapacity(
+  profile: PlannerProfile, fatigueScore: number, recentLogs: DailyLogEntry[], date: string,
+): { availableHours: number; isLightDay: boolean; isPostHeavy: boolean; energyLevel: string; maxTopics: number; maxAvgDifficulty: number } {
+  const fatigueThreshold = profile.fatigue_threshold || BURNOUT.FATIGUE_DEFAULT;
+
+  let consecutiveDays = 0;
+  const today = new Date(date);
+  for (let i = 1; i <= 7; i++) {
+    const dateStr = toDateString(daysAgo(i, today));
+    const log = recentLogs.find((l) => l.log_date === dateStr);
+    if (log && log.hours_studied > 0) consecutiveDays++;
+    else break;
+  }
+
+  const isLightDay = fatigueScore > fatigueThreshold || consecutiveDays >= PLANNER.CONSECUTIVE_DAYS_LIGHT;
+
+  const last2Logs = recentLogs.slice(0, 2);
+  const isPostHeavy = last2Logs.length >= 2 && last2Logs.every((l) => (l.avg_difficulty || 0) >= PLANNER.POST_HEAVY_DIFFICULTY);
+
+  let availableHours = profile.daily_hours || PLANNER.DEFAULT_DAILY_HOURS;
+  if (profile.recovery_mode_active) {
+    availableHours *= BURNOUT.RECOVERY_HALF;
+  } else if (profile.recovery_mode_end) {
+    const endDate = new Date(profile.recovery_mode_end);
+    const planDate = new Date(date);
+    const daysSinceEnd = Math.ceil((planDate.getTime() - endDate.getTime()) / 86400000);
+    if (daysSinceEnd === 1) availableHours *= BURNOUT.RAMP_DAY1;
+    else if (daysSinceEnd === 2) availableHours *= BURNOUT.RAMP_DAY2;
+  }
+  if (isLightDay) availableHours *= BURNOUT.LIGHT_DAY_MULTIPLIER;
+
+  let energyLevel: string;
+  if (fatigueScore < PLANNER.FATIGUE_ENERGY_FULL) energyLevel = 'full';
+  else if (fatigueScore < PLANNER.FATIGUE_ENERGY_MODERATE) energyLevel = 'moderate';
+  else if (fatigueScore < PLANNER.FATIGUE_ENERGY_LOW) energyLevel = 'low';
+  else energyLevel = 'empty';
+
+  let maxTopics = Infinity;
+  let maxAvgDifficulty = Infinity;
+  if (isPostHeavy) {
+    maxTopics = PLANNER.POST_HEAVY_MAX_TOPICS;
+    maxAvgDifficulty = PLANNER.POST_HEAVY_MAX_DIFFICULTY;
+  }
+  if (fatigueScore > PLANNER.FATIGUE_TOPIC_LIMIT && !isLightDay) {
+    const defaultTopicCount = Math.floor(availableHours / PLANNER.HOURS_PER_TOPIC_ESTIMATE);
+    maxTopics = Math.min(maxTopics, Math.max(1, defaultTopicCount - 1));
+  }
+
+  return { availableHours, isLightDay, isPostHeavy, energyLevel, maxTopics, maxAvgDifficulty };
+}
+
+// ── 2. Topic scoring (pure functions, no DB calls) ──
+
+function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
+  const { profile, progressMap, deferredTopicIds, subjectPlanCount, subjectTopicCounts,
+    importanceModifiers, falseSecurityIds, blindSpotIds, overRevisedIds } = ctx;
+
+  const prog = progressMap.get(t.id);
+  const subjectId: string | undefined = t.chapters?.subject_id;
+  const daysSinceTouch = prog?.last_touched
+    ? Math.ceil((Date.now() - new Date(prog.last_touched).getTime()) / 86400000) : Infinity;
+
+  // Urgency: subject-level completion gap (0–10)
+  const subjectStats = subjectId ? subjectTopicCounts.get(subjectId) : null;
+  const completionGap = subjectStats ? 1 - (subjectStats.done / subjectStats.total) : 1;
+  const urgency = Math.min(10, completionGap * 10);
+
+  // Freshness
+  let freshness: number;
+  if (!prog) freshness = PLANNER.FRESHNESS_SCORE_NEW;
+  else if (daysSinceTouch > PLANNER.FRESHNESS_STALE_DAYS) freshness = PLANNER.FRESHNESS_SCORE_NEW;
+  else if (daysSinceTouch >= PLANNER.FRESHNESS_MODERATE_DAYS) freshness = PLANNER.FRESHNESS_SCORE_MODERATE;
+  else freshness = PLANNER.FRESHNESS_SCORE_RECENT;
+
+  const decayBoost = (prog?.confidence_status === 'decayed') ? PLANNER.DECAY_BOOST_DECAYED
+    : (prog?.confidence_status === 'stale') ? PLANNER.DECAY_BOOST_STALE : 0;
+
+  const mockAccuracy = prog?.mock_accuracy;
+  const mockBoost = (mockAccuracy != null && mockAccuracy < PLANNER.MOCK_ACCURACY_LOW) ? PLANNER.MOCK_BOOST_LOW
+    : (mockAccuracy != null && mockAccuracy < PLANNER.MOCK_ACCURACY_MED) ? PLANNER.MOCK_BOOST_MED : 0;
+
+  const subjectPapers: string[] = t.chapters?.subjects?.papers || [];
+  const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? PLANNER.PRELIMS_BOOST : 0;
+
+  const insightBoost = falseSecurityIds.has(t.id) ? PLANNER.INSIGHT_FALSE_SECURITY
+    : blindSpotIds.has(t.id) ? PLANNER.INSIGHT_BLIND_SPOT
+    : overRevisedIds.has(t.id) ? PLANNER.INSIGHT_OVER_REVISED : 0;
+
+  const deferredBoost = deferredTopicIds.has(t.id) ? PLANNER.DEFERRED_BOOST : 0;
+
+  const planDate = new Date(ctx.date);
+  const isWorkingProfessional = profile.strategy_mode === 'working_professional';
+  const isWeekend = planDate.getDay() === 0 || planDate.getDay() === 6;
+  const weekendBoost = (isWorkingProfessional && isWeekend && t.pyq_weight >= 3) ? PLANNER.WEEKEND_BOOST : 0;
+
+  const modeImportanceBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
+  const effectiveImportance = t.importance + modeImportanceBoost;
+
+  let priority = (t.pyq_weight * PLANNER.PYQ_FACTOR) + (effectiveImportance * PLANNER.IMPORTANCE_FACTOR) + (urgency * PLANNER.URGENCY_FACTOR)
+    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost;
+
+  if (subjectId && (subjectPlanCount.get(subjectId) || 0) >= PLANNER.SUBJECT_REPEAT_LIMIT) {
+    priority *= PLANNER.SUBJECT_REPEAT_PENALTY;
+  }
+
+  return priority;
+}
+
+function scoreRevisionTopic(t: TopicWithJoins, ctx: PlannerContext): number {
+  const { profile, importanceModifiers } = ctx;
+  const subjectPapers: string[] = t.chapters?.subjects?.papers || [];
+  const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? PLANNER.PRELIMS_BOOST : 0;
+  const subjectId: string | undefined = t.chapters?.subject_id;
+  const modeBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
+  return (t.pyq_weight * PLANNER.PYQ_FACTOR) + ((t.importance + modeBoost) * PLANNER.IMPORTANCE_FACTOR) + PLANNER.REVISION_BASE_BOOST + prelimsBoost;
+}
+
+// ── 3. Constraint filtering ──
+
+function applyConstraints(candidates: ScoredCandidate[], ctx: PlannerContext): ScoredCandidate[] {
+  const isWP = ctx.profile.strategy_mode === 'working_professional';
+  const pyqMin = isWP ? (ctx.profile.pyq_weight_minimum ?? 0.3) : 0;
+
+  return candidates.filter((c) => {
+    const prog = ctx.progressMap.get(c.topic.id);
     const status = prog?.status || 'untouched';
-    if (excludeStatuses.includes(status)) return false;
-    if (isLightDay && t.difficulty > 2) return false;
-    if (revisionTopicIds.has(t.id)) return false;
-    if (isWorkingProfessional && t.pyq_weight < pyqWeightMinimum) return false;
+    if (['exam_ready', 'deferred_scope'].includes(status)) return false;
+    if (ctx.isLightDay && c.topic.difficulty > 2) return false;
+    if (c.type === 'new' && ctx.revisionTopicIds.has(c.topic.id)) return false;
+    if (isWP && c.topic.pyq_weight < pyqMin) return false;
     return true;
   });
+}
 
-  // Score topics
-  const scoredTopics = eligibleNew.map((t) => {
-    const prog = progressMap.get(t.id);
-    const subjectId: string | undefined = (t as any).chapters?.subject_id;
-    const daysSinceTouch = prog?.last_touched
-      ? Math.ceil((Date.now() - new Date(prog.last_touched).getTime()) / 86400000) : 999;
+// ── 4. Greedy allocation ──
 
-    // Urgency: subject-level completion gap (0–10)
-    const subjectStats = subjectId ? subjectTopicCounts.get(subjectId) : null;
-    const completionGap = subjectStats ? 1 - (subjectStats.done / subjectStats.total) : 1;
-    const urgency = Math.min(10, completionGap * 10);
-
-    // Freshness: +3 if >7d or never touched, +1 if 3–7d, -2 if <3d
-    let freshness: number;
-    if (!prog) {
-      freshness = 3;
-    } else if (daysSinceTouch > 7) {
-      freshness = 3;
-    } else if (daysSinceTouch >= 3) {
-      freshness = 1;
-    } else {
-      freshness = -2;
-    }
-
-    // Decay boost: +6 decayed, +4 stale
-    const decayBoost = (prog?.confidence_status === 'decayed') ? 6
-      : (prog?.confidence_status === 'stale') ? 4 : 0;
-
-    const mockAccuracy = (prog as any)?.mock_accuracy;
-    const mockBoost = (mockAccuracy != null && mockAccuracy < 0.3) ? 3
-      : (mockAccuracy != null && mockAccuracy < 0.5) ? 2 : 0;
-
-    const subjectPapers: string[] = (t as any).chapters?.subjects?.papers || [];
-    const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? 3 : 0;
-
-    // Radar insight adjustments
-    const insightBoost = falseSecurityIds.has(t.id) ? 5
-      : blindSpotIds.has(t.id) ? 3
-      : overRevisedIds.has(t.id) ? -3 : 0;
-
-    // Deferred from yesterday: +1
-    const deferredBoost = deferredTopicIds.has(t.id) ? 1 : 0;
-
-    // Working Professional weekend boost: +3 for high-pyq on weekends
-    const weekendBoost = (isWorkingProfessional && isWeekend && t.pyq_weight >= 3) ? 3 : 0;
-
-    // Apply mode importance modifier (e.g., +1 for boosted prelims subjects)
-    const modeImportanceBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
-    const effectiveImportance = t.importance + modeImportanceBoost;
-
-    let priority = (t.pyq_weight * 4) + (effectiveImportance * 2) + (urgency * 2)
-      + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost;
-
-    // Subject frequency penalty: if subject in 3+ of last 4 plans, reduce by 50%
-    if (subjectId && (subjectPlanCount.get(subjectId) || 0) >= 3) {
-      priority *= 0.5;
-    }
-
-    return { topic: t, priority, type: 'new' as const, subjectId };
-  });
-
-  // Score revision topics
-  const revisionItems = (allTopics || [])
-    .filter((t) => revisionTopicIds.has(t.id))
-    .map((t) => {
-      const subjectPapers: string[] = (t as any).chapters?.subjects?.papers || [];
-      const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? 3 : 0;
-      const subjectId: string | undefined = (t as any).chapters?.subject_id;
-      return {
-        topic: t,
-        priority: (t.pyq_weight * 4) + ((t.importance + (subjectId ? (importanceModifiers.get(subjectId) || 0) : 0)) * 2) + 5 + prelimsBoost,
-        type: 'revision' as const,
-        subjectId,
-      };
-    });
-
-  // Combine candidates
-  const allCandidates = [...revisionItems, ...scoredTopics];
-
-  // Greedy fill with variety bonus, subject cap (60%), and fatigue/heavy-day limits
+function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): PlanItem[] {
+  const { availableHours, maxTopics, maxAvgDifficulty, revisionRatio } = ctx;
   let usedHours = 0;
   const subjectHours = new Map<string, number>();
   const subjectsUsed = new Set<string>();
-  const planItems: Array<{
-    topic_id: string;
-    type: string;
-    estimated_hours: number;
-    priority_score: number;
-    display_order: number;
-  }> = [];
+  const planItems: PlanItem[] = [];
 
-  const revisionRatio = (profile.strategy_params as any)?.revision_frequency
-    ? 1 / (profile.strategy_params as any).revision_frequency : 0.25;
   const maxRevisionHours = availableHours * revisionRatio;
   let revisionHours = 0;
-
-  const remaining = [...allCandidates];
+  const remaining = [...candidates];
   let lastSubjectId: string | null = null;
   let order = 0;
 
@@ -322,18 +404,25 @@ export async function generateDailyPlan(userId: string, date: string) {
     for (let i = 0; i < remaining.length; i++) {
       const item = remaining[i];
       const hours = Math.min(item.topic.estimated_hours, availableHours - usedHours);
-      if (hours < 0.5) continue;
+      if (hours < PLANNER.MIN_HOURS_PER_TOPIC) continue;
       if (item.type === 'revision' && revisionHours >= maxRevisionHours) continue;
 
-      // Max 60% same subject enforcement
       const subjectId = item.subjectId;
       if (subjectId) {
         const currentSubjectHours = subjectHours.get(subjectId) || 0;
-        if (currentSubjectHours + hours > availableHours * 0.6) continue;
+        if (currentSubjectHours + hours > availableHours * PLANNER.MAX_SAME_SUBJECT_PCT) continue;
       }
 
-      // Variety bonus: +2 if different subject from last added item
-      const varietyBonus = (lastSubjectId && subjectId && subjectId !== lastSubjectId) ? 2 : 0;
+      if (maxAvgDifficulty < Infinity && planItems.length > 0) {
+        const currentDiffSum = planItems.reduce((s, p) => {
+          const t = candidates.find(c => c.topic.id === p.topic_id);
+          return s + (t?.topic.difficulty || 3);
+        }, 0);
+        const projectedAvg = (currentDiffSum + (item.topic.difficulty || 3)) / (planItems.length + 1);
+        if (projectedAvg > maxAvgDifficulty) continue;
+      }
+
+      const varietyBonus = (lastSubjectId && subjectId && subjectId !== lastSubjectId) ? PLANNER.VARIETY_BONUS : 0;
       const effective = item.priority + varietyBonus;
 
       if (effective > bestEffective) {
@@ -366,53 +455,81 @@ export async function generateDailyPlan(userId: string, date: string) {
     remaining.splice(bestIdx, 1);
   }
 
-  // Enforce min 2 subjects: swap lowest-priority item with best from another subject
-  if (subjectsUsed.size === 1 && planItems.length >= 2) {
-    const currentSubject = [...subjectsUsed][0];
-    const altCandidate = remaining
-      .filter((c) => c.subjectId && c.subjectId !== currentSubject)
-      .sort((a, b) => b.priority - a.priority)[0];
+  // Ensure min 2 subjects
+  ensureDualSubject(planItems, remaining, subjectsUsed);
 
-    if (altCandidate) {
-      const lastItem = planItems[planItems.length - 1];
-      const hours = Math.min(altCandidate.topic.estimated_hours, lastItem.estimated_hours);
-      planItems[planItems.length - 1] = {
-        topic_id: altCandidate.topic.id,
-        type: altCandidate.type,
-        estimated_hours: hours,
-        priority_score: altCandidate.priority,
-        display_order: lastItem.display_order,
-      };
-      subjectsUsed.add(altCandidate.subjectId!);
-    }
+  return planItems;
+}
+
+function ensureDualSubject(
+  planItems: PlanItem[],
+  remaining: ScoredCandidate[],
+  subjectsUsed: Set<string>,
+) {
+  if (subjectsUsed.size !== 1 || planItems.length < 2) return;
+
+  const currentSubject = [...subjectsUsed][0];
+  const altCandidate = remaining
+    .filter((c) => c.subjectId && c.subjectId !== currentSubject)
+    .sort((a, b) => b.priority - a.priority)[0];
+
+  if (altCandidate) {
+    const lastItem = planItems[planItems.length - 1];
+    const hours = Math.min(altCandidate.topic.estimated_hours, lastItem.estimated_hours);
+    planItems[planItems.length - 1] = {
+      topic_id: altCandidate.topic.id,
+      type: altCandidate.type,
+      estimated_hours: hours,
+      priority_score: altCandidate.priority,
+      display_order: lastItem.display_order,
+    };
+    subjectsUsed.add(altCandidate.subjectId!);
   }
+}
 
-  // Create daily plan
+// ── Main orchestrator ──
+
+export async function generateDailyPlan(userId: string, date: string) {
+  const { data: existing } = await supabase
+    .from('daily_plans')
+    .select('*, daily_plan_items(*, topics(name, chapter_id, pyq_weight, difficulty, chapters(name, subjects(name))))')
+    .eq('user_id', userId)
+    .eq('plan_date', date)
+    .single();
+
+  if (existing) return formatPlan(existing);
+
+  const ctx = await fetchPlannerData(userId, date);
+
+  const newCandidates: ScoredCandidate[] = ctx.allTopics.map((t) => ({
+    topic: t, priority: scoreTopic(t, ctx), type: 'new', subjectId: t.chapters?.subject_id,
+  }));
+  const revCandidates: ScoredCandidate[] = ctx.allTopics
+    .filter((t) => ctx.revisionTopicIds.has(t.id))
+    .map((t) => ({ topic: t, priority: scoreRevisionTopic(t, ctx), type: 'revision', subjectId: t.chapters?.subject_id }));
+
+  const constrained = applyConstraints([...revCandidates, ...newCandidates], ctx);
+  constrained.sort((a, b) => b.priority - a.priority);
+  const planItems = allocateGreedy(constrained, ctx);
+
   const { data: plan, error: planErr } = await supabase
     .from('daily_plans')
     .insert({
-      user_id: userId,
-      plan_date: date,
-      available_hours: availableHours,
-      is_light_day: isLightDay,
-      fatigue_score: fatigueScore,
-      energy_level: energyLevel,
+      user_id: userId, plan_date: date, available_hours: ctx.availableHours,
+      is_light_day: ctx.isLightDay, fatigue_score: ctx.fatigueScore, energy_level: ctx.energyLevel,
     })
     .select()
     .single();
 
   if (planErr) throw planErr;
 
-  // Insert plan items
   if (planItems.length > 0) {
     const { error: itemsErr } = await supabase
       .from('daily_plan_items')
       .insert(planItems.map((item) => ({ ...item, plan_id: plan.id })));
-
     if (itemsErr) throw itemsErr;
   }
 
-  // Fetch complete plan
   const { data: completePlan } = await supabase
     .from('daily_plans')
     .select('*, daily_plan_items(*, topics(name, chapter_id, pyq_weight, difficulty, chapters(name, subjects(name))))')
@@ -444,7 +561,10 @@ function formatPlan(plan: any) {
     } : undefined,
     chapter_name: item.topics?.chapters?.name,
     subject_name: item.topics?.chapters?.subjects?.name,
-  })).sort((a: any, b: any) => a.display_order - b.display_order);
+  })).sort((a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order);
+
+  const fs = plan.fatigue_score || 0;
+  const fatigueStatus = fs > PLANNER.FATIGUE_STATUS_CRITICAL ? 'critical' : fs > PLANNER.FATIGUE_STATUS_HIGH ? 'high' : fs > PLANNER.FATIGUE_STATUS_MODERATE ? 'moderate' : 'low';
 
   return {
     id: plan.id,
@@ -452,139 +572,11 @@ function formatPlan(plan: any) {
     available_hours: plan.available_hours,
     is_light_day: plan.is_light_day,
     fatigue_score: plan.fatigue_score,
+    fatigue_status: fatigueStatus,
     energy_level: plan.energy_level,
     items,
   };
 }
 
-export async function completePlanItem(userId: string, itemId: string, actualHours: number) {
-  // Get the item with plan info
-  const { data: item } = await supabase
-    .from('daily_plan_items')
-    .select('*, daily_plans!inner(user_id, plan_date)')
-    .eq('id', itemId)
-    .single();
-
-  if (!item || (item as any).daily_plans.user_id !== userId) {
-    throw new Error('Plan item not found');
-  }
-
-  // Update item
-  const { error } = await supabase
-    .from('daily_plan_items')
-    .update({ status: 'completed', completed_at: new Date().toISOString(), actual_hours: actualHours })
-    .eq('id', itemId);
-
-  if (error) throw error;
-
-  // Update user progress
-  const { data: progress } = await supabase
-    .from('user_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('topic_id', item.topic_id)
-    .single();
-
-  const currentHours = progress?.actual_hours_spent || 0;
-  let newStatus = progress?.status || 'untouched';
-
-  if (item.type === 'new' && (newStatus === 'untouched' || newStatus === 'in_progress')) {
-    newStatus = 'first_pass';
-
-    // Initialize FSRS card when topic reaches first_pass
-    try {
-      const { initializeFSRSCard } = await import('./fsrs.js');
-      await initializeFSRSCard(userId, item.topic_id);
-    } catch {
-      // FSRS card init is non-critical — recordReview also creates lazily
-    }
-  }
-
-  await supabase.from('user_progress').upsert({
-    user_id: userId,
-    topic_id: item.topic_id,
-    status: newStatus,
-    actual_hours_spent: currentHours + actualHours,
-    last_touched: new Date().toISOString(),
-  }, { onConflict: 'user_id,topic_id' });
-
-  // Log status change if changed
-  if (progress && newStatus !== progress.status) {
-    await supabase.from('status_changes').insert({
-      user_id: userId,
-      topic_id: item.topic_id,
-      old_status: progress.status,
-      new_status: newStatus,
-      reason: 'plan_item_completed',
-    });
-  }
-
-  // Mark revision complete if it was a revision item
-  if (item.type === 'revision' || item.type === 'decay_revision') {
-    await supabase
-      .from('revision_schedule')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('topic_id', item.topic_id)
-      .eq('status', 'pending')
-      .order('scheduled_date', { ascending: true })
-      .limit(1);
-  }
-
-  // Award XP for plan item completion (non-critical)
-  try {
-    const { awardXP } = await import('./gamification.js');
-    const triggerType = `plan_item_${item.type}` as any;
-    await awardXP(userId, { triggerType, topicId: item.topic_id });
-  } catch {
-    // Gamification is non-critical
-  }
-
-  return { status: 'completed', new_topic_status: newStatus };
-}
-
-export async function deferPlanItem(userId: string, itemId: string) {
-  const { data: item } = await supabase
-    .from('daily_plan_items')
-    .select('*, daily_plans!inner(user_id)')
-    .eq('id', itemId)
-    .single();
-
-  if (!item || (item as any).daily_plans.user_id !== userId) {
-    throw new Error('Plan item not found');
-  }
-
-  await supabase
-    .from('daily_plan_items')
-    .update({ status: 'deferred' })
-    .eq('id', itemId);
-
-  return { status: 'deferred' };
-}
-
-export async function regeneratePlan(userId: string, date: string, newHours?: number) {
-  // Delete existing plan
-  const { data: existing } = await supabase
-    .from('daily_plans')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('plan_date', date)
-    .single();
-
-  if (existing) {
-    await supabase.from('daily_plans').delete().eq('id', existing.id);
-  }
-
-  // Generate new plan
-  const plan = await generateDailyPlan(userId, date);
-
-  if (newHours && plan) {
-    await supabase
-      .from('daily_plans')
-      .update({ available_hours: newHours, is_regenerated: true })
-      .eq('user_id', userId)
-      .eq('plan_date', date);
-  }
-
-  return plan;
-}
+// Re-export mutation functions from planActions
+export { completePlanItem, deferPlanItem, skipPlanItem, regeneratePlan, scheduleImmediateRevision } from './planActions.js';

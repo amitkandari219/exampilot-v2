@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { recordReview, batchRecalculateConfidence, getRevisionsDue, getRevisionsCalendar } from '../services/fsrs.js';
+import { todayString } from '../utils/dateUtils.js';
 
 export async function fsrsRoutes(app: FastifyInstance) {
   app.post<{
@@ -24,7 +25,7 @@ export async function fsrsRoutes(app: FastifyInstance) {
   app.get<{
     Querystring: { date?: string };
   }>('/api/revisions', async (request, reply) => {
-    const date = (request.query as any).date || new Date().toISOString().split('T')[0];
+    const date = request.query.date || todayString();
     const result = await getRevisionsDue(request.userId, date);
     return reply.status(200).send(result);
   });
@@ -34,7 +35,7 @@ export async function fsrsRoutes(app: FastifyInstance) {
   app.get<{
     Querystring: { month?: string };
   }>('/api/revisions/calendar', async (request, reply) => {
-    const month = (request.query as any).month || new Date().toISOString().slice(0, 7);
+    const month = request.query.month || new Date().toISOString().slice(0, 7);
     const result = await getRevisionsCalendar(request.userId, month);
     return reply.status(200).send(result);
   });

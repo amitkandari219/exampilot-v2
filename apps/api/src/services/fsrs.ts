@@ -1,6 +1,31 @@
 import { createEmptyCard, generatorParameters, fsrs, Rating, State } from 'ts-fsrs';
 import type { Card } from 'ts-fsrs';
 import { supabase } from '../lib/supabase.js';
+import { toDateString } from '../utils/dateUtils.js';
+import { CONFIDENCE, FSRS as FSRS_CONSTANTS } from '../constants/thresholds.js';
+import { appEvents } from './events.js';
+
+interface FSRSCardWithTopic {
+  id: string;
+  user_id: string;
+  topic_id: string;
+  due: string;
+  stability: number;
+  difficulty: number;
+  elapsed_days: number;
+  scheduled_days: number;
+  reps: number;
+  lapses: number;
+  state: number;
+  last_review: string | null;
+  topics: { name: string; pyq_weight: number; difficulty: number } | null;
+}
+
+interface UserProgressWithMockAccuracy {
+  status: string;
+  revision_count: number;
+  mock_accuracy: number | null;
+}
 
 export function createFSRSInstance(targetRetention: number) {
   const params = generatorParameters({ request_retention: targetRetention });
@@ -40,7 +65,7 @@ export async function recordReview(userId: string, topicId: string, rating: numb
     .eq('id', userId)
     .single();
 
-  const targetRetention = profile?.fsrs_target_retention || 0.9;
+  const targetRetention = profile?.fsrs_target_retention || FSRS_CONSTANTS.TARGET_RETENTION;
   const f = createFSRSInstance(targetRetention);
 
   // Get current card
@@ -71,7 +96,8 @@ export async function recordReview(userId: string, topicId: string, rating: numb
 
   const now = new Date();
   const scheduling = f.repeat(card, now);
-  const result = (scheduling as any)[rating];
+  // @ts-expect-error ts-fsrs IPreview is indexed by Rating enum number, not plain number
+  const result = scheduling[rating];
   const updatedCard = result.card;
 
   // Update card in DB
@@ -130,25 +156,27 @@ export async function recordReview(userId: string, topicId: string, rating: numb
     .from('user_progress')
     .update({
       confidence_score: confidenceScore,
-      confidence_status: confidenceScore >= 70 ? 'fresh'
-        : confidenceScore >= 45 ? 'fading'
-        : confidenceScore >= 20 ? 'stale' : 'decayed',
+      confidence_status: confidenceScore >= CONFIDENCE.FRESH ? 'fresh'
+        : confidenceScore >= CONFIDENCE.FADING ? 'fading'
+        : confidenceScore >= CONFIDENCE.STALE ? 'stale' : 'decayed',
       last_touched: now.toISOString(),
     })
     .eq('user_id', userId)
     .eq('topic_id', topicId);
 
   // Auto-upgrade topic status
-  const { data: progress } = await supabase
+  const { data: progressRaw } = await supabase
     .from('user_progress')
     .select('status, revision_count, mock_accuracy')
     .eq('user_id', userId)
     .eq('topic_id', topicId)
     .single();
 
+  const progress = progressRaw as UserProgressWithMockAccuracy | null;
+
   if (progress) {
     const revCount = (progress.revision_count || 0) + 1;
-    const mockAcc = (progress as any).mock_accuracy;
+    const mockAcc = progress.mock_accuracy;
     let newStatus = progress.status;
 
     if (revCount >= 3 && confidenceScore >= 70) {
@@ -189,19 +217,12 @@ export async function recordReview(userId: string, topicId: string, rating: numb
     topic_id: topicId,
     revision_number: (cardData.reps || 0) + 1,
     type: 'scheduled',
-    scheduled_date: updatedCard.due.toISOString().split('T')[0],
+    scheduled_date: toDateString(updatedCard.due),
     status: 'pending',
   });
 
-  // Award XP for FSRS review (non-critical)
-  try {
-    const { awardXP } = await import('./gamification.js');
-    const triggerType = rating >= 3 ? 'fsrs_review_correct' : 'fsrs_review_incorrect';
-    const xpAmount = rating >= 3 ? 50 : 20;
-    await awardXP(userId, { triggerType, xpAmount, topicId });
-  } catch {
-    // Gamification is non-critical
-  }
+  const triggerType = rating >= 3 ? 'fsrs_review_correct' : 'fsrs_review_incorrect';
+  appEvents.emit('xp:award', { userId, triggerType, topicId });
 
   return {
     card: updatedCard,
@@ -238,13 +259,13 @@ export async function batchRecalculateConfidence(userId: string) {
     // Apply mock accuracy adjustment (consistent with decayTrigger.ts)
     const mock = mockMap.get(card.topic_id);
     const mockAccuracy = (mock && mock.total_questions > 0) ? mock.accuracy : null;
-    const accuracyFactor = mockAccuracy != null ? (0.7 + 0.3 * mockAccuracy) : 1.0;
+    const accuracyFactor = mockAccuracy != null ? (FSRS_CONSTANTS.ACCURACY_FLOOR + FSRS_CONSTANTS.ACCURACY_MULTIPLIER * mockAccuracy) : 1.0;
     const adjusted = retrievability * accuracyFactor;
 
     const confidenceScore = Math.round(Math.min(100, Math.max(0, adjusted * 100)));
-    const confidenceStatus = confidenceScore >= 70 ? 'fresh'
-      : confidenceScore >= 45 ? 'fading'
-      : confidenceScore >= 20 ? 'stale' : 'decayed';
+    const confidenceStatus = confidenceScore >= CONFIDENCE.FRESH ? 'fresh'
+      : confidenceScore >= CONFIDENCE.FADING ? 'fading'
+      : confidenceScore >= CONFIDENCE.STALE ? 'stale' : 'decayed';
 
     await supabase
       .from('user_progress')
@@ -332,7 +353,7 @@ export async function getRevisionsCalendar(userId: string, month: string) {
   const endDate = new Date(startDate);
   endDate.setMonth(endDate.getMonth() + 1);
 
-  const { data: cards, error } = await supabase
+  const { data: cardsRaw, error } = await supabase
     .from('fsrs_cards')
     .select('topic_id, due, topics!inner(name, pyq_weight, difficulty)')
     .eq('user_id', userId)
@@ -342,16 +363,18 @@ export async function getRevisionsCalendar(userId: string, month: string) {
 
   if (error) throw error;
 
+  const cards = (cardsRaw || []) as unknown as Pick<FSRSCardWithTopic, 'topic_id' | 'due' | 'topics'>[];
+
   // Group by date
   const calendar: Record<string, Array<{ topic_id: string; topic_name: string; pyq_weight: number; difficulty: number }>> = {};
-  for (const card of cards || []) {
-    const dateKey = new Date(card.due).toISOString().split('T')[0];
+  for (const card of cards) {
+    const dateKey = toDateString(new Date(card.due));
     if (!calendar[dateKey]) calendar[dateKey] = [];
     calendar[dateKey].push({
       topic_id: card.topic_id,
-      topic_name: (card as any).topics?.name || '',
-      pyq_weight: (card as any).topics?.pyq_weight || 0,
-      difficulty: (card as any).topics?.difficulty || 0,
+      topic_name: card.topics?.name || '',
+      pyq_weight: card.topics?.pyq_weight || 0,
+      difficulty: card.topics?.difficulty || 0,
     });
   }
 
@@ -372,18 +395,20 @@ export async function getConfidenceOverview(userId: string) {
   }
 
   // Get fastest decaying topics
-  const { data: decaying } = await supabase
+  const { data: decayingRaw } = await supabase
     .from('fsrs_cards')
     .select('topic_id, stability, topics!inner(name)')
     .eq('user_id', userId)
     .order('stability', { ascending: true })
     .limit(5);
 
-  const fastestDecaying = (decaying || []).map((d) => {
+  const decaying = (decayingRaw || []) as unknown as Pick<FSRSCardWithTopic, 'topic_id' | 'stability' | 'topics'>[];
+
+  const fastestDecaying = decaying.map((d) => {
     const p = (progress || []).find((pr) => pr.topic_id === d.topic_id);
     return {
       topic_id: d.topic_id,
-      topic_name: (d as any).topics?.name || '',
+      topic_name: d.topics?.name || '',
       confidence_score: p?.confidence_score || 0,
       stability: d.stability,
     };

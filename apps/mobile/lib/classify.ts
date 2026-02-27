@@ -12,8 +12,8 @@ export function classifyMode(answers: OnboardingAnswers): StrategyMode {
   // Higher score → more aggressive
 
   // Daily hours (strong signal)
-  if (daily_hours >= 8) score += 3;
-  else if (daily_hours >= 6) score += 1;
+  if (daily_hours >= 7) score += 3;
+  else if (daily_hours >= 5) score += 1;
   else if (daily_hours <= 3) score -= 2;
 
   // Attempt number
@@ -36,11 +36,23 @@ export function classifyMode(answers: OnboardingAnswers): StrategyMode {
   return 'balanced';
 }
 
-export function classifyModeV2(answers: OnboardingV2Answers): StrategyMode {
+export function classifyModeV2(
+  answers: OnboardingV2Answers,
+  extra?: { daily_hours?: number; study_approach?: string }
+): StrategyMode {
   // Working professional override
   if (answers.user_type === 'working') return 'working_professional';
 
   let score = 0;
+
+  // Daily hours signal (matches server: 7+ → aggressive leaning)
+  const dailyHours = extra?.daily_hours || 0;
+  if (dailyHours >= 7) score += 2;
+  else if (dailyHours >= 5) score += 1;
+
+  // Study approach signal (matches server: "cover everything" → conservative)
+  if (extra?.study_approach === 'cover_everything' || extra?.study_approach === 'thorough') score -= 2;
+  else if (extra?.study_approach === 'selective' || extra?.study_approach === 'high_yield') score += 1;
 
   // Attempt factor
   if (answers.attempt_number === 'third_plus') score += 2;

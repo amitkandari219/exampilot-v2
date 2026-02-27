@@ -142,3 +142,50 @@ ON CONFLICT (subject_id) DO UPDATE SET
   trend = EXCLUDED.trend,
   highest_year = EXCLUDED.highest_year,
   highest_count = EXCLUDED.highest_count;
+
+-- Post-seed: percentile-bucket pyq_weight to integer 1-5
+-- Mirrors recalculatePyqWeights() logic: recency-weighted score → percentile → bucket
+DO $$
+DECLARE
+  rec RECORD;
+  idx INT := 0;
+  total INT;
+  pct FLOAT;
+  bucket INT;
+BEGIN
+  SELECT count(*) INTO total FROM (
+    SELECT t.id,
+      coalesce(sum(p.question_count * CASE
+        WHEN p.year >= 2024 THEN 1.5
+        WHEN p.year >= 2022 THEN 1.2
+        WHEN p.year >= 2020 THEN 1.0
+        WHEN p.year >= 2018 THEN 0.8
+        ELSE 0.6 END), 0) AS score
+    FROM topics t LEFT JOIN pyq_data p ON p.topic_id = t.id
+    GROUP BY t.id
+  ) x;
+
+  FOR rec IN
+    SELECT t.id,
+      coalesce(sum(p.question_count * CASE
+        WHEN p.year >= 2024 THEN 1.5
+        WHEN p.year >= 2022 THEN 1.2
+        WHEN p.year >= 2020 THEN 1.0
+        WHEN p.year >= 2018 THEN 0.8
+        ELSE 0.6 END), 0) AS score
+    FROM topics t LEFT JOIN pyq_data p ON p.topic_id = t.id
+    GROUP BY t.id
+    ORDER BY score ASC
+  LOOP
+    pct := CASE WHEN total > 1 THEN idx::float / (total - 1) ELSE 0.5 END;
+    bucket := CASE
+      WHEN pct >= 0.9 THEN 5
+      WHEN pct >= 0.7 THEN 4
+      WHEN pct >= 0.4 THEN 3
+      WHEN pct >= 0.1 THEN 2
+      ELSE 1
+    END;
+    UPDATE topics SET pyq_weight = bucket WHERE id = rec.id;
+    idx := idx + 1;
+  END LOOP;
+END $$;

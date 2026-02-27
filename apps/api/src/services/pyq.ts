@@ -1,5 +1,21 @@
 import { supabase } from '../lib/supabase.js';
 
+// Typed interface for topics joined with chapters and subjects
+interface TopicWithChapterJoin {
+  id: string;
+  name: string;
+  chapter_id: string;
+  pyq_weight: number;
+  difficulty: number;
+  estimated_hours: number;
+  pyq_trend: string;
+  importance: number;
+  chapters: {
+    subject_id: string;
+    subjects: { id: string; name: string };
+  };
+}
+
 export async function getPyqStats(userId: string) {
   // Get all topics with their PYQ weights + subject info
   const { data: topics, error: topicsErr } = await supabase
@@ -33,12 +49,12 @@ export async function getPyqStats(userId: string) {
 
   const completedStatuses = ['first_pass', 'revised', 'exam_ready'];
 
-  for (const topic of topics || []) {
+  for (const topic of (topics || []) as unknown as TopicWithChapterJoin[]) {
     const gravity = topic.pyq_weight; // CHANGED: gravity = pyq_weight only (1-5 per topic)
     totalGravity += gravity;
     totalTopics++;
 
-    const chapter = topic.chapters as any;
+    const chapter = topic.chapters;
     const subject = chapter?.subjects;
     const subjectId = subject?.id;
     const subjectName = subject?.name;
@@ -103,7 +119,7 @@ export async function getTopicPyqDetail(topicId: string) {
   // Get topic metadata
   const { data: topic, error: topicErr } = await supabase
     .from('topics')
-    .select('id, name, pyq_weight, pyq_trend, pyq_frequency')
+    .select('id, name, pyq_weight, pyq_trend, pyq_frequency, last_pyq_year, pyq_years')
     .eq('id', topicId)
     .single();
 
@@ -134,6 +150,9 @@ export async function getTopicPyqDetail(topicId: string) {
       name: topic.name,
       pyq_weight: topic.pyq_weight,
       pyq_trend: topic.pyq_trend,
+      pyq_frequency: topic.pyq_frequency,
+      last_pyq_year: topic.last_pyq_year,
+      pyq_years: topic.pyq_years,
     },
     year_breakdown: data,
     question_types: questionTypes,
@@ -193,13 +212,16 @@ export async function recalculatePyqWeights() {
   const sorted = Array.from(topicScores.entries()).sort((a, b) => a[1] - b[1]);
   const n = sorted.length;
 
-  // Compute pyq_frequency and last_pyq_year per topic
+  // Compute pyq_frequency, last_pyq_year, and pyq_years per topic
   const topicFreq = new Map<string, number>();
   const topicLastYear = new Map<string, number>();
+  const topicYears = new Map<string, Set<number>>();
   for (const row of pyqData || []) {
     topicFreq.set(row.topic_id, (topicFreq.get(row.topic_id) || 0) + row.question_count);
     const cur = topicLastYear.get(row.topic_id) || 0;
     if (row.year > cur) topicLastYear.set(row.topic_id, row.year);
+    if (!topicYears.has(row.topic_id)) topicYears.set(row.topic_id, new Set());
+    topicYears.get(row.topic_id)!.add(row.year);
   }
 
   for (let i = 0; i < n; i++) {
@@ -231,6 +253,7 @@ export async function recalculatePyqWeights() {
         pyq_trend: trend,
         pyq_frequency: topicFreq.get(topicId) || 0,
         last_pyq_year: topicLastYear.get(topicId) || null,
+        pyq_years: topicYears.has(topicId) ? Array.from(topicYears.get(topicId)!).sort((a, b) => a - b) : [],
       })
       .eq('id', topicId);
   }

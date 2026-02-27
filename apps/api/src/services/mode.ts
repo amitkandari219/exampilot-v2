@@ -1,18 +1,15 @@
 import { supabase } from '../lib/supabase.js';
-import type { ExamMode } from '../types/index.js';
+import type { ExamMode, StrategyMode } from '../types/index.js';
+import { toDateString } from '../utils/dateUtils.js';
+import { getModeConfig, getModeRevisionRatio } from './modeConfig.js';
 
-interface ModeConfigEntry {
-  subject_id: string;
-  is_active: boolean;
-  importance_modifier: number;
-  revision_ratio: number | null;
-}
+// Re-export read-only functions from modeConfig for backward compatibility
+export { getActiveSubjectIds, getImportanceModifiers, getModeRevisionRatio } from './modeConfig.js';
 
-interface SubjectDiff {
-  subject_id: string;
-  subject_name: string;
-  paused: boolean;
-  importance_change: number;
+// Typed interface for strategy_params jsonb field
+interface StrategyParams {
+  revision_frequency?: number;
+  [key: string]: unknown;
 }
 
 interface ModePreview {
@@ -23,79 +20,6 @@ interface ModePreview {
   topics_removed: number;
   topics_boosted: number;
   gravity_removed: number;
-}
-
-// --- Mode Config Queries ---
-
-export async function getModeConfig(mode: ExamMode): Promise<ModeConfigEntry[]> {
-  const { data, error } = await supabase
-    .from('mode_config')
-    .select('subject_id, is_active, importance_modifier, revision_ratio')
-    .eq('mode', mode);
-
-  if (error) throw error;
-  return (data || []) as ModeConfigEntry[];
-}
-
-export async function getActiveSubjectIds(userId: string): Promise<Set<string> | null> {
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('current_mode')
-    .eq('id', userId)
-    .single();
-
-  if (!profile) return null;
-
-  const mode = profile.current_mode as ExamMode;
-
-  // Mains and post_prelims: all subjects active (no filtering)
-  if (mode === 'mains' || mode === 'post_prelims') return null;
-
-  const config = await getModeConfig(mode);
-
-  // If no config entries, all subjects are active
-  if (config.length === 0) return null;
-
-  // Get all subject IDs
-  const { data: allSubjects } = await supabase
-    .from('subjects')
-    .select('id');
-
-  const allIds = new Set((allSubjects || []).map((s: any) => s.id));
-  const configMap = new Map(config.map((c) => [c.subject_id, c]));
-
-  // A subject is active if:
-  // - It has no config entry (default = active)
-  // - OR its config entry has is_active = true
-  const activeIds = new Set<string>();
-  for (const id of allIds) {
-    const entry = configMap.get(id);
-    if (!entry || entry.is_active) {
-      activeIds.add(id);
-    }
-  }
-
-  return activeIds;
-}
-
-export async function getImportanceModifiers(mode: ExamMode): Promise<Map<string, number>> {
-  const config = await getModeConfig(mode);
-  const modifiers = new Map<string, number>();
-  for (const entry of config) {
-    if (entry.importance_modifier !== 0) {
-      modifiers.set(entry.subject_id, entry.importance_modifier);
-    }
-  }
-  return modifiers;
-}
-
-export async function getModeRevisionRatio(mode: ExamMode): Promise<number | null> {
-  const config = await getModeConfig(mode);
-  // Use the first non-null revision_ratio found (they should all be the same for a mode)
-  for (const entry of config) {
-    if (entry.revision_ratio != null) return entry.revision_ratio;
-  }
-  return null;
 }
 
 // --- Switch Mode (full cascade) ---
@@ -126,7 +50,7 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
   // 2. Apply revision ratio from mode config
   const modeRevisionRatio = await getModeRevisionRatio(targetMode);
   if (modeRevisionRatio != null) {
-    const strategyParams = (profile.strategy_params as any) || {};
+    const strategyParams: StrategyParams = (profile.strategy_params as StrategyParams) || {};
     // revision_frequency is "revise every N days". ratio = 1/revision_frequency.
     // If ratio = 0.70, revision_frequency = 1/0.70 ≈ 1.43, so round to nearest
     const newRevisionFrequency = Math.max(1, Math.round(1 / modeRevisionRatio));
@@ -137,8 +61,8 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
   } else if (targetMode === 'mains' || targetMode === 'post_prelims') {
     // Restore default revision_frequency from strategy mode
     const { getDefaultParams } = await import('./strategy.js');
-    const defaults = await getDefaultParams(profile.strategy_mode as any);
-    const strategyParams = (profile.strategy_params as any) || {};
+    const defaults = await getDefaultParams(profile.strategy_mode as StrategyMode);
+    const strategyParams: StrategyParams = (profile.strategy_params as StrategyParams) || {};
     await supabase
       .from('user_profiles')
       .update({ strategy_params: { ...strategyParams, revision_frequency: defaults.revision_frequency } })
@@ -156,7 +80,7 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
   try {
     const { calculateVelocity } = await import('./velocity.js');
     await calculateVelocity(userId);
-  } catch {
+  } catch (e) { console.warn('[mode:velocity-recalc]', e);
     // Non-critical
   }
 
@@ -165,8 +89,8 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
     const { regeneratePlan } = await import('./planner.js');
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    await regeneratePlan(userId, tomorrow.toISOString().split('T')[0]);
-  } catch {
+    await regeneratePlan(userId, toDateString(tomorrow));
+  } catch (e) { console.warn('[mode:plan-regen]', e);
     // Non-critical
   }
 

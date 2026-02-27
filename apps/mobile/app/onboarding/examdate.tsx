@@ -11,6 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { toDateString } from '../../lib/dateUtils';
 
 export default function StrategyRevealScreen() {
   const { theme } = useTheme();
@@ -22,6 +23,7 @@ export default function StrategyRevealScreen() {
     attempt_number: string;
     user_type: string;
     challenges: string;
+    daily_hours?: string;
   }>();
 
   const answers: OnboardingV2Answers = useMemo(() => ({
@@ -33,7 +35,8 @@ export default function StrategyRevealScreen() {
   }), [params]);
 
   const { session } = useAuth();
-  const recommended = useMemo(() => classifyModeV2(answers), [answers]);
+  const dailyHours = params.daily_hours ? parseFloat(params.daily_hours) : undefined;
+  const recommended = useMemo(() => classifyModeV2(answers, { daily_hours: dailyHours }), [answers, dailyHours]);
   const [chosenMode, setChosenMode] = useState<StrategyMode>(recommended);
   const [showAllModes, setShowAllModes] = useState(false);
   const [examDate, setExamDate] = useState(new Date(Date.now() + 180 * 86400000));
@@ -95,7 +98,7 @@ export default function StrategyRevealScreen() {
           params: {
             ...params,
             chosen_mode: chosenMode,
-            exam_date: examDate.toISOString().split('T')[0],
+            exam_date: toDateString(examDate),
           },
         })
       }
@@ -134,8 +137,8 @@ export default function StrategyRevealScreen() {
           {Platform.OS === 'web' ? (
             <input
               type="date"
-              value={examDate.toISOString().split('T')[0]}
-              min={new Date().toISOString().split('T')[0]}
+              value={toDateString(examDate)}
+              min={toDateString(new Date())}
               onChange={(e: any) => {
                 const parsed = new Date(e.target.value + 'T00:00:00');
                 if (!isNaN(parsed.getTime())) setExamDate(parsed);
@@ -148,7 +151,7 @@ export default function StrategyRevealScreen() {
                 fontSize: theme.fontSize.md,
                 color: theme.colors.text,
                 width: '100%',
-                boxSizing: 'border-box' as any,
+                boxSizing: 'border-box',
               }}
             />
           ) : (

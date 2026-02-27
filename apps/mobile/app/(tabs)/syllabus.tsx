@@ -6,7 +6,7 @@ import { useSyllabusProgress, useUpdateTopicProgress } from '../../hooks/useSyll
 import { SummaryBar } from '../../components/syllabus/SummaryBar';
 import { SubjectCard } from '../../components/syllabus/SubjectCard';
 import { TopicUpdateSheet } from '../../components/syllabus/TopicUpdateSheet';
-import { TopicWithProgress, Subject } from '../../types';
+import { TopicWithProgress, Subject, ChapterWithTopics } from '../../types';
 
 export default function SyllabusScreen() {
   const { theme } = useTheme();
@@ -20,7 +20,7 @@ export default function SyllabusScreen() {
     // Find the topic across all subjects/chapters
     for (const subject of subjects || []) {
       for (const chapter of subject.chapters || []) {
-        const topic = (chapter as any).topics?.find((t: any) => t.id === topicId);
+        const topic = (chapter as ChapterWithTopics).topics?.find((t) => t.id === topicId);
         if (topic) {
           setSelectedTopic(topic);
           setSheetVisible(true);

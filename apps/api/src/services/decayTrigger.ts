@@ -1,11 +1,14 @@
 import { supabase } from '../lib/supabase.js';
 import { calculateRetrievability } from './fsrs.js';
+import { toDateString } from '../utils/dateUtils.js';
+import { CONFIDENCE, FSRS as FSRS_CONSTANTS } from '../constants/thresholds.js';
+import { appEvents } from './events.js';
 
 // Confidence status thresholds (same as fsrs.ts)
 function toConfidenceStatus(score: number): 'fresh' | 'fading' | 'stale' | 'decayed' {
-  if (score >= 70) return 'fresh';
-  if (score >= 45) return 'fading';
-  if (score >= 20) return 'stale';
+  if (score >= CONFIDENCE.FRESH) return 'fresh';
+  if (score >= CONFIDENCE.FADING) return 'fading';
+  if (score >= CONFIDENCE.STALE) return 'stale';
   return 'decayed';
 }
 
@@ -21,7 +24,7 @@ const TRANSITION_SEVERITY: Record<string, number> = {
 
 export async function recalculateAllConfidence(userId: string) {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = toDateString(now);
 
   // Fetch all needed data in parallel
   const [progressRes, cardsRes, mockAccuracyRes, topicsRes] = await Promise.all([
@@ -48,10 +51,17 @@ export async function recalculateAllConfidence(userId: string) {
   const mockAccuracies = mockAccuracyRes.data || [];
   const topics = topicsRes.data || [];
 
+  // Typed interface for topics joined with chapters
+  interface TopicWithSubjectJoin {
+    id: string;
+    pyq_weight: number;
+    chapters: { subject_id: string };
+  }
+
   // Build lookup maps
   const cardMap = new Map(cards.map((c) => [c.topic_id, c]));
   const mockMap = new Map(mockAccuracies.map((m) => [m.topic_id, m.accuracy]));
-  const topicMap = new Map(topics.map((t) => [t.id, t]));
+  const topicMap = new Map((topics as unknown as TopicWithSubjectJoin[]).map((t) => [t.id, t]));
 
   // Tracking
   const downgrades: Array<{ topic_id: string; old_status: string; new_status: string }> = [];
@@ -90,7 +100,7 @@ export async function recalculateAllConfidence(userId: string) {
 
     // Mock accuracy adjustment
     const mockAccuracy = mockMap.get(prog.topic_id);
-    const accuracyFactor = mockAccuracy != null ? (0.7 + 0.3 * mockAccuracy) : 1.0;
+    const accuracyFactor = mockAccuracy != null ? (FSRS_CONSTANTS.ACCURACY_FLOOR + FSRS_CONSTANTS.ACCURACY_MULTIPLIER * mockAccuracy) : 1.0;
     const adjusted = R * accuracyFactor;
     const confidenceScore = Math.round(Math.min(100, Math.max(0, adjusted * 100)));
 
@@ -172,7 +182,7 @@ export async function recalculateAllConfidence(userId: string) {
     // ---- SUBJECT AGGREGATION ----
     const topic = topicMap.get(prog.topic_id);
     if (topic) {
-      const subjectId = (topic as any).chapters?.subject_id;
+      const subjectId = topic.chapters?.subject_id;
       if (subjectId) {
         const agg = subjectAgg.get(subjectId) || {
           sumWeighted: 0, sumWeight: 0, sumScore: 0, count: 0,
@@ -252,6 +262,10 @@ export async function recalculateAllConfidence(userId: string) {
       .upsert(subjectRows, { onConflict: 'user_id,subject_id' });
   }
 
+  if (downgrades.length > 0) {
+    appEvents.emit('notification:queue', { userId, type: 'topic_decay_alert', metadata: { count: downgrades.length } });
+  }
+
   return {
     topics_recalculated: topicsRecalculated,
     downgrades,
@@ -283,7 +297,7 @@ async function scheduleDecayRevisions(userId: string, topicIds: string[], today:
   for (let d = 1; d <= 3; d++) {
     const dt = new Date(today);
     dt.setDate(dt.getDate() + d);
-    dates.push(dt.toISOString().split('T')[0]);
+    dates.push(toDateString(dt));
   }
 
   // Check which plans already exist
@@ -453,7 +467,7 @@ export async function getTopicForgettingCurve(userId: string, topicId: string) {
 
   const stability = card.stability;
   const mockAccuracy = mockRes.data?.accuracy;
-  const accuracyFactor = mockAccuracy != null ? (0.7 + 0.3 * mockAccuracy) : 1.0;
+  const accuracyFactor = mockAccuracy != null ? (FSRS_CONSTANTS.ACCURACY_FLOOR + FSRS_CONSTANTS.ACCURACY_MULTIPLIER * mockAccuracy) : 1.0;
 
   // Project 90 days from last review
   const curve: Array<{ day: number; retrievability: number; confidence_score: number }> = [];

@@ -22,6 +22,7 @@ import { currentAffairsRoutes } from './routes/currentAffairs.js';
 import { profileRoutes } from './routes/profile.js';
 import { decayTriggerRoutes } from './routes/decayTrigger.js';
 import { modeRoutes } from './routes/mode.js';
+import { cronRoutes } from './routes/cron.js';
 
 const app = Fastify({ logger: true });
 
@@ -29,6 +30,11 @@ async function start() {
   await app.register(cors, { origin: config.corsOrigin });
 
   registerAuthMiddleware(app);
+
+  app.setErrorHandler((error: any, request, reply) => {
+    request.log.error(error);
+    reply.status(error.statusCode || 500).send({ error: error.message || 'Internal server error' });
+  });
 
   await app.register(onboardingRoutes);
   await app.register(strategyRoutes);
@@ -50,6 +56,7 @@ async function start() {
   await app.register(profileRoutes);
   await app.register(decayTriggerRoutes);
   await app.register(modeRoutes);
+  await app.register(cronRoutes);
 
   app.get('/health', async () => ({ status: 'ok' }));
 

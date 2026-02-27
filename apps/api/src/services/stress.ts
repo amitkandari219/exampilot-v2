@@ -1,20 +1,7 @@
 import { supabase } from '../lib/supabase.js';
-
-/**
- * Piecewise linear interpolation across sorted anchor points.
- * points: [[input, output], ...] sorted by input ascending.
- */
-function piecewiseLerp(value: number, points: [number, number][]): number {
-  if (value <= points[0][0]) return points[0][1];
-  if (value >= points[points.length - 1][0]) return points[points.length - 1][1];
-  for (let i = 1; i < points.length; i++) {
-    if (value <= points[i][0]) {
-      const t = (value - points[i - 1][0]) / (points[i][0] - points[i - 1][0]);
-      return points[i - 1][1] + t * (points[i][1] - points[i - 1][1]);
-    }
-  }
-  return points[points.length - 1][1];
-}
+import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
+import { piecewiseLerp } from '../utils/math.js';
+import { STRESS_WEIGHTS } from '../constants/thresholds.js';
 
 // Anchor points per signal
 const VELOCITY_POINTS: [number, number][] = [[0.2, 0], [0.4, 10], [0.6, 30], [0.8, 55], [1.0, 80], [1.2, 100]];
@@ -77,7 +64,7 @@ export async function calculateStress(userId: string) {
   const bufferBalance = profile?.buffer_balance ?? 0;
   const bufferCapacity = profile?.buffer_capacity || 0.15;
   const examDate = profile?.exam_date ? new Date(profile.exam_date) : new Date();
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000));
+  const daysRemaining = daysUntil(examDate);
   const bufferInitial = profile?.buffer_initial ?? daysRemaining * bufferCapacity;
   // Debt mode → signal = 0; otherwise piecewise on balance/initial ratio
   const bufferRatio = bufferInitial > 0 ? bufferBalance / bufferInitial : 0;
@@ -88,7 +75,7 @@ export async function calculateStress(userId: string) {
   // Expected completion = fraction of total study period elapsed
   const onboardingDate = profile?.created_at
     ? new Date(profile.created_at) : new Date(Date.now() - 90 * 86400000);
-  const totalDays = Math.max(1, Math.ceil((examDate.getTime() - onboardingDate.getTime()) / 86400000));
+  const totalDays = daysUntil(examDate, onboardingDate);
   const daysElapsed = totalDays - daysRemaining;
   const expectedCompletion = Math.min(1, daysElapsed / totalDays);
   const completionGap = weightedCompletion - expectedCompletion;
@@ -101,7 +88,7 @@ export async function calculateStress(userId: string) {
   const signalConfidence = piecewiseLerp(avgConfidence, CONFIDENCE_POINTS);
 
   // ---- Composite ----
-  const score = signalVelocity * 0.35 + signalBuffer * 0.25 + signalTime * 0.20 + signalConfidence * 0.20;
+  const score = signalVelocity * STRESS_WEIGHTS.VELOCITY + signalBuffer * STRESS_WEIGHTS.BUFFER + signalTime * STRESS_WEIGHTS.TIME + signalConfidence * STRESS_WEIGHTS.CONFIDENCE;
   const roundedScore = Math.round(Math.max(0, Math.min(100, score)));
 
   let status: string;
@@ -123,7 +110,7 @@ export async function calculateStress(userId: string) {
   const recommendation = SIGNAL_RECOMMENDATIONS[weakest];
 
   // Update velocity snapshot stress columns
-  const snapshotDate = new Date().toISOString().split('T')[0];
+  const snapshotDate = toDateString(new Date());
   await supabase
     .from('velocity_snapshots')
     .update({
@@ -138,14 +125,11 @@ export async function calculateStress(userId: string) {
     .eq('snapshot_date', snapshotDate);
 
   // Get 7-day history
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
   const { data: history } = await supabase
     .from('velocity_snapshots')
     .select('snapshot_date, stress_score')
     .eq('user_id', userId)
-    .gte('snapshot_date', sevenDaysAgo.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(7)))
     .order('snapshot_date', { ascending: true });
 
   return {

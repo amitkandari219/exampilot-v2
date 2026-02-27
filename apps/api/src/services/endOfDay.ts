@@ -1,0 +1,182 @@
+import { supabase } from '../lib/supabase.js';
+import { calculateVelocity, updateBuffer } from './velocity.js';
+import { runRecalibration } from './recalibration.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { GAMIFICATION } from '../constants/thresholds.js';
+import { appEvents } from './events.js';
+
+// Typed interface for daily_plan_items joined with topics
+interface PlanItemWithTopic {
+  actual_hours?: number;
+  estimated_hours: number;
+  topics: {
+    pyq_weight: number;
+    difficulty: number;
+    chapter_id: string;
+  };
+}
+
+export async function processEndOfDay(userId: string, date: string) {
+  // Aggregate daily logs from completed plan items
+  const { data: plan } = await supabase
+    .from('daily_plans')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('plan_date', date)
+    .single();
+
+  if (plan) {
+    const { data: items } = await supabase
+      .from('daily_plan_items')
+      .select('*, topics!inner(pyq_weight, difficulty, chapter_id)')
+      .eq('plan_id', plan.id)
+      .eq('status', 'completed');
+
+    const subjects = new Set<string>();
+    let topicsCompleted = 0;
+    let gravityCompleted = 0;
+    let hoursStudied = 0;
+    let difficultySum = 0;
+
+    for (const item of (items || []) as PlanItemWithTopic[]) {
+      topicsCompleted++;
+      const t = item.topics;
+      gravityCompleted += t.pyq_weight; // gravity = pyq_weight only
+      hoursStudied += item.actual_hours || item.estimated_hours;
+      difficultySum += t.difficulty;
+      subjects.add(t.chapter_id);
+    }
+
+    await supabase.from('daily_logs').upsert({
+      user_id: userId,
+      log_date: date,
+      topics_completed: topicsCompleted,
+      gravity_completed: gravityCompleted,
+      hours_studied: hoursStudied,
+      subjects_touched: subjects.size,
+      avg_difficulty: topicsCompleted > 0 ? difficultySum / topicsCompleted : 0,
+    }, { onConflict: 'user_id,log_date' });
+  }
+
+  // Calculate velocity and update buffer
+  await calculateVelocity(userId);
+  await updateBuffer(userId, date);
+  await updateStreaks(userId, date);
+
+  // Auto-recalibrate persona params if enabled
+  try {
+    await runRecalibration(userId, 'auto_daily');
+  } catch (e) { console.warn('[endOfDay:recalibration]', e);
+    // Recalibration is non-critical — don't fail end-of-day processing
+  }
+
+  // Calculate benchmark readiness score
+  try {
+    const { calculateBenchmark } = await import('./benchmark.js');
+    await calculateBenchmark(userId);
+  } catch (e) { console.warn('[endOfDay:benchmark]', e);
+    // Benchmark is non-critical
+  }
+
+  // Recalculate confidence decay and schedule revisions
+  try {
+    const { recalculateAllConfidence } = await import('./decayTrigger.js');
+    await recalculateAllConfidence(userId);
+  } catch (e) { console.warn('[endOfDay:decay]', e);
+    // Decay trigger is non-critical
+  }
+}
+
+async function updateStreaks(userId: string, date: string) {
+  const { data: todayLog } = await supabase
+    .from('daily_logs')
+    .select('hours_studied')
+    .eq('user_id', userId)
+    .eq('log_date', date)
+    .single();
+
+  const studied = (todayLog?.hours_studied || 0) > 0;
+
+  // Get today's plan
+  const { data: todayPlan } = await supabase
+    .from('daily_plans')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('plan_date', date)
+    .single();
+
+  // Check if any revision was completed today
+  let revisionCount = 0;
+  if (todayPlan) {
+    const { count } = await supabase
+      .from('daily_plan_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('plan_id', todayPlan.id)
+      .eq('status', 'completed')
+      .in('type', ['revision', 'decay_revision']);
+    revisionCount = count || 0;
+  }
+
+  // Check if plan was fully completed today
+  let planFullyCompleted = false;
+  if (todayPlan) {
+    const { data: planItems } = await supabase
+      .from('daily_plan_items')
+      .select('status')
+      .eq('plan_id', todayPlan.id);
+
+    if (planItems && planItems.length > 0) {
+      planFullyCompleted = planItems.every((item: any) => item.status === 'completed');
+    }
+  }
+
+  // Update all 3 streak types
+  await upsertStreak(userId, 'study', studied, date);
+  await upsertStreak(userId, 'revision', (revisionCount || 0) > 0, date);
+  await upsertStreak(userId, 'plan_completion', planFullyCompleted, date);
+}
+
+async function upsertStreak(userId: string, streakType: string, isActive: boolean, date: string) {
+  const { data: streak } = await supabase
+    .from('streaks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('streak_type', streakType)
+    .single();
+
+  if (!streak) {
+    await supabase.from('streaks').insert({
+      user_id: userId,
+      streak_type: streakType,
+      current_count: isActive ? 1 : 0,
+      best_count: isActive ? 1 : 0,
+      last_active_date: isActive ? date : null,
+    });
+    return;
+  }
+
+  if (isActive) {
+    const lastDate = streak.last_active_date ? new Date(streak.last_active_date) : null;
+    const today = new Date(date);
+    const isConsecutive = lastDate && (today.getTime() - lastDate.getTime()) <= 86400000 * 1.5;
+
+    const newCount = isConsecutive ? streak.current_count + 1 : 1;
+    const bestCount = Math.max(streak.best_count, newCount);
+
+    await supabase
+      .from('streaks')
+      .update({ current_count: newCount, best_count: bestCount, last_active_date: date })
+      .eq('id', streak.id);
+
+    const milestones = GAMIFICATION.STREAK_MILESTONES;
+    if (milestones[newCount]) {
+      appEvents.emit('xp:award', { userId, triggerType: 'streak_milestone' });
+      appEvents.emit('notification:queue', { userId, type: 'streak_milestone', metadata: { count: newCount } });
+    }
+  } else {
+    await supabase
+      .from('streaks')
+      .update({ current_count: 0 })
+      .eq('id', streak.id);
+  }
+}

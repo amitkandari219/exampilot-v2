@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabase.js';
 import type { XPTriggerType, GamificationProfile, BadgeWithStatus, XPTransaction } from '../types/index.js';
+import { toDateString } from '../utils/dateUtils.js';
+import { GAMIFICATION } from '../constants/thresholds.js';
+import { appEvents } from './events.js';
 
 const XP_AMOUNTS: Record<string, number> = {
   plan_item_new: 100,
@@ -12,12 +15,7 @@ const XP_AMOUNTS: Record<string, number> = {
   mock_completion: 150,
 };
 
-const STREAK_MILESTONES: Record<number, number> = {
-  7: 200,
-  14: 400,
-  30: 1000,
-  100: 2500,
-};
+const STREAK_MILESTONES = GAMIFICATION.STREAK_MILESTONES;
 
 function cumulativeXpForLevel(level: number): number {
   return 500 * level * (level - 1) / 2;
@@ -99,15 +97,22 @@ export async function checkBadgeUnlocks(userId: string, currentXpTotal?: number)
     .eq('user_id', userId)
     .in('status', ['first_pass', 'revised', 'exam_ready']);
 
-  // Best streak
-  const { data: streak } = await supabase
+  // Best streaks (all 3 types)
+  const { data: streaks } = await supabase
     .from('streaks')
-    .select('best_count, current_count')
-    .eq('user_id', userId)
-    .eq('streak_type', 'study')
-    .single();
+    .select('streak_type, best_count, current_count')
+    .eq('user_id', userId);
 
-  const bestStreak = streak?.best_count || 0;
+  const streakMap = new Map((streaks || []).map((s: any) => [s.streak_type, s]));
+  const bestStreak = streakMap.get('study')?.best_count || 0;
+  const bestRevisionStreak = streakMap.get('revision')?.best_count || 0;
+  const bestPlanCompletionStreak = streakMap.get('plan_completion')?.best_count || 0;
+
+  // Mocks completed count
+  const { count: mocksCompleted } = await supabase
+    .from('mock_tests')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
 
   // Recovery completed count
   const { count: recoveryCount } = await supabase
@@ -159,6 +164,12 @@ export async function checkBadgeUnlocks(userId: string, currentXpTotal?: number)
       met = maxDailyHours >= cond.daily_hours_gte;
     } else if (cond.perfect_week === true) {
       met = perfectWeek;
+    } else if (cond.revision_streak_gte != null) {
+      met = bestRevisionStreak >= cond.revision_streak_gte;
+    } else if (cond.plan_completion_streak_gte != null) {
+      met = bestPlanCompletionStreak >= cond.plan_completion_streak_gte;
+    } else if (cond.mocks_completed_gte != null) {
+      met = (mocksCompleted || 0) >= cond.mocks_completed_gte;
     }
 
     if (met) {
@@ -176,6 +187,8 @@ export async function checkBadgeUnlocks(userId: string, currentXpTotal?: number)
           metadata: { badge_slug: badge.slug },
         });
       }
+
+      appEvents.emit('notification:queue', { userId, type: 'badge_unlocked', metadata: { name: badge.name, description: badge.description } });
     }
   }
 }
@@ -186,7 +199,7 @@ async function checkPerfectWeek(userId: string): Promise<boolean> {
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toDateString(d);
 
     const { data: plan } = await supabase
       .from('daily_plans')
@@ -226,7 +239,7 @@ export async function getGamificationProfile(userId: string): Promise<Gamificati
   const xpProgressInLevel = xpTotal - currentLevelCumulativeXp;
 
   // XP earned today
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateString(new Date());
   const { data: todayTx } = await supabase
     .from('xp_transactions')
     .select('xp_amount')

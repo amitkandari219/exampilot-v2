@@ -61,7 +61,7 @@ export default function ProgressScreen() {
   }
 
   // Prepare chart data
-  const velocityChartData = ((velocityHistory as any) || []).map((v: any) => ({
+  const velocityChartData = (velocityHistory || []).map((v) => ({
     date: v.snapshot_date,
     value: v.velocity_ratio || 0,
   }));

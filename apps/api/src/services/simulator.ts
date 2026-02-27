@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabase.js';
-import { getPersonaDefaults } from './strategy.js';
+import { getPersonaDefaults } from './modeConfig.js';
+import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
+import { VELOCITY, VELOCITY_WEIGHTING } from '../constants/thresholds.js';
 import type {
   SimulationScenario,
   SimulationSnapshot,
@@ -9,9 +11,35 @@ import type {
   VelocityStatus,
 } from '../types/index.js';
 
+interface SimulatorProfile {
+  exam_date: string;
+  buffer_balance: number;
+  buffer_capacity: number;
+  buffer_initial: number | null;
+  daily_hours: number;
+  strategy_mode: string;
+  strategy_params: { revision_frequency?: number; [key: string]: unknown };
+  current_mode: string;
+  prelims_date: string | null;
+  velocity_target_multiplier: number;
+  created_at: string;
+}
+
+interface FocusSubjectSnapshot extends SimulationSnapshot {
+  subject_impact?: {
+    subject_id: string;
+    focus_days: number;
+    topics_coverable: number;
+    subject_completion_pct_before: number;
+    subject_completion_pct_after: number;
+    other_subjects_confidence_retention: number;
+    avg_stability_other: number;
+  };
+}
+
 // --- Data fetchers ---
 
-async function getProfileData(userId: string) {
+async function getProfileData(userId: string): Promise<SimulatorProfile> {
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('exam_date, buffer_capacity, buffer_balance, buffer_initial, daily_hours, strategy_params, strategy_mode, current_mode, prelims_date, velocity_target_multiplier')
@@ -21,7 +49,7 @@ async function getProfileData(userId: string) {
   if (!profile || !profile.exam_date) {
     throw new Error('User profile or exam date not found');
   }
-  return profile;
+  return profile as unknown as SimulatorProfile;
 }
 
 async function getGravityData(userId: string) {
@@ -54,14 +82,11 @@ async function getGravityData(userId: string) {
 }
 
 async function getActualVelocity(userId: string) {
-  const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
   const { data: logs } = await supabase
     .from('daily_logs')
     .select('log_date, gravity_completed')
     .eq('user_id', userId)
-    .gte('log_date', fourteenDaysAgo.toISOString().split('T')[0])
+    .gte('log_date', toDateString(daysAgo(14)))
     .order('log_date', { ascending: false });
 
   const sevenDayLogs = (logs || []).slice(0, 7);
@@ -72,15 +97,15 @@ async function getActualVelocity(userId: string) {
   const avg14d = fourteenDayLogs.length > 0
     ? fourteenDayLogs.reduce((sum: number, l: any) => sum + l.gravity_completed, 0) / fourteenDayLogs.length : 0;
 
-  return avg7d * 0.6 + avg14d * 0.4;
+  return avg7d * VELOCITY_WEIGHTING.WEIGHT_7D + avg14d * VELOCITY_WEIGHTING.WEIGHT_14D;
 }
 
 // --- Velocity math helpers ---
 
 function getVelocityStatus(ratio: number): VelocityStatus {
-  if (ratio >= 1.1) return 'ahead';
-  if (ratio >= 0.9) return 'on_track';
-  if (ratio >= 0.7) return 'behind';
+  if (ratio >= VELOCITY.AHEAD) return 'ahead';
+  if (ratio >= VELOCITY.ON_TRACK) return 'on_track';
+  if (ratio >= VELOCITY.BEHIND) return 'behind';
   return 'at_risk';
 }
 
@@ -94,7 +119,7 @@ function computeProjectedDate(remainingGravity: number, actualVelocity: number):
   const daysToComplete = remainingGravity / actualVelocity;
   const projected = new Date();
   projected.setDate(projected.getDate() + Math.ceil(daysToComplete));
-  return projected.toISOString().split('T')[0];
+  return toDateString(projected);
 }
 
 function recalcSnapshot(snapshot: SimulationSnapshot, revisionPct: number): SimulationSnapshot {
@@ -131,14 +156,14 @@ async function computeBaseline(userId: string): Promise<{ snapshot: SimulationSn
   const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
     ? profile.prelims_date : profile.exam_date;
   const examDate = new Date(targetDate);
-  const daysRemaining = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / 86400000));
+  const daysRemaining = daysUntil(examDate, now);
 
   const bufferPct = profile.buffer_capacity || 0.15;
-  const revisionPct = (profile.strategy_params as any)?.revision_frequency
-    ? 1 / (profile.strategy_params as any).revision_frequency : 0.25;
+  const revisionPct = profile.strategy_params?.revision_frequency
+    ? 1 / profile.strategy_params.revision_frequency : 0.25;
 
   const rawRequiredVelocity = computeRequiredVelocity(gravity.remainingGravity, daysRemaining, bufferPct, revisionPct);
-  const requiredVelocity = rawRequiredVelocity * ((profile as any).velocity_target_multiplier ?? 1.0);
+  const requiredVelocity = rawRequiredVelocity * (profile.velocity_target_multiplier ?? 1.0);
   const velocityRatio = requiredVelocity > 0 ? actualVelocity / requiredVelocity : 1;
   const projectedDate = computeProjectedDate(gravity.remainingGravity, actualVelocity);
   // Use fixed buffer_initial set at onboarding; fall back to dynamic calc for legacy users
@@ -197,7 +222,7 @@ function applyChangeStrategy(snapshot: SimulationSnapshot, params: { strategy_mo
 function applyChangeExamDate(snapshot: SimulationSnapshot, params: { exam_date: string }, revisionPct: number): SimulationSnapshot {
   const newExamDate = new Date(params.exam_date);
   const now = new Date();
-  const newDaysRemaining = Math.max(1, Math.ceil((newExamDate.getTime() - now.getTime()) / 86400000));
+  const newDaysRemaining = daysUntil(newExamDate, now);
   const modified = { ...snapshot };
   modified.days_remaining = newDaysRemaining;
   modified.exam_date = params.exam_date;
@@ -241,6 +266,108 @@ async function applyDeferTopics(userId: string, snapshot: SimulationSnapshot, pa
   return recalcSnapshot(modified, revisionPct);
 }
 
+async function applyFocusSubject(
+  userId: string,
+  snapshot: SimulationSnapshot,
+  params: { subject_id: string; days: number },
+  revisionPct: number,
+): Promise<FocusSubjectSnapshot> {
+  const days = Math.max(3, Math.min(params.days, 14));
+
+  // Fetch all topics for the focused subject (via chapters)
+  const { data: chapters } = await supabase
+    .from('chapters')
+    .select('id')
+    .eq('subject_id', params.subject_id);
+
+  const chapterIds = (chapters || []).map((c: any) => c.id);
+
+  let subjectTopics: any[] = [];
+  if (chapterIds.length > 0) {
+    const { data: topics } = await supabase
+      .from('topics')
+      .select('id, pyq_weight, estimated_hours')
+      .in('chapter_id', chapterIds);
+    subjectTopics = topics || [];
+  }
+
+  // Fetch progress for subject topics
+  const subjectTopicIds = subjectTopics.map((t: any) => t.id);
+
+  let progressMap = new Map<string, string>();
+  if (subjectTopicIds.length > 0) {
+    const { data: progress } = await supabase
+      .from('user_progress')
+      .select('topic_id, status')
+      .eq('user_id', userId)
+      .in('topic_id', subjectTopicIds);
+    progressMap = new Map((progress || []).map((p: any) => [p.topic_id, p.status]));
+  }
+
+  const completedStatuses = ['first_pass', 'revised', 'exam_ready'];
+
+  let subjectTotalGravity = 0;
+  let subjectCompletedGravity = 0;
+  let subjectRemainingTopics: any[] = [];
+
+  for (const t of subjectTopics) {
+    subjectTotalGravity += t.pyq_weight;
+    const status = progressMap.get(t.id) || 'untouched';
+    if (completedStatuses.includes(status)) {
+      subjectCompletedGravity += t.pyq_weight;
+    } else {
+      subjectRemainingTopics.push(t);
+    }
+  }
+
+  const subjectRemainingGravity = subjectTotalGravity - subjectCompletedGravity;
+  const subjectCurrentCompletionPct = subjectTotalGravity > 0 ? subjectCompletedGravity / subjectTotalGravity : 0;
+
+  // Estimate average topic weight for remaining topics
+  const avgTopicWeight = subjectRemainingTopics.length > 0
+    ? subjectRemainingTopics.reduce((sum: number, t: any) => sum + t.pyq_weight, 0) / subjectRemainingTopics.length
+    : 1;
+
+  // Topics coverable = days × (actual_velocity / avg_topic_weight)
+  const topicsCoverable = avgTopicWeight > 0 ? days * (snapshot.actual_velocity / avgTopicWeight) : 0;
+  const coverableGravity = Math.min(topicsCoverable * avgTopicWeight, subjectRemainingGravity);
+  const newSubjectCompletedGravity = subjectCompletedGravity + coverableGravity;
+  const projectedSubjectCompletionPct = subjectTotalGravity > 0 ? newSubjectCompletedGravity / subjectTotalGravity : 1;
+
+  // Fetch FSRS cards for all other topics to project confidence decline
+  const { data: allCards } = await supabase
+    .from('fsrs_cards')
+    .select('topic_id, stability')
+    .eq('user_id', userId)
+    .not('topic_id', 'in', `(${subjectTopicIds.length > 0 ? subjectTopicIds.join(',') : 'null'})`);
+
+  const otherCards = allCards || [];
+  const avgStability = otherCards.length > 0
+    ? otherCards.reduce((sum: number, c: any) => sum + (c.stability || 1), 0) / otherCards.length
+    : 1;
+
+  // FSRS retrievability formula: R = (1 + N / (9 × S))^(-1)
+  const confidenceDeclineFactor = Math.pow(1 + days / (9 * avgStability), -1);
+
+  // During N days of focus, velocity on other topics is effectively 0.
+  // Model this as the remaining gravity staying the same but losing N days of productive time.
+  const modified = { ...snapshot };
+  modified.days_remaining = Math.max(1, snapshot.days_remaining - days);
+  // Buffer is untouched — focus days are intentional, not zero-days
+  return {
+    ...recalcSnapshot(modified, revisionPct),
+    subject_impact: {
+      subject_id: params.subject_id,
+      focus_days: days,
+      topics_coverable: Math.round(topicsCoverable),
+      subject_completion_pct_before: subjectCurrentCompletionPct,
+      subject_completion_pct_after: projectedSubjectCompletionPct,
+      other_subjects_confidence_retention: confidenceDeclineFactor,
+      avg_stability_other: avgStability,
+    },
+  };
+}
+
 // --- Delta computation ---
 
 function computeDelta(baseline: SimulationSnapshot, projected: SimulationSnapshot): SimulationDelta {
@@ -267,7 +394,7 @@ function computeDelta(baseline: SimulationSnapshot, projected: SimulationSnapsho
 export async function runSimulation(userId: string, scenario: SimulationScenario): Promise<SimulationResult> {
   const { snapshot: baseline, revisionPct } = await computeBaseline(userId);
 
-  let projected: SimulationSnapshot;
+  let projected: FocusSubjectSnapshot;
 
   switch (scenario.type) {
     case 'skip_days':
@@ -285,11 +412,104 @@ export async function runSimulation(userId: string, scenario: SimulationScenario
     case 'defer_topics':
       projected = await applyDeferTopics(userId, baseline, scenario.params as { count: number }, revisionPct);
       break;
+    case 'focus_subject':
+      projected = await applyFocusSubject(userId, baseline, scenario.params as { subject_id: string; days: number }, revisionPct);
+      break;
     default:
-      throw new Error(`Unknown scenario type: ${(scenario as any).type}`);
+      throw new Error(`Unknown scenario type: ${(scenario as SimulationScenario).type}`);
   }
 
   const delta = computeDelta(baseline, projected);
 
-  return { scenario, baseline, projected, delta };
+  // Compute verdict based on projected status
+  let verdict: 'green' | 'yellow' | 'red';
+  if (projected.status === 'ahead' || projected.status === 'on_track') {
+    verdict = 'green';
+  } else if (projected.status === 'behind') {
+    verdict = 'yellow';
+  } else {
+    verdict = 'red';
+  }
+
+  // Generate recommendation string based on scenario type and verdict
+  let recommendation: string;
+  switch (scenario.type) {
+    case 'skip_days': {
+      const days = scenario.params.days ?? 0;
+      if (verdict === 'green') {
+        recommendation = `Skipping ${days} day(s) keeps you on track. Buffer absorbs the gap — you can recover comfortably.`;
+      } else if (verdict === 'yellow') {
+        recommendation = `Skipping ${days} day(s) puts you behind. Plan to increase daily hours for a few days after your break to recover.`;
+      } else {
+        recommendation = `Skipping ${days} day(s) is risky. Consider reducing scope or switching to a more aggressive strategy to avoid falling behind.`;
+      }
+      break;
+    }
+    case 'change_hours': {
+      const hours = scenario.params.daily_hours ?? 0;
+      if (verdict === 'green') {
+        recommendation = `Studying ${hours}h/day is sufficient. You'll stay on track without additional changes.`;
+      } else if (verdict === 'yellow') {
+        recommendation = `${hours}h/day will leave you slightly behind. Try to find at least one extra hour on weekends.`;
+      } else {
+        recommendation = `${hours}h/day is insufficient at this stage. Either increase study hours significantly or reduce scope.`;
+      }
+      break;
+    }
+    case 'change_strategy': {
+      const mode = scenario.params.strategy_mode ?? '';
+      if (verdict === 'green') {
+        recommendation = `Switching to '${mode}' keeps you comfortably on track. This change is safe to make.`;
+      } else if (verdict === 'yellow') {
+        recommendation = `Switching to '${mode}' introduces some risk. Monitor your velocity closely for the first two weeks.`;
+      } else {
+        recommendation = `Switching to '${mode}' puts your exam prep at risk. Stick with your current strategy or choose a more aggressive mode.`;
+      }
+      break;
+    }
+    case 'change_exam_date': {
+      const examDate = scenario.params.exam_date ?? '';
+      if (verdict === 'green') {
+        recommendation = `Moving your exam date to ${examDate} gives you a healthy runway. Your current pace is sustainable.`;
+      } else if (verdict === 'yellow') {
+        recommendation = `With the new exam date of ${examDate}, you're slightly behind. Tighten your daily plan to close the gap.`;
+      } else {
+        recommendation = `The exam date ${examDate} is very tight at your current velocity. Consider increasing daily hours or reducing scope.`;
+      }
+      break;
+    }
+    case 'defer_topics': {
+      const count = scenario.params.count ?? 0;
+      if (verdict === 'green') {
+        recommendation = `Deferring ${count} low-priority topic(s) meaningfully improves your trajectory without sacrificing coverage.`;
+      } else if (verdict === 'yellow') {
+        recommendation = `Deferring ${count} topic(s) helps but you're still slightly behind. Consider deferring a few more low-weight topics.`;
+      } else {
+        recommendation = `Even after deferring ${count} topic(s), you're at risk. Revisit your daily hours and consider a more aggressive strategy.`;
+      }
+      break;
+    }
+    case 'focus_subject': {
+      const focusDays = scenario.params.days ?? 0;
+      const subjectImpact = projected.subject_impact;
+      const afterPct = subjectImpact ? Math.round(subjectImpact.subject_completion_pct_after * 100) : 0;
+      const retentionPct = subjectImpact ? Math.round(subjectImpact.other_subjects_confidence_retention * 100) : 0;
+      if (verdict === 'green') {
+        recommendation = `A ${focusDays}-day focus sprint can push subject completion to ~${afterPct}% while other subjects retain ~${retentionPct}% confidence. Safe to proceed.`;
+      } else if (verdict === 'yellow') {
+        recommendation = `A ${focusDays}-day focus sprint improves subject coverage to ~${afterPct}% but slightly delays overall progress. Consider a shorter sprint of 3–5 days instead.`;
+      } else {
+        recommendation = `A ${focusDays}-day focus sprint puts your overall prep at risk. Other subjects may drop to ~${retentionPct}% confidence. Limit the sprint to 3 days or interleave with lighter revision of other subjects.`;
+      }
+      break;
+    }
+    default:
+      recommendation = verdict === 'green'
+        ? 'Your study plan looks healthy after this change.'
+        : verdict === 'yellow'
+          ? 'This change introduces some risk — monitor progress closely.'
+          : 'This change puts your exam prep at risk. Consider adjusting your approach.';
+  }
+
+  return { scenario, baseline, projected, delta, verdict, recommendation };
 }

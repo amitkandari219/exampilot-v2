@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, type SyllabusProgressData } from '../lib/api';
 import { isDemoMode } from '../lib/supabase';
 import { demoSyllabus } from '../lib/demoData';
-import { Subject, TopicStatus } from '../types';
+import { TopicStatus } from '../types';
 
 export function useSyllabusProgress() {
-  return useQuery<Subject[]>({
+  return useQuery<SyllabusProgressData>({
     queryKey: ['syllabus-progress'],
-    queryFn: () => isDemoMode ? Promise.resolve(demoSyllabus as unknown as Subject[]) : api.getSyllabusProgress() as Promise<Subject[]>,
+    queryFn: () => isDemoMode ? Promise.resolve(demoSyllabus as unknown as SyllabusProgressData) : api.getSyllabusProgress(),
   });
 }
 

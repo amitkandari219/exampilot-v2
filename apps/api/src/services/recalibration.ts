@@ -1,5 +1,9 @@
 import { supabase } from '../lib/supabase.js';
 import type { StrategyMode } from '../types/index.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { RECALIBRATION as RECAL_CONSTANTS } from '../constants/thresholds.js';
+import { getPersonaDefaults } from './modeConfig.js';
+import { appEvents } from './events.js';
 
 // Tunable persona params (subset of full TunableParams)
 interface TunableParams {
@@ -11,22 +15,21 @@ interface TunableParams {
 
 // --- Constants ---
 
-const COOLDOWN_DAYS = 3;
-const MODE_DRIFT_LIMIT = 0.20;
+const COOLDOWN_DAYS = RECAL_CONSTANTS.COOLDOWN_DAYS;
+const MODE_DRIFT_LIMIT = RECAL_CONSTANTS.DRIFT_LIMIT;
+const BOUNDS = RECAL_CONSTANTS.BOUNDS;
+const STEPS = RECAL_CONSTANTS.STEPS;
+const SIG = RECAL_CONSTANTS.SIGNALS;
 
-const BOUNDS = {
-  fatigue_threshold: [60, 95] as const,
-  buffer_capacity: [0.05, 0.35] as const,
-  fsrs_target_retention: [0.80, 0.98] as const,
-  burnout_threshold: [50, 90] as const,
-};
-
-const MODE_DEFAULTS: Record<StrategyMode, TunableParams> = {
-  conservative: { fatigue_threshold: 85, buffer_capacity: 0.20, fsrs_target_retention: 0.85, burnout_threshold: 65 },
-  balanced: { fatigue_threshold: 85, buffer_capacity: 0.15, fsrs_target_retention: 0.90, burnout_threshold: 75 },
-  aggressive: { fatigue_threshold: 85, buffer_capacity: 0.10, fsrs_target_retention: 0.95, burnout_threshold: 80 },
-  working_professional: { fatigue_threshold: 85, buffer_capacity: 0.25, fsrs_target_retention: 0.85, burnout_threshold: 65 },
-};
+function getModeDefaults(mode: StrategyMode): TunableParams {
+  const persona = getPersonaDefaults(mode);
+  return {
+    fatigue_threshold: persona.fatigue_threshold,
+    buffer_capacity: persona.buffer_capacity,
+    fsrs_target_retention: persona.fsrs_target_retention,
+    burnout_threshold: persona.burnout_threshold,
+  };
+}
 
 // --- Types ---
 
@@ -88,10 +91,8 @@ export interface RecalibrationLogEntry {
 
 // --- Signal Gathering ---
 
-export async function gatherSignals(userId: string, windowDays = 7): Promise<RecalibrationSignals> {
-  const since = new Date();
-  since.setDate(since.getDate() - windowDays);
-  const sinceStr = since.toISOString().split('T')[0];
+export async function gatherSignals(userId: string, windowDays: number = RECAL_CONSTANTS.DEFAULT_WINDOW_DAYS): Promise<RecalibrationSignals> {
+  const sinceStr = toDateString(daysAgo(windowDays));
 
   // Query velocity snapshots
   const { data: velocityRows } = await supabase
@@ -116,7 +117,7 @@ export async function gatherSignals(userId: string, windowDays = 7): Promise<Rec
     .gt('confidence_score', 0);
 
   // Query weakness snapshots for critical/weak %
-  const latestDate = new Date().toISOString().split('T')[0];
+  const latestDate = toDateString(new Date());
   const { data: weaknessRows } = await supabase
     .from('weakness_snapshots')
     .select('category')
@@ -127,9 +128,8 @@ export async function gatherSignals(userId: string, windowDays = 7): Promise<Rec
   const bRows = burnoutRows || [];
   const dataPoints = Math.max(vRows.length, bRows.length);
 
-  // If <5 data points and window is 7, extend to 14
-  if (dataPoints < 5 && windowDays === 7) {
-    return gatherSignals(userId, 14);
+  if (dataPoints < RECAL_CONSTANTS.MIN_DATA_POINTS && windowDays === RECAL_CONSTANTS.DEFAULT_WINDOW_DAYS) {
+    return gatherSignals(userId, RECAL_CONSTANTS.EXTENDED_WINDOW_DAYS);
   }
 
   const avgVelocityRatio = vRows.length > 0
@@ -161,7 +161,7 @@ export async function gatherSignals(userId: string, windowDays = 7): Promise<Rec
     confidenceAvg: avgConfidence,
     criticalWeaknessPct,
     dataPoints,
-    windowDays: dataPoints < 5 && windowDays === 7 ? 14 : windowDays,
+    windowDays: dataPoints < RECAL_CONSTANTS.MIN_DATA_POINTS && windowDays === RECAL_CONSTANTS.DEFAULT_WINDOW_DAYS ? RECAL_CONSTANTS.EXTENDED_WINDOW_DAYS : windowDays,
   };
 }
 
@@ -172,7 +172,7 @@ export function computeAdjustments(
   signals: RecalibrationSignals,
   mode: StrategyMode
 ): { newParams: TunableParams; adjustments: ParamAdjustment[] } {
-  const defaults = MODE_DEFAULTS[mode] || MODE_DEFAULTS.balanced;
+  const defaults = getModeDefaults(mode);
   const adjustments: ParamAdjustment[] = [];
   const newParams = { ...current };
 
@@ -181,17 +181,17 @@ export function computeAdjustments(
   // --- fsrs_target_retention ---
   let retStep = 0;
   let retReason = '';
-  if (velocityRatio >= 1.15 && confidenceAvg >= 65 && briScore >= 65) {
-    retStep = 0.02; retReason = 'Ahead, healthy — tighten retention';
-  } else if (velocityRatio >= 1.05 && confidenceAvg >= 55 && briScore >= 60) {
-    retStep = 0.01; retReason = 'Moderately ahead';
-  } else if (velocityRatio < 0.75 || briScore < 40) {
-    retStep = -0.02; retReason = 'Struggling/burnout — reduce revision pressure';
-  } else if (velocityRatio < 0.90 && velocityTrend === 'declining') {
-    retStep = -0.01; retReason = 'Falling behind';
+  if (velocityRatio >= SIG.VELOCITY_THRIVING && confidenceAvg >= SIG.CONFIDENCE_GOOD && briScore >= SIG.BRI_GOOD) {
+    retStep = STEPS.RETENTION_BIG; retReason = 'Ahead, healthy — tighten retention';
+  } else if (velocityRatio >= SIG.VELOCITY_OK && confidenceAvg >= SIG.CONFIDENCE_OK && briScore >= SIG.BRI_OK) {
+    retStep = STEPS.RETENTION_SMALL; retReason = 'Moderately ahead';
+  } else if (velocityRatio < SIG.VELOCITY_STRUGGLING || briScore < SIG.BRI_STRUGGLING) {
+    retStep = -STEPS.RETENTION_BIG; retReason = 'Struggling/burnout — reduce revision pressure';
+  } else if (velocityRatio < SIG.VELOCITY_FALLING && velocityTrend === 'declining') {
+    retStep = -STEPS.RETENTION_SMALL; retReason = 'Falling behind';
   }
-  if (retStep === 0 && criticalWeaknessPct > 30) {
-    retStep = -0.01; retReason = 'Too many weak topics';
+  if (retStep === 0 && criticalWeaknessPct > SIG.WEAKNESS_CRITICAL_PCT) {
+    retStep = -STEPS.RETENTION_SMALL; retReason = 'Too many weak topics';
   }
   if (retStep !== 0) {
     const raw = current.fsrs_target_retention + retStep;
@@ -205,14 +205,14 @@ export function computeAdjustments(
   // --- burnout_threshold ---
   let burnStep = 0;
   let burnReason = '';
-  if (briScore < 45 && fatigueAvg > 60) {
-    burnStep = 3; burnReason = 'High burnout — trigger recovery sooner';
-  } else if (briScore < 55 && fatigueAvg > 50) {
-    burnStep = 2; burnReason = 'Moderate concern';
-  } else if (velocityRatio >= 1.15 && briScore >= 75 && fatigueAvg < 35) {
-    burnStep = -3; burnReason = 'Thriving — can push harder';
-  } else if (velocityRatio >= 1.05 && briScore >= 65 && fatigueAvg < 45) {
-    burnStep = -2; burnReason = 'Doing well';
+  if (briScore < SIG.BRI_CONCERN && fatigueAvg > SIG.FATIGUE_HIGH) {
+    burnStep = STEPS.BURNOUT_BIG; burnReason = 'High burnout — trigger recovery sooner';
+  } else if (briScore < SIG.BRI_MODERATE && fatigueAvg > SIG.FATIGUE_MODERATE) {
+    burnStep = STEPS.BURNOUT_SMALL; burnReason = 'Moderate concern';
+  } else if (velocityRatio >= SIG.VELOCITY_THRIVING && briScore >= SIG.BRI_THRIVING && fatigueAvg < SIG.FATIGUE_MODERATE_LOW) {
+    burnStep = -STEPS.BURNOUT_BIG; burnReason = 'Thriving — can push harder';
+  } else if (velocityRatio >= SIG.VELOCITY_OK && briScore >= SIG.BRI_GOOD && fatigueAvg < SIG.FATIGUE_MODERATE_HIGH) {
+    burnStep = -STEPS.BURNOUT_SMALL; burnReason = 'Doing well';
   }
   if (burnStep !== 0) {
     const raw = current.burnout_threshold + burnStep;
@@ -226,14 +226,14 @@ export function computeAdjustments(
   // --- fatigue_threshold ---
   let fatStep = 0;
   let fatReason = '';
-  if (fatigueAvg > 70 && briScore < 55) {
-    fatStep = -3; fatReason = 'Chronically fatigued — protect user';
-  } else if (fatigueAvg > 55 && briScore < 65) {
-    fatStep = -2; fatReason = 'Moderate fatigue concern';
-  } else if (velocityRatio >= 1.10 && fatigueAvg < 30 && briScore >= 70) {
-    fatStep = 3; fatReason = 'Energized — can handle more';
-  } else if (velocityRatio >= 1.05 && fatigueAvg < 40 && briScore >= 65) {
-    fatStep = 2; fatReason = 'Healthy and productive';
+  if (fatigueAvg > SIG.FATIGUE_CHRONIC && briScore < SIG.BRI_MODERATE) {
+    fatStep = -STEPS.FATIGUE_BIG; fatReason = 'Chronically fatigued — protect user';
+  } else if (fatigueAvg > SIG.FATIGUE_ELEVATED && briScore < SIG.BRI_GOOD) {
+    fatStep = -STEPS.FATIGUE_SMALL; fatReason = 'Moderate fatigue concern';
+  } else if (velocityRatio >= SIG.VELOCITY_GOOD && fatigueAvg < SIG.FATIGUE_LOW && briScore >= SIG.BRI_HEALTHY) {
+    fatStep = STEPS.FATIGUE_BIG; fatReason = 'Energized — can handle more';
+  } else if (velocityRatio >= SIG.VELOCITY_OK && fatigueAvg < SIG.FATIGUE_OK && briScore >= SIG.BRI_GOOD) {
+    fatStep = STEPS.FATIGUE_SMALL; fatReason = 'Healthy and productive';
   }
   if (fatStep !== 0) {
     const raw = current.fatigue_threshold + fatStep;
@@ -247,17 +247,17 @@ export function computeAdjustments(
   // --- buffer_capacity ---
   let bufStep = 0;
   let bufReason = '';
-  if (velocityRatio >= 1.20 && briScore >= 70) {
-    bufStep = -0.02; bufReason = 'Far ahead — less buffer needed';
-  } else if (velocityRatio >= 1.10 && briScore >= 60) {
-    bufStep = -0.01; bufReason = 'Moderately ahead';
-  } else if (velocityRatio < 0.75 && stressAvg < 40) {
-    bufStep = 0.02; bufReason = 'Far behind — more cushion';
-  } else if (velocityRatio < 0.85 && stressAvg < 50) {
-    bufStep = 0.01; bufReason = 'Behind with stress';
+  if (velocityRatio >= 1.20 && briScore >= SIG.BRI_HEALTHY) {
+    bufStep = -STEPS.BUFFER_BIG; bufReason = 'Far ahead — less buffer needed';
+  } else if (velocityRatio >= SIG.VELOCITY_GOOD && briScore >= SIG.BRI_OK) {
+    bufStep = -STEPS.BUFFER_SMALL; bufReason = 'Moderately ahead';
+  } else if (velocityRatio < SIG.VELOCITY_STRUGGLING && stressAvg < SIG.BRI_STRUGGLING) {
+    bufStep = STEPS.BUFFER_BIG; bufReason = 'Far behind — more cushion';
+  } else if (velocityRatio < SIG.VELOCITY_BEHIND && stressAvg < SIG.FATIGUE_MODERATE) {
+    bufStep = STEPS.BUFFER_SMALL; bufReason = 'Behind with stress';
   }
-  if (bufStep === 0 && briScore < 45) {
-    bufStep = 0.01; bufReason = 'Burnout risk — breathing room';
+  if (bufStep === 0 && briScore < SIG.BRI_CONCERN) {
+    bufStep = STEPS.BUFFER_SMALL; bufReason = 'Burnout risk — breathing room';
   }
   if (bufStep !== 0) {
     const raw = current.buffer_capacity + bufStep;
@@ -329,7 +329,7 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
   const signals = await gatherSignals(userId);
 
   // 6. Need >=5 data points
-  if (signals.dataPoints < 5) {
+  if (signals.dataPoints < RECAL_CONSTANTS.MIN_DATA_POINTS) {
     return { status: 'skipped', skipped_reason: 'insufficient_data' };
   }
 
@@ -417,6 +417,10 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
     reason_burnout: reasonMap.burnout,
     params_changed: paramsChanged,
   });
+
+  if (paramsChanged) {
+    appEvents.emit('notification:queue', { userId, type: 'recalibration_triggered' });
+  }
 
   return {
     status: paramsChanged ? 'applied' : 'no_change',

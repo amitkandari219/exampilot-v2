@@ -1,5 +1,13 @@
 import { supabase } from '../lib/supabase.js';
 import type { StrategyMode } from '../types/index.js';
+import { toDateString } from '../utils/dateUtils.js';
+
+// Typed interface for strategy_params jsonb field
+interface StrategyParams {
+  scope_reduction_threshold?: number;
+  daily_new_topics?: number;
+  [key: string]: unknown;
+}
 
 // Strategy order per mode — personalized cascade
 const STRATEGY_ORDER: Record<StrategyMode, string[]> = {
@@ -164,7 +172,8 @@ export async function evaluateCascadeStrategies(userId: string, forceTrigger = f
   });
 
   // --- Strategy 4: SCOPE REDUCTION ---
-  const scopeThreshold = (profile.strategy_params as any)?.scope_reduction_threshold ?? 0.1;
+  const strategyParamsEval = (profile.strategy_params as StrategyParams) || {};
+  const scopeThreshold = strategyParamsEval.scope_reduction_threshold ?? 0.1;
 
   const [topicsRes, progressRes, countRes] = await Promise.all([
     supabase.from('topics').select('id, importance, pyq_weight').lte('importance', 2).lte('pyq_weight', 2),
@@ -255,7 +264,7 @@ export async function applyCascadeStrategy(userId: string, strategyName: string)
     case 'absorb': {
       // Absorb spreads backlog over 7-14 days — planner naturally picks up
       // We record the intent so the planner can boost daily_new_topics
-      const strat = (profile.strategy_params as any) || {};
+      const strat: StrategyParams = (profile.strategy_params as StrategyParams) || {};
       const currentDailyNew = strat.daily_new_topics || 3;
       const boosted = currentDailyNew + 1;
       await supabase
@@ -277,7 +286,7 @@ export async function applyCascadeStrategy(userId: string, strategyName: string)
 
       await supabase.from('buffer_transactions').insert({
         user_id: userId,
-        transaction_date: new Date().toISOString().split('T')[0],
+        transaction_date: toDateString(new Date()),
         type: 'recalibration_adjustment',
         amount,
         balance_after: newBalance,
@@ -360,7 +369,7 @@ export async function applyCascadeStrategy(userId: string, strategyName: string)
   try {
     const { calculateVelocity } = await import('./velocity.js');
     await calculateVelocity(userId);
-  } catch {
+  } catch (e) { console.warn('[strategyCascade:velocity-recalc]', e);
     // Non-critical
   }
 

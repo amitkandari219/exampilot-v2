@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { switchExamMode, previewModeSwitch } from '../services/mode.js';
+import { EXAM_MODES } from '../types/index.js';
 import type { ExamMode } from '../types/index.js';
 
 export async function modeRoutes(app: FastifyInstance) {
@@ -9,9 +10,8 @@ export async function modeRoutes(app: FastifyInstance) {
   }>('/api/mode/switch', async (request, reply) => {
     const { mode } = request.body;
 
-    const validModes: ExamMode[] = ['mains', 'prelims', 'post_prelims'];
-    if (!mode || !validModes.includes(mode as ExamMode)) {
-      return reply.status(400).send({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
+    if (!mode || !EXAM_MODES.includes(mode as ExamMode)) {
+      return reply.status(400).send({ error: `Invalid mode. Must be one of: ${EXAM_MODES.join(', ')}` });
     }
 
     const result = await switchExamMode(request.userId, mode as ExamMode);

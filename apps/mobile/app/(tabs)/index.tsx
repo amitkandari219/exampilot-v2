@@ -5,8 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useStress } from '../../hooks/useStress';
-import { useSwitchExamMode } from '../../hooks/useStrategy';
-import { api } from '../../lib/api';
+import { useStrategy, useSwitchExamMode } from '../../hooks/useStrategy';
 import { useVelocity } from '../../hooks/useVelocity';
 import { useBuffer } from '../../hooks/useVelocity';
 import { useBurnout } from '../../hooks/useBurnout';
@@ -41,14 +40,13 @@ export default function DashboardScreen() {
   const { data: gamification } = useGamification();
   const { data: benchmark } = useBenchmark();
   const { data: caStats } = useCAStats();
+  const { data: strategyData } = useStrategy();
   const switchExamMode = useSwitchExamMode();
   const [examMode, setExamMode] = useState<ExamMode>('mains');
 
   useEffect(() => {
-    api.getStrategy().then((data: any) => {
-      if (data?.current_mode) setExamMode(data.current_mode);
-    }).catch(() => {});
-  }, []);
+    if (strategyData?.current_mode) setExamMode(strategyData.current_mode);
+  }, [strategyData]);
 
   const handleExamModeChange = (newMode: ExamMode) => {
     setExamMode(newMode);

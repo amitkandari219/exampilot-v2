@@ -30,13 +30,7 @@ export async function onboardingRoutes(app: FastifyInstance) {
   });
 
   app.post('/api/onboarding/reset', async (request, reply) => {
-    const userId = request.userId;
-    try {
-      const result = await resetUserData(userId);
-      return reply.status(200).send(result);
-    } catch (err: any) {
-      request.log.error(err, 'Failed to reset user data');
-      return reply.status(500).send({ error: err.message || 'Reset failed' });
-    }
+    const result = await resetUserData(request.userId);
+    return reply.status(200).send(result);
   });
 }

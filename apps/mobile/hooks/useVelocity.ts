@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { isDemoMode } from '../lib/supabase';
 import { demoVelocity, demoBuffer } from '../lib/demoData';
-import { VelocityData, BufferData } from '../types';
+import { VelocityData, VelocityHistoryPoint, BufferData } from '../types';
 
 export function useVelocity() {
   return useQuery<VelocityData>({
@@ -12,9 +12,9 @@ export function useVelocity() {
 }
 
 export function useVelocityHistory(days = 30) {
-  return useQuery({
+  return useQuery<VelocityHistoryPoint[]>({
     queryKey: ['velocity-history', days],
-    queryFn: () => isDemoMode ? Promise.resolve([]) : api.getVelocityHistory(days),
+    queryFn: () => isDemoMode ? Promise.resolve([]) : api.getVelocityHistory(days) as Promise<VelocityHistoryPoint[]>,
   });
 }
 

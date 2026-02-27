@@ -7,26 +7,27 @@ import {
 } from '../services/mockTest.js';
 
 export async function mockTestRoutes(app: FastifyInstance) {
-  app.post('/api/mocks', async (request, reply) => {
-    const body = request.body as any;
+  app.post<{
+    Body: { test_name: string; total_questions: number; correct?: number; incorrect?: number; [key: string]: unknown };
+  }>('/api/mocks', async (request, reply) => {
+    const { test_name, total_questions, correct = 0, incorrect = 0 } = request.body;
 
-    if (!body.test_name || !body.total_questions || body.total_questions <= 0) {
+    if (!test_name || !total_questions || total_questions <= 0) {
       return reply.status(400).send({ error: 'test_name and total_questions (> 0) are required' });
     }
 
-    const correct = body.correct || 0;
-    const incorrect = body.incorrect || 0;
-    if (correct + incorrect > body.total_questions) {
+    if (correct + incorrect > total_questions) {
       return reply.status(400).send({ error: 'correct + incorrect cannot exceed total_questions' });
     }
 
-    const result = await createMockTest(request.userId, body);
+    const result = await createMockTest(request.userId, { ...request.body, correct, incorrect });
     return reply.status(201).send(result);
   });
 
-  app.get('/api/mocks', async (request, reply) => {
-    const { limit } = request.query as { limit?: string };
-    const result = await getMockTests(request.userId, limit ? parseInt(limit, 10) : 20);
+  app.get<{
+    Querystring: { limit?: string };
+  }>('/api/mocks', async (request, reply) => {
+    const result = await getMockTests(request.userId, request.query.limit ? parseInt(request.query.limit, 10) : 20);
     return reply.status(200).send(result);
   });
 
@@ -35,9 +36,10 @@ export async function mockTestRoutes(app: FastifyInstance) {
     return reply.status(200).send(result);
   });
 
-  app.get('/api/mocks/topic/:topicId/history', async (request, reply) => {
-    const { topicId } = request.params as { topicId: string };
-    const result = await getTopicMockHistory(request.userId, topicId);
+  app.get<{
+    Params: { topicId: string };
+  }>('/api/mocks/topic/:topicId/history', async (request, reply) => {
+    const result = await getTopicMockHistory(request.userId, request.params.topicId);
     return reply.status(200).send(result);
   });
 }

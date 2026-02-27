@@ -1,6 +1,47 @@
 import { supabase } from '../lib/supabase.js';
 import type { HealthCategory } from '../types/index.js';
-import { getActiveSubjectIds } from './mode.js';
+import { getActiveSubjectIds } from './modeConfig.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { HEALTH_WEIGHTS } from '../constants/thresholds.js';
+
+// Typed interfaces for Supabase join results
+interface SubjectRow { id: string; name: string }
+interface ChapterWithSubject { id: string; name: string; subjects: SubjectRow }
+interface TopicWithChapter {
+  id: string;
+  name: string;
+  importance: number;
+  difficulty: number;
+  estimated_hours: number;
+  pyq_weight: number;
+  chapters: ChapterWithSubject;
+}
+interface ProgressWithTopicJoin {
+  topic_id: string;
+  status: string;
+  health_score: number;
+  revision_count: number;
+  topics: {
+    name: string;
+    importance: number;
+    pyq_weight: number;
+    chapters: { name: string; subjects: SubjectRow };
+  };
+}
+interface SnapshotWithTopicJoin {
+  topic_id: string;
+  health_score: number;
+  category: string;
+  confidence_component: number;
+  revision_component: number;
+  effort_component: number;
+  stability_component: number;
+  topics: {
+    id: string;
+    name: string;
+    chapters: { id: string; name: string; subjects: SubjectRow };
+  };
+}
 
 // Health zone thresholds — single source of truth
 // DB enum: critical | weak | moderate | strong | exam_ready
@@ -112,18 +153,19 @@ export async function calculateHealthScores(userId: string) {
 
   // Filter by active subjects in current exam mode
   const activeSubjectIds = await getActiveSubjectIds(userId);
+  const allTopicRows = (topicsRes.data || []) as unknown as TopicWithChapter[];
   const topics = activeSubjectIds
-    ? (topicsRes.data || []).filter((t: any) => {
+    ? allTopicRows.filter((t) => {
         const subjectId = t.chapters?.subjects?.id;
         return !subjectId || activeSubjectIds.has(subjectId);
       })
-    : (topicsRes.data || []);
+    : allTopicRows;
   if (topics.length === 0) return { updated: 0 };
 
   const progressMap = new Map((progressRes.data || []).map((p: any) => [p.topic_id, p]));
   const mockMap = new Map((mockAccuracyRes.data || []).map((m: any) => [m.topic_id, m]));
 
-  const snapshotDate = new Date().toISOString().split('T')[0];
+  const snapshotDate = toDateString(new Date());
   const now = Date.now();
   const results: any[] = [];
 
@@ -150,10 +192,10 @@ export async function calculateHealthScores(userId: string) {
 
     // Weighted composite
     const healthScore = Math.round(
-      completion * 0.25 +
-      revision * 0.20 +
-      accuracy * 0.30 +
-      recency * 0.25
+      completion * HEALTH_WEIGHTS.COMPLETION +
+      revision * HEALTH_WEIGHTS.REVISION +
+      accuracy * HEALTH_WEIGHTS.ACCURACY +
+      recency * HEALTH_WEIGHTS.RECENCY
     );
     const clampedScore = Math.max(0, Math.min(100, healthScore));
     const category = categorize(clampedScore);
@@ -161,7 +203,7 @@ export async function calculateHealthScores(userId: string) {
     results.push({
       topic_id: topic.id,
       topic_name: topic.name,
-      chapter: (topic as any).chapters,
+      chapter: topic.chapters,
       health_score: clampedScore,
       category,
       completion_component: Math.round(completion),
@@ -225,26 +267,27 @@ export async function getRadarInsights(userId: string): Promise<{
 
   // Filter by active subjects in current exam mode
   const activeSubjectIds = await getActiveSubjectIds(userId);
+  const allProgressRows = (progressRows || []) as unknown as ProgressWithTopicJoin[];
   const rows = activeSubjectIds
-    ? (progressRows || []).filter((r: any) => {
+    ? allProgressRows.filter((r) => {
         const subjectId = r.topics?.chapters?.subjects?.id;
         return !subjectId || activeSubjectIds.has(subjectId);
       })
-    : (progressRows || []);
+    : allProgressRows;
 
   // False Security: thinks they know it but health says otherwise
   const falseSecurity = rows
-    .filter((r: any) =>
+    .filter((r) =>
       (r.status === 'first_pass' || r.status === 'revised') &&
       r.health_score < 40
     )
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       const scoreA = a.topics.importance * a.topics.pyq_weight;
       const scoreB = b.topics.importance * b.topics.pyq_weight;
       return scoreB - scoreA;
     })
     .slice(0, 15)
-    .map((r: any) => formatInsight(r, 'false_security'));
+    .map((r) => formatInsight(r, 'false_security'));
 
   // Blind Spots: high-importance topics not started at all
   // Need untouched topics — they won't be in user_progress, so query separately
@@ -253,22 +296,27 @@ export async function getRadarInsights(userId: string): Promise<{
     .select('id, name, importance, pyq_weight, chapters!inner(name, subjects!inner(id, name))')
     .gte('importance', 4);
 
-  const progressTopicIds = new Set(rows.map((r: any) => r.topic_id));
+  const progressTopicIds = new Set(rows.map((r) => r.topic_id));
+  interface BlindSpotTopic {
+    id: string; name: string; importance: number; pyq_weight: number;
+    chapters: { name: string; subjects: { id: string; name: string } };
+  }
+  const allBlindTopics = (allTopics || []) as unknown as BlindSpotTopic[];
   const filteredTopics = activeSubjectIds
-    ? (allTopics || []).filter((t: any) => {
+    ? allBlindTopics.filter((t) => {
         const subjectId = t.chapters?.subjects?.id;
         return !subjectId || activeSubjectIds.has(subjectId);
       })
-    : (allTopics || []);
+    : allBlindTopics;
   const untouchedHighImportance = filteredTopics
-    .filter((t: any) => !progressTopicIds.has(t.id))
-    .sort((a: any, b: any) => (b.importance * b.pyq_weight) - (a.importance * a.pyq_weight))
+    .filter((t) => !progressTopicIds.has(t.id))
+    .sort((a, b) => (b.importance * b.pyq_weight) - (a.importance * a.pyq_weight))
     .slice(0, 10)
-    .map((t: any) => ({
+    .map((t) => ({
       topic_id: t.id,
       topic_name: t.name,
-      subject_name: (t as any).chapters?.subjects?.name || '',
-      chapter_name: (t as any).chapters?.name || '',
+      subject_name: t.chapters?.subjects?.name || '',
+      chapter_name: t.chapters?.name || '',
       importance: t.importance,
       pyq_weight: t.pyq_weight,
       health_score: 0,
@@ -279,10 +327,10 @@ export async function getRadarInsights(userId: string): Promise<{
 
   // Also include topics with status='untouched' that have a progress row
   const untouchedInProgress = rows
-    .filter((r: any) => r.status === 'untouched' && r.topics.importance >= 4)
-    .sort((a: any, b: any) => (b.topics.importance * b.topics.pyq_weight) - (a.topics.importance * a.topics.pyq_weight))
+    .filter((r) => r.status === 'untouched' && r.topics.importance >= 4)
+    .sort((a, b) => (b.topics.importance * b.topics.pyq_weight) - (a.topics.importance * a.topics.pyq_weight))
     .slice(0, 10)
-    .map((r: any) => formatInsight(r, 'blind_spot'));
+    .map((r) => formatInsight(r, 'blind_spot'));
 
   const blindSpots = [...untouchedHighImportance, ...untouchedInProgress]
     .sort((a, b) => (b.importance * b.pyq_weight) - (a.importance * a.pyq_weight))
@@ -290,18 +338,18 @@ export async function getRadarInsights(userId: string): Promise<{
 
   // Over-Revised: diminishing returns — too many revisions on low-importance topics
   const overRevised = rows
-    .filter((r: any) =>
+    .filter((r) =>
       r.revision_count >= 4 &&
       r.health_score >= 80 &&
       r.topics.importance <= 3
     )
-    .sort((a: any, b: any) => b.revision_count - a.revision_count)
-    .map((r: any) => formatInsight(r, 'over_revised'));
+    .sort((a, b) => b.revision_count - a.revision_count)
+    .map((r) => formatInsight(r, 'over_revised'));
 
   return { false_security: falseSecurity, blind_spots: blindSpots, over_revised: overRevised };
 }
 
-function formatInsight(row: any, type: RadarInsight['insight_type']): RadarInsight {
+function formatInsight(row: ProgressWithTopicJoin, type: RadarInsight['insight_type']): RadarInsight {
   return {
     topic_id: row.topic_id,
     topic_name: row.topics.name,
@@ -341,12 +389,13 @@ export async function getWeaknessOverview(userId: string) {
 
   // Filter by active subjects in current exam mode
   const activeSubjectIdsForOverview = await getActiveSubjectIds(userId);
+  const typedSnapshots = snapshots as unknown as SnapshotWithTopicJoin[];
   const filteredSnapshots = activeSubjectIdsForOverview
-    ? snapshots.filter((s: any) => {
+    ? typedSnapshots.filter((s) => {
         const subjectId = s.topics?.chapters?.subjects?.id;
         return !subjectId || activeSubjectIdsForOverview.has(subjectId);
       })
-    : snapshots;
+    : typedSnapshots;
 
   // Deduplicate — keep latest snapshot per topic
   const seen = new Set<string>();
@@ -377,7 +426,7 @@ export async function getWeaknessOverview(userId: string) {
     .filter((s) => s.category === 'critical' || s.category === 'weak')
     .sort((a, b) => a.health_score - b.health_score)
     .map((s) => {
-      const topic = (s as any).topics;
+      const topic = s.topics;
       const chapter = topic.chapters;
       const subject = chapter.subjects;
       // Map DB columns to new component names
@@ -423,7 +472,7 @@ export async function getWeaknessOverview(userId: string) {
   // Subject health: all subjects with avg health score
   const subjectHealthMap = new Map<string, { id: string; name: string; sum: number; count: number }>();
   for (const s of latest) {
-    const topic = (s as any).topics;
+    const topic = s.topics;
     const subject = topic?.chapters?.subjects;
     if (subject) {
       const existing = subjectHealthMap.get(subject.id) || { id: subject.id, name: subject.name, sum: 0, count: 0 };
@@ -494,14 +543,12 @@ export async function getTopicHealth(userId: string, topicId: string) {
   const weakest = Object.entries(components).sort(([, a], [, b]) => a - b)[0][0];
 
   // Get 30-day trend
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const { data: trend } = await supabase
     .from('weakness_snapshots')
     .select('snapshot_date, health_score')
     .eq('user_id', userId)
     .eq('topic_id', topicId)
-    .gte('snapshot_date', thirtyDaysAgo.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(30)))
     .order('snapshot_date', { ascending: true });
 
   return {
@@ -516,15 +563,12 @@ export async function getTopicHealth(userId: string, topicId: string) {
 }
 
 export async function getHealthTrend(userId: string, topicId: string, days = 30) {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
   const { data: trend } = await supabase
     .from('weakness_snapshots')
     .select('snapshot_date, health_score, category')
     .eq('user_id', userId)
     .eq('topic_id', topicId)
-    .gte('snapshot_date', startDate.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(days)))
     .order('snapshot_date', { ascending: true });
 
   return {

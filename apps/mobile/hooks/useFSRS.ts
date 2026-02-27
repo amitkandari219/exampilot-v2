@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, type RevisionsDueData } from '../lib/api';
 import { isDemoMode } from '../lib/supabase';
 import { demoConfidence, demoRevisionsDue } from '../lib/demoData';
 import { ConfidenceOverview } from '../types';
@@ -7,7 +7,7 @@ import { ConfidenceOverview } from '../types';
 export function useRevisionsDue(date?: string) {
   return useQuery({
     queryKey: ['revisions-due', date],
-    queryFn: () => isDemoMode ? Promise.resolve(demoRevisionsDue) : api.getRevisionsDue(date),
+    queryFn: () => isDemoMode ? Promise.resolve(demoRevisionsDue as unknown as RevisionsDueData) : api.getRevisionsDue(date),
   });
 }
 

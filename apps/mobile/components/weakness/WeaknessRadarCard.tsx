@@ -23,7 +23,8 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedTopic, setSelectedTopic] = useState<{ id: string; name: string } | null>(null);
-  const { summary, weakest_topics } = data;
+  const { summary, weakest_topics } = data || {};
+  if (!summary) return null;
   const alertCount = summary.critical + summary.weak;
   const top3 = weakest_topics.slice(0, 3);
 

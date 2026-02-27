@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -118,19 +118,16 @@ export default function CompleteScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.startButton}
+          style={[styles.startButton, !submitted && styles.startButtonDisabled]}
+          disabled={!submitted}
           onPress={() => {
             queryClient.removeQueries();
             queryClient.clear();
-            if (Platform.OS === 'web') {
-              window.location.href = '/';
-            } else {
-              router.replace('/(tabs)');
-            }
+            router.replace('/');
           }}
           activeOpacity={0.8}
         >
-          <Text style={styles.startButtonText}>Start Preparing</Text>
+          <Text style={styles.startButtonText}>{submitted ? 'Start Preparing' : 'Setting up...'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -201,6 +198,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     alignItems: 'center',
     marginTop: theme.spacing.lg,
+  },
+  startButtonDisabled: {
+    opacity: 0.5,
   },
   startButtonText: {
     fontSize: theme.fontSize.lg,

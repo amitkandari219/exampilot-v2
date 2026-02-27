@@ -1,4 +1,7 @@
 import { supabase } from '../lib/supabase.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { BRI_WEIGHTS } from '../constants/thresholds.js';
+import { appEvents } from './events.js';
 
 export async function calculateFatigueScore(userId: string): Promise<number> {
   const { data: profile } = await supabase
@@ -10,14 +13,11 @@ export async function calculateFatigueScore(userId: string): Promise<number> {
   const targetHours = profile?.daily_hours || 6;
 
   // Get recent daily logs
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
   const { data: logs } = await supabase
     .from('daily_logs')
     .select('log_date, hours_studied, avg_difficulty')
     .eq('user_id', userId)
-    .gte('log_date', sevenDaysAgo.toISOString().split('T')[0])
+    .gte('log_date', toDateString(daysAgo(7)))
     .order('log_date', { ascending: false });
 
   const recentLogs = logs || [];
@@ -26,9 +26,7 @@ export async function calculateFatigueScore(userId: string): Promise<number> {
   let consecutiveDays = 0;
   const today = new Date();
   for (let i = 0; i < 14; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split('T')[0];
+    const dateStr = toDateString(daysAgo(i, today));
     const log = recentLogs.find((l) => l.log_date === dateStr);
     if (log && log.hours_studied > 0) {
       consecutiveDays++;
@@ -65,19 +63,19 @@ export async function calculateBRI(userId: string) {
     .single();
 
   // Get recent burnout snapshots for persistence
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-
+  // Note: Supabase column alias "stress_score: signal_stress" is used at the query boundary;
+  // the returned type reflects the original column name, so we cast once here.
+  interface BurnoutSnapshotRow { bri_score: number; stress_score: number }
   const { data: recentBurnout } = await supabase
     .from('burnout_snapshots')
     .select('bri_score, stress_score: signal_stress')
     .eq('user_id', userId)
-    .gte('snapshot_date', threeDaysAgo.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(3)))
     .order('snapshot_date', { ascending: false });
 
   // Stress persistence: how long stress has been elevated
-  const stressPersistence = (recentBurnout || []).filter(
-    (b) => (b as any).stress_score > 0.5
+  const stressPersistence = ((recentBurnout || []) as unknown as BurnoutSnapshotRow[]).filter(
+    (b) => b.stress_score > 0.5
   ).length * 33; // normalize to ~0-100
 
   // Buffer hemorrhage: rapid buffer decline
@@ -96,14 +94,11 @@ export async function calculateBRI(userId: string) {
   const velocityCollapse = Math.max(0, 100 - velocitySignal);
 
   // Engagement decay: check for declining study hours
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
   const { data: logs } = await supabase
     .from('daily_logs')
     .select('hours_studied')
     .eq('user_id', userId)
-    .gte('log_date', sevenDaysAgo.toISOString().split('T')[0])
+    .gte('log_date', toDateString(daysAgo(7)))
     .order('log_date', { ascending: false });
 
   const recent3 = (logs || []).slice(0, 3);
@@ -114,10 +109,10 @@ export async function calculateBRI(userId: string) {
 
   // BRI = 100 - weighted signals
   const bri = 100 - (
-    stressPersistence * 0.30 +
-    bufferHemorrhage * 0.25 +
-    velocityCollapse * 0.25 +
-    engagementDecay * 0.20
+    stressPersistence * BRI_WEIGHTS.STRESS +
+    bufferHemorrhage * BRI_WEIGHTS.BUFFER +
+    velocityCollapse * BRI_WEIGHTS.VELOCITY +
+    engagementDecay * BRI_WEIGHTS.ENGAGEMENT
   );
 
   return {
@@ -143,14 +138,11 @@ export async function checkRecoveryTrigger(userId: string): Promise<boolean> {
   const threshold = profile.burnout_threshold || 75;
 
   // Check last 2 days of BRI
-  const twoDaysAgo = new Date();
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
   const { data: snapshots } = await supabase
     .from('burnout_snapshots')
     .select('bri_score')
     .eq('user_id', userId)
-    .gte('snapshot_date', twoDaysAgo.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(2)))
     .order('snapshot_date', { ascending: false })
     .limit(2);
 
@@ -163,15 +155,17 @@ export async function checkRecoveryTrigger(userId: string): Promise<boolean> {
 export async function activateRecoveryMode(userId: string) {
   const { bri_score } = await calculateBRI(userId);
 
+  // Recovery duration: 7 days for severe burnout (low BRI), 5 for moderate
+  const recoveryDays = bri_score < 40 ? 7 : 5;
   const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 5);
+  endDate.setDate(endDate.getDate() + recoveryDays);
 
   await supabase
     .from('user_profiles')
     .update({
       recovery_mode_active: true,
-      recovery_mode_start: new Date().toISOString().split('T')[0],
-      recovery_mode_end: endDate.toISOString().split('T')[0],
+      recovery_mode_start: toDateString(new Date()),
+      recovery_mode_end: toDateString(endDate),
     })
     .eq('id', userId);
 
@@ -182,8 +176,8 @@ export async function activateRecoveryMode(userId: string) {
 
   return {
     recovery_mode_active: true,
-    recovery_mode_start: new Date().toISOString().split('T')[0],
-    recovery_mode_end: endDate.toISOString().split('T')[0],
+    recovery_mode_start: toDateString(new Date()),
+    recovery_mode_end: toDateString(endDate),
   };
 }
 
@@ -220,13 +214,7 @@ export async function exitRecoveryMode(userId: string, reason: string) {
       .eq('id', log.id);
   }
 
-  // Award XP for recovery completion (non-critical)
-  try {
-    const { awardXP } = await import('./gamification.js');
-    await awardXP(userId, { triggerType: 'recovery_completion' });
-  } catch {
-    // Gamification is non-critical
-  }
+  appEvents.emit('xp:award', { userId, triggerType: 'recovery_completion' });
 
   return {
     recovery_mode_active: false,
@@ -258,7 +246,7 @@ export async function getBurnoutData(userId: string) {
   }
 
   // Save burnout snapshot
-  const snapshotDate = new Date().toISOString().split('T')[0];
+  const snapshotDate = toDateString(new Date());
   await supabase.from('burnout_snapshots').upsert({
     user_id: userId,
     snapshot_date: snapshotDate,
@@ -278,15 +266,16 @@ export async function getBurnoutData(userId: string) {
     await activateRecoveryMode(userId);
   }
 
-  // Get 7-day history
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  if (bri_score > 50 && !shouldRecover && !(profile?.recovery_mode_active)) {
+    appEvents.emit('notification:queue', { userId, type: 'recovery_suggestion' });
+  }
 
+  // Get 7-day history
   const { data: history } = await supabase
     .from('burnout_snapshots')
     .select('snapshot_date, bri_score, fatigue_score')
     .eq('user_id', userId)
-    .gte('snapshot_date', sevenDaysAgo.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(7)))
     .order('snapshot_date', { ascending: true });
 
   return {

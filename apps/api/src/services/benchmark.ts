@@ -1,14 +1,13 @@
 import { supabase } from '../lib/supabase.js';
 import type { BenchmarkProfile, BenchmarkHistoryPoint, BenchmarkStatus } from '../types/index.js';
+import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { clamp } from '../utils/math.js';
+import { BENCHMARK_WEIGHTS } from '../constants/thresholds.js';
 
 function linearInterpolate(value: number, low: number, high: number): number {
   if (value <= low) return 0;
   if (value >= high) return 100;
   return ((value - low) / (high - low)) * 100;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }
 
 function getStatus(score: number): BenchmarkStatus {
@@ -27,7 +26,7 @@ const COMPONENT_RECOMMENDATIONS: Record<string, string> = {
 };
 
 export async function calculateBenchmark(userId: string): Promise<BenchmarkProfile> {
-  const snapshotDate = new Date().toISOString().split('T')[0];
+  const snapshotDate = toDateString(new Date());
 
   // --- Coverage (weight 0.30): weighted_completion_pct * 100 ---
   const { data: velocitySnapshot } = await supabase
@@ -90,19 +89,16 @@ export async function calculateBenchmark(userId: string): Promise<BenchmarkProfi
   const velocityScore = clamp(linearInterpolate(velocityRatio, 0.5, 1.2), 0, 100);
 
   // --- Composite ---
-  const composite = coverageScore * 0.30 + confidenceScore * 0.25 + weaknessScore * 0.20 + consistencyScore * 0.15 + velocityScore * 0.10;
+  const composite = coverageScore * BENCHMARK_WEIGHTS.COVERAGE + confidenceScore * BENCHMARK_WEIGHTS.CONFIDENCE + weaknessScore * BENCHMARK_WEIGHTS.WEAKNESS + consistencyScore * BENCHMARK_WEIGHTS.CONSISTENCY + velocityScore * BENCHMARK_WEIGHTS.VELOCITY;
   const compositeScore = Math.round(clamp(composite, 0, 100));
   const status = getStatus(compositeScore);
 
   // --- Trend: compare to 7-day-old snapshot ---
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
   const { data: oldSnapshot } = await supabase
     .from('benchmark_snapshots')
     .select('composite_score')
     .eq('user_id', userId)
-    .lte('snapshot_date', sevenDaysAgo.toISOString().split('T')[0])
+    .lte('snapshot_date', toDateString(daysAgo(7)))
     .order('snapshot_date', { ascending: false })
     .limit(1)
     .single();
@@ -191,14 +187,11 @@ export async function getBenchmarkProfile(userId: string): Promise<BenchmarkProf
 }
 
 export async function getBenchmarkHistory(userId: string, days = 30): Promise<BenchmarkHistoryPoint[]> {
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
   const { data, error } = await supabase
     .from('benchmark_snapshots')
     .select('snapshot_date, composite_score, status')
     .eq('user_id', userId)
-    .gte('snapshot_date', since.toISOString().split('T')[0])
+    .gte('snapshot_date', toDateString(daysAgo(days)))
     .order('snapshot_date', { ascending: true });
 
   if (error) throw error;

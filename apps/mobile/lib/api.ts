@@ -1,4 +1,19 @@
 import { supabase } from './supabase';
+import type {
+  StrategyMode, ExamMode, StrategyParams,
+  GamificationProfile, BadgeWithStatus, XPTransaction,
+  BenchmarkProfile, BenchmarkHistoryPoint,
+  MockTest, MockAnalytics, MockTopicHistory,
+  SimulationScenario, SimulationResult,
+  CAStats, CASubjectGap,
+} from '../types';
+import type {
+  VelocityData, VelocityHistoryPoint, BufferData,
+  BurnoutData, StressData, DailyPlan, ConfidenceOverview,
+  WeaknessOverview, TopicHealthDetail, RecalibrationStatus,
+  WeeklyReviewSummary, PYQStats, RecalibrationResult, RecalibrationLogEntry,
+  UserProfile,
+} from '../types';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -29,172 +44,225 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export const api = {
-  // Onboarding (no userId needed — server uses auth token, accepts V1 or V2 payload)
-  completeOnboarding: (body: object) =>
-    request('/api/onboarding', { method: 'POST', body: JSON.stringify(body) }),
+export interface StrategyData {
+  strategy_mode: StrategyMode;
+  strategy_params: StrategyParams;
+  daily_hours: number;
+  current_mode: ExamMode;
+  fatigue_threshold?: number;
+  buffer_capacity?: number;
+  fsrs_target_retention?: number;
+  burnout_threshold?: number;
+}
 
-  resetOnboarding: () =>
-    request('/api/onboarding/reset', { method: 'POST', body: '{}' }),
+interface SyllabusData {
+  subjects: Array<{
+    id: string;
+    name: string;
+    papers: string[];
+    chapters: Array<{
+      id: string;
+      name: string;
+      topics: Array<{
+        id: string;
+        name: string;
+        importance: number;
+        difficulty: number;
+        estimated_hours: number;
+        pyq_weight: number;
+        user_progress?: { status: string; confidence_status: string } | null;
+      }>;
+    }>;
+  }>;
+}
+
+export interface SyllabusProgressData {
+  subjects: Array<{
+    id: string;
+    name: string;
+    total_topics: number;
+    completed_topics: number;
+    weighted_completion: number;
+    avg_confidence: number;
+  }>;
+}
+
+export interface RevisionsDueData {
+  revisions: Array<{
+    topic_id: string;
+    topic_name: string;
+    due: string;
+    stability: number;
+    difficulty: number;
+  }>;
+}
+
+export const api = {
+  // Onboarding
+  completeOnboarding: (body: object): Promise<UserProfile> =>
+    request<UserProfile>('/api/onboarding', { method: 'POST', body: JSON.stringify(body) }),
+
+  resetOnboarding: (): Promise<{ success: boolean }> =>
+    request<{ success: boolean }>('/api/onboarding/reset', { method: 'POST', body: '{}' }),
 
   // Strategy
-  getStrategy: () =>
-    request('/api/strategy'),
+  getStrategy: (): Promise<StrategyData> =>
+    request<StrategyData>('/api/strategy'),
 
-  switchMode: (mode: string) =>
-    request('/api/strategy/switch', { method: 'POST', body: JSON.stringify({ mode }) }),
+  switchMode: (mode: StrategyMode): Promise<void> =>
+    request<void>('/api/strategy/switch', { method: 'POST', body: JSON.stringify({ mode }) }),
 
-  customizeParams: (params: Record<string, number>) =>
-    request('/api/strategy/customize', { method: 'POST', body: JSON.stringify({ params }) }),
+  customizeParams: (params: Record<string, number>): Promise<UserProfile> =>
+    request<UserProfile>('/api/strategy/customize', { method: 'POST', body: JSON.stringify({ params }) }),
 
-  switchExamMode: (examMode: string) =>
-    request('/api/strategy/exam-mode', { method: 'POST', body: JSON.stringify({ examMode }) }),
+  switchExamMode: (examMode: ExamMode): Promise<{ current_mode: ExamMode; old_mode: ExamMode }> =>
+    request<{ current_mode: ExamMode; old_mode: ExamMode }>('/api/strategy/exam-mode', { method: 'POST', body: JSON.stringify({ examMode }) }),
 
   // PYQ
-  getPyqStats: () =>
-    request('/api/pyq-stats'),
+  getPyqStats: (): Promise<PYQStats> =>
+    request<PYQStats>('/api/pyq-stats'),
 
-  getTopicPyqDetail: (topicId: string) =>
-    request(`/api/pyq/${topicId}`),
+  getTopicPyqDetail: (topicId: string): Promise<{ topic_id: string; years: Array<{ year: number; count: number }> }> =>
+    request<{ topic_id: string; years: Array<{ year: number; count: number }> }>(`/api/pyq/${topicId}`),
 
   // Syllabus
-  getSyllabus: () =>
-    request('/api/syllabus'),
+  getSyllabus: (): Promise<SyllabusData> =>
+    request<SyllabusData>('/api/syllabus'),
 
-  getSyllabusProgress: () =>
-    request('/api/syllabus/progress'),
+  getSyllabusProgress: (): Promise<SyllabusProgressData> =>
+    request<SyllabusProgressData>('/api/syllabus/progress'),
 
-  updateTopicProgress: (topicId: string, updates: Record<string, unknown>) =>
-    request(`/api/syllabus/progress/${topicId}`, { method: 'POST', body: JSON.stringify(updates) }),
+  updateTopicProgress: (topicId: string, updates: Record<string, unknown>): Promise<void> =>
+    request<void>(`/api/syllabus/progress/${topicId}`, { method: 'POST', body: JSON.stringify(updates) }),
 
   // FSRS
-  recordReview: (topicId: string, rating: number) =>
-    request(`/api/fsrs/review/${topicId}`, { method: 'POST', body: JSON.stringify({ rating }) }),
+  recordReview: (topicId: string, rating: number): Promise<{ card: object; next_review: string }> =>
+    request<{ card: object; next_review: string }>(`/api/fsrs/review/${topicId}`, { method: 'POST', body: JSON.stringify({ rating }) }),
 
-  recalculateConfidence: () =>
-    request('/api/fsrs/recalculate', { method: 'POST' }),
+  recalculateConfidence: (): Promise<{ updated: number }> =>
+    request<{ updated: number }>('/api/fsrs/recalculate', { method: 'POST' }),
 
-  getRevisionsDue: (date?: string) =>
-    request(`/api/revisions${date ? `?date=${date}` : ''}`),
+  getRevisionsDue: (date?: string): Promise<RevisionsDueData> =>
+    request<RevisionsDueData>(`/api/revisions${date ? `?date=${date}` : ''}`),
 
-  getConfidenceOverview: () =>
-    request('/api/confidence/overview'),
+  getConfidenceOverview: (): Promise<ConfidenceOverview> =>
+    request<ConfidenceOverview>('/api/confidence/overview'),
 
   // Velocity
-  getVelocity: () =>
-    request('/api/velocity'),
+  getVelocity: (): Promise<VelocityData> =>
+    request<VelocityData>('/api/velocity'),
 
-  getVelocityHistory: (days = 30) =>
-    request(`/api/velocity/history?days=${days}`),
+  getVelocityHistory: (days = 30): Promise<VelocityHistoryPoint[]> =>
+    request<VelocityHistoryPoint[]>(`/api/velocity/history?days=${days}`),
 
-  getBuffer: () =>
-    request('/api/buffer'),
+  getBuffer: (): Promise<BufferData> =>
+    request<BufferData>('/api/buffer'),
 
   // Burnout
-  getBurnout: () =>
-    request('/api/burnout'),
+  getBurnout: (): Promise<BurnoutData> =>
+    request<BurnoutData>('/api/burnout'),
 
-  startRecovery: () =>
-    request('/api/burnout/recovery/start', { method: 'POST' }),
+  startRecovery: (): Promise<{ status: string }> =>
+    request<{ status: string }>('/api/burnout/recovery/start', { method: 'POST' }),
 
-  endRecovery: (reason?: string) =>
-    request('/api/burnout/recovery/end', { method: 'POST', body: JSON.stringify({ reason }) }),
+  endRecovery: (reason?: string): Promise<{ status: string }> =>
+    request<{ status: string }>('/api/burnout/recovery/end', { method: 'POST', body: JSON.stringify({ reason }) }),
 
   // Stress
-  getStress: () =>
-    request('/api/stress'),
+  getStress: (): Promise<StressData> =>
+    request<StressData>('/api/stress'),
 
   // Weakness
-  getWeaknessOverview: () =>
-    request('/api/weakness/overview'),
+  getWeaknessOverview: (): Promise<WeaknessOverview> =>
+    request<WeaknessOverview>('/api/weakness/overview'),
 
-  getTopicHealth: (topicId: string) =>
-    request(`/api/weakness/topic/${topicId}`),
+  getTopicHealth: (topicId: string): Promise<TopicHealthDetail> =>
+    request<TopicHealthDetail>(`/api/weakness/topic/${topicId}`),
 
-  getTopicHealthTrend: (topicId: string, days?: number) =>
-    request(`/api/weakness/topic/${topicId}/trend?days=${days || 30}`),
+  getTopicHealthTrend: (topicId: string, days?: number): Promise<Array<{ date: string; score: number }>> =>
+    request<Array<{ date: string; score: number }>>(`/api/weakness/topic/${topicId}/trend?days=${days || 30}`),
 
-  recalculateHealth: () =>
-    request('/api/weakness/recalculate', { method: 'POST' }),
+  recalculateHealth: (): Promise<{ updated: number }> =>
+    request<{ updated: number }>('/api/weakness/recalculate', { method: 'POST' }),
 
   // Planner
-  getDailyPlan: (date?: string) =>
-    request(`/api/daily-plan${date ? `?date=${date}` : ''}`),
+  getDailyPlan: (date?: string): Promise<DailyPlan> =>
+    request<DailyPlan>(`/api/daily-plan${date ? `?date=${date}` : ''}`),
 
-  updatePlanItem: (itemId: string, body: { status: string; actual_hours?: number }) =>
-    request(`/api/daily-plan/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  updatePlanItem: (itemId: string, body: { status: string; actual_hours?: number }): Promise<{ status: string }> =>
+    request<{ status: string }>(`/api/daily-plan/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  regeneratePlan: (date?: string, hours?: number) =>
-    request('/api/daily-plan/regenerate', { method: 'POST', body: JSON.stringify({ date, hours }) }),
+  regeneratePlan: (date?: string, hours?: number): Promise<DailyPlan> =>
+    request<DailyPlan>('/api/daily-plan/regenerate', { method: 'POST', body: JSON.stringify({ date, hours }) }),
 
   // Recalibration
-  getRecalibrationStatus: () =>
-    request('/api/recalibration'),
+  getRecalibrationStatus: (): Promise<RecalibrationStatus> =>
+    request<RecalibrationStatus>('/api/recalibration'),
 
-  getRecalibrationHistory: (limit = 20) =>
-    request(`/api/recalibration/history?limit=${limit}`),
+  getRecalibrationHistory: (limit = 20): Promise<RecalibrationLogEntry[]> =>
+    request<RecalibrationLogEntry[]>(`/api/recalibration/history?limit=${limit}`),
 
-  triggerRecalibration: () =>
-    request('/api/recalibration/trigger', { method: 'POST' }),
+  triggerRecalibration: (): Promise<RecalibrationResult> =>
+    request<RecalibrationResult>('/api/recalibration/trigger', { method: 'POST' }),
 
-  setAutoRecalibrate: (enabled: boolean) =>
-    request('/api/recalibration/auto', { method: 'POST', body: JSON.stringify({ enabled }) }),
+  setAutoRecalibrate: (enabled: boolean): Promise<{ auto_recalibrate: boolean }> =>
+    request<{ auto_recalibrate: boolean }>('/api/recalibration/auto', { method: 'POST', body: JSON.stringify({ enabled }) }),
 
   // Gamification
-  getGamificationProfile: () =>
-    request('/api/gamification'),
+  getGamificationProfile: (): Promise<GamificationProfile> =>
+    request<GamificationProfile>('/api/gamification'),
 
-  getBadges: () =>
-    request('/api/gamification/badges'),
+  getBadges: (): Promise<BadgeWithStatus[]> =>
+    request<BadgeWithStatus[]>('/api/gamification/badges'),
 
-  getXPHistory: (limit = 50) =>
-    request(`/api/gamification/xp-history?limit=${limit}`),
+  getXPHistory: (limit = 50): Promise<XPTransaction[]> =>
+    request<XPTransaction[]>(`/api/gamification/xp-history?limit=${limit}`),
 
   // Benchmark
-  getBenchmark: () =>
-    request('/api/benchmark'),
+  getBenchmark: (): Promise<BenchmarkProfile> =>
+    request<BenchmarkProfile>('/api/benchmark'),
 
-  getBenchmarkHistory: (days = 30) =>
-    request(`/api/benchmark/history?days=${days}`),
+  getBenchmarkHistory: (days = 30): Promise<BenchmarkHistoryPoint[]> =>
+    request<BenchmarkHistoryPoint[]>(`/api/benchmark/history?days=${days}`),
 
   // Weekly Review
-  getWeeklyReview: (weekEnd?: string) =>
-    request(`/api/weekly-review${weekEnd ? `?weekEnd=${weekEnd}` : ''}`),
+  getWeeklyReview: (weekEnd?: string): Promise<WeeklyReviewSummary> =>
+    request<WeeklyReviewSummary>(`/api/weekly-review${weekEnd ? `?weekEnd=${weekEnd}` : ''}`),
 
-  getWeeklyReviewHistory: (limit = 8) =>
-    request(`/api/weekly-review/history?limit=${limit}`),
+  getWeeklyReviewHistory: (limit = 8): Promise<WeeklyReviewSummary[]> =>
+    request<WeeklyReviewSummary[]>(`/api/weekly-review/history?limit=${limit}`),
 
-  generateWeeklyReview: (weekEnd?: string) =>
-    request('/api/weekly-review/generate', { method: 'POST', body: JSON.stringify({ weekEnd }) }),
+  generateWeeklyReview: (weekEnd?: string): Promise<WeeklyReviewSummary> =>
+    request<WeeklyReviewSummary>('/api/weekly-review/generate', { method: 'POST', body: JSON.stringify({ weekEnd }) }),
 
   // Mock Tests
-  createMock: (body: Record<string, unknown>) =>
-    request('/api/mocks', { method: 'POST', body: JSON.stringify(body) }),
+  createMock: (body: Record<string, unknown>): Promise<MockTest> =>
+    request<MockTest>('/api/mocks', { method: 'POST', body: JSON.stringify(body) }),
 
-  getMocks: (limit = 20) =>
-    request(`/api/mocks?limit=${limit}`),
+  getMocks: (limit = 20): Promise<MockTest[]> =>
+    request<MockTest[]>(`/api/mocks?limit=${limit}`),
 
-  getMockAnalytics: () =>
-    request('/api/mocks/analytics'),
+  getMockAnalytics: (): Promise<MockAnalytics> =>
+    request<MockAnalytics>('/api/mocks/analytics'),
 
-  getMockTopicHistory: (topicId: string) =>
-    request(`/api/mocks/topic/${topicId}/history`),
+  getMockTopicHistory: (topicId: string): Promise<MockTopicHistory> =>
+    request<MockTopicHistory>(`/api/mocks/topic/${topicId}/history`),
 
   // Simulator
-  runSimulation: (scenario: { type: string; params: Record<string, any> }) =>
-    request('/api/simulator/run', { method: 'POST', body: JSON.stringify(scenario) }),
+  runSimulation: (scenario: SimulationScenario): Promise<SimulationResult> =>
+    request<SimulationResult>('/api/simulator/run', { method: 'POST', body: JSON.stringify(scenario) }),
 
   // Current Affairs
-  logCA: (body: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[] }) =>
-    request('/api/ca/log', { method: 'POST', body: JSON.stringify(body) }),
-  getCAStats: (month?: string) =>
-    request(`/api/ca/stats${month ? `?month=${month}` : ''}`),
-  getCASubjectGaps: () =>
-    request('/api/ca/subject-gaps'),
+  logCA: (body: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[] }): Promise<void> =>
+    request<void>('/api/ca/log', { method: 'POST', body: JSON.stringify(body) }),
+  getCAStats: (month?: string): Promise<CAStats> =>
+    request<CAStats>(`/api/ca/stats${month ? `?month=${month}` : ''}`),
+  getCASubjectGaps: (): Promise<CASubjectGap[]> =>
+    request<CASubjectGap[]>('/api/ca/subject-gaps'),
 
   // Profile
-  getProfile: () =>
-    request('/api/profile'),
-  updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string }) =>
-    request('/api/profile', { method: 'PATCH', body: JSON.stringify(body) }),
+  getProfile: (): Promise<UserProfile> =>
+    request<UserProfile>('/api/profile'),
+  updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string }): Promise<UserProfile> =>
+    request<UserProfile>('/api/profile', { method: 'PATCH', body: JSON.stringify(body) }),
 };

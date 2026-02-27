@@ -1,25 +1,24 @@
 import { FastifyInstance } from 'fastify';
 import { runSimulation } from '../services/simulator.js';
+import type { SimulationScenarioType } from '../types/index.js';
 
-const VALID_TYPES = ['skip_days', 'change_hours', 'change_strategy', 'change_exam_date', 'defer_topics'];
+const VALID_TYPES: SimulationScenarioType[] = ['skip_days', 'change_hours', 'change_strategy', 'change_exam_date', 'defer_topics', 'focus_subject'];
 
 export async function simulatorRoutes(app: FastifyInstance) {
-  app.post('/api/simulator/run', async (request, reply) => {
-    const body = request.body as any;
+  app.post<{
+    Body: { type: string; params: Record<string, unknown> };
+  }>('/api/simulator/run', async (request, reply) => {
+    const { type, params } = request.body;
 
-    if (!body.type || !VALID_TYPES.includes(body.type)) {
+    if (!type || !VALID_TYPES.includes(type as SimulationScenarioType)) {
       return reply.status(400).send({ error: `Invalid scenario type. Must be one of: ${VALID_TYPES.join(', ')}` });
     }
 
-    if (!body.params || typeof body.params !== 'object') {
+    if (!params || typeof params !== 'object') {
       return reply.status(400).send({ error: 'params object is required' });
     }
 
-    try {
-      const result = await runSimulation(request.userId, { type: body.type, params: body.params });
-      return reply.status(200).send(result);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message || 'Simulation failed' });
-    }
+    const result = await runSimulation(request.userId, { type: type as SimulationScenarioType, params });
+    return reply.status(200).send(result);
   });
 }
