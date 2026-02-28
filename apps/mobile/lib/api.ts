@@ -6,6 +6,7 @@ import type {
   MockTest, MockAnalytics, MockTopicHistory,
   SimulationScenario, SimulationResult,
   CAStats, CASubjectGap,
+  ScopeTriageResult, StrategyDelta, MockCSVResult,
 } from '../types';
 import type {
   VelocityData, VelocityHistoryPoint, BufferData,
@@ -117,6 +118,12 @@ export const api = {
 
   switchExamMode: (examMode: ExamMode): Promise<{ current_mode: ExamMode; old_mode: ExamMode }> =>
     request<{ current_mode: ExamMode; old_mode: ExamMode }>('/api/strategy/exam-mode', { method: 'POST', body: JSON.stringify({ examMode }) }),
+
+  getScopeTriage: (): Promise<ScopeTriageResult> =>
+    request<ScopeTriageResult>('/api/strategy/scope-triage'),
+
+  getStrategyDelta: (): Promise<StrategyDelta> =>
+    request<StrategyDelta>('/api/strategy/delta'),
 
   // PYQ
   getPyqStats: (): Promise<PYQStats> =>
@@ -247,6 +254,9 @@ export const api = {
 
   getMockTopicHistory: (topicId: string): Promise<MockTopicHistory> =>
     request<MockTopicHistory>(`/api/mocks/topic/${topicId}/history`),
+
+  importMockCSV: (csvContent: string): Promise<MockCSVResult> =>
+    request<MockCSVResult>('/api/mocks/import-csv', { method: 'POST', body: JSON.stringify({ csv: csvContent }) }),
 
   // Simulator
   runSimulation: (scenario: SimulationScenario): Promise<SimulationResult> =>

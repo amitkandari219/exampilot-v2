@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, StrategyData } from '../lib/api';
-import { StrategyMode, StrategyParams, ExamMode } from '../types';
+import { StrategyMode, StrategyParams, ExamMode, ScopeTriageResult, StrategyDelta } from '../types';
 
 export function useStrategy() {
   return useQuery<StrategyData>({
@@ -29,6 +29,22 @@ export function useCustomizeParams() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['strategy'] });
     },
+  });
+}
+
+export function useScopeTriage() {
+  return useQuery<ScopeTriageResult>({
+    queryKey: ['scope-triage'],
+    queryFn: () => api.getScopeTriage(),
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useStrategyDelta() {
+  return useQuery<StrategyDelta>({
+    queryKey: ['strategy-delta'],
+    queryFn: () => api.getStrategyDelta(),
   });
 }
 

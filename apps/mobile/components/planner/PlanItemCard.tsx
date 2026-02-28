@@ -4,10 +4,29 @@ import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import type { DailyPlanItem, PlanItemType } from '../../types';
 
+export type PriorityTier = 'high' | 'medium' | 'low';
+
+export function getPriorityTier(score: number, allScores: number[]): PriorityTier {
+  if (allScores.length === 0) return 'low';
+  const sorted = [...allScores].sort((a, b) => b - a);
+  const highCutoff = sorted[Math.floor(sorted.length * 0.25)] ?? 0;
+  const medCutoff = sorted[Math.floor(sorted.length * 0.60)] ?? 0;
+  if (score >= highCutoff) return 'high';
+  if (score >= medCutoff) return 'medium';
+  return 'low';
+}
+
+const PRIORITY_COLORS: Record<PriorityTier, string> = {
+  high: '#EF4444',
+  medium: '#F59E0B',
+  low: 'transparent',
+};
+
 interface PlanItemCardProps {
   item: DailyPlanItem;
   onComplete: (itemId: string) => void;
   onDefer: (itemId: string) => void;
+  allPriorityScores?: number[];
 }
 
 const TYPE_CONFIG: Record<PlanItemType, { label: string; color: string }> = {
@@ -15,17 +34,20 @@ const TYPE_CONFIG: Record<PlanItemType, { label: string; color: string }> = {
   revision: { label: 'REVISE', color: '#A855F7' },
   decay_revision: { label: 'REVISE', color: '#F59E0B' },
   stretch: { label: 'BONUS', color: '#6366F1' },
+  challenge: { label: 'CHALLENGE', color: '#06B6D4' },
 };
 
-export function PlanItemCard({ item, onComplete, onDefer }: PlanItemCardProps) {
+export function PlanItemCard({ item, onComplete, onDefer, allPriorityScores = [] }: PlanItemCardProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const isCompleted = item.status === 'completed';
-  const typeConfig = TYPE_CONFIG[item.type];
+  const typeConfig = TYPE_CONFIG[item.type] || TYPE_CONFIG.new;
   const pyqWeight = item.topic?.pyq_weight ?? 0;
+  const priorityTier = getPriorityTier(item.priority_score, allPriorityScores);
+  const borderColor = PRIORITY_COLORS[priorityTier];
 
   return (
-    <View style={[styles.card, isCompleted && styles.cardCompleted]}>
+    <View style={[styles.card, isCompleted && styles.cardCompleted, borderColor !== 'transparent' && { borderLeftWidth: 3, borderLeftColor: borderColor }]}>
       <TouchableOpacity
         style={[
           styles.checkbox,
@@ -62,6 +84,11 @@ export function PlanItemCard({ item, onComplete, onDefer }: PlanItemCardProps) {
               {typeConfig.label}
             </Text>
           </View>
+          {priorityTier === 'high' && !isCompleted && (
+            <View style={[styles.typeBadge, { backgroundColor: '#EF444422' }]}>
+              <Text style={[styles.typeBadgeText, { color: '#EF4444' }]}>HIGH PRIORITY</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.footerRow}>

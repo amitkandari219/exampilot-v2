@@ -461,6 +461,70 @@ export async function resetUserData(userId: string) {
   return { success: true };
 }
 
+export async function getStrategyDelta(userId: string) {
+  const { data: prevAttemptRows } = await supabase
+    .from('previous_attempts')
+    .select('stage, weak_subjects')
+    .eq('user_id', userId)
+    .limit(1);
+  const prevAttempt = prevAttemptRows?.[0] ?? null;
+
+  if (!prevAttempt) {
+    return { has_previous: false, items: [] };
+  }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('strategy_mode, daily_hours, strategy_params')
+    .eq('id', userId)
+    .single();
+
+  if (!profile) return { has_previous: false, items: [] };
+
+  const items: Array<{ param: string; label: string; previous: string | number; current: string | number; direction: 'up' | 'down' | 'changed' }> = [];
+
+  // Stage comparison
+  items.push({
+    param: 'last_stage',
+    label: 'Previous highest stage',
+    previous: prevAttempt.stage,
+    current: 'Preparing',
+    direction: 'changed',
+  });
+
+  // Weak subjects tracking
+  const weakSubjects = (prevAttempt.weak_subjects || []) as string[];
+  if (weakSubjects.length > 0) {
+    items.push({
+      param: 'weak_subjects',
+      label: 'Focus areas from last attempt',
+      previous: weakSubjects.join(', '),
+      current: `${weakSubjects.length} subjects prioritized`,
+      direction: 'changed',
+    });
+  }
+
+  // Strategy mode
+  items.push({
+    param: 'strategy_mode',
+    label: 'Strategy mode',
+    previous: 'Unknown',
+    current: profile.strategy_mode,
+    direction: 'changed',
+  });
+
+  // Daily hours
+  items.push({
+    param: 'daily_hours',
+    label: 'Daily study hours',
+    previous: 'N/A',
+    current: profile.daily_hours,
+    direction: 'up',
+  });
+
+  return { has_previous: true, items };
+}
+
 export async function customizeParams(userId: string, payload: CustomizePayload) {
   const { data: current, error: fetchError } = await supabase
     .from('user_profiles')

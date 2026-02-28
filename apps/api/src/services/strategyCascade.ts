@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase.js';
-import type { StrategyMode } from '../types/index.js';
-import { toDateString } from '../utils/dateUtils.js';
+import type { StrategyMode, ScopeTriageResult, ScopeTriageItem } from '../types/index.js';
+import { toDateString, daysUntil } from '../utils/dateUtils.js';
+import { SCOPE_TRIAGE } from '../constants/thresholds.js';
 
 // Typed interface for strategy_params jsonb field
 interface StrategyParams {
@@ -431,6 +432,80 @@ export async function getCascadeHistory(userId: string, limit = 10) {
 
   if (error) throw error;
   return data || [];
+}
+
+// --- Proactive Scope Triage ---
+
+export async function getProactiveScopeTriage(userId: string): Promise<ScopeTriageResult> {
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('exam_date, daily_hours')
+    .eq('id', userId)
+    .single();
+
+  if (!profile?.exam_date) {
+    return { needs_triage: false, topics_remaining: 0, max_coverable: 0, days_remaining: 0, suggested_deferrals: [] };
+  }
+
+  const daysRemaining = daysUntil(new Date(profile.exam_date));
+  if (daysRemaining < SCOPE_TRIAGE.MIN_DAYS) {
+    return { needs_triage: false, topics_remaining: 0, max_coverable: 0, days_remaining: daysRemaining, suggested_deferrals: [] };
+  }
+
+  const dailyHours = profile.daily_hours || 6;
+  // Estimate topics per day from hours (1.5h per topic average)
+  const dailyCapacity = dailyHours / 1.5;
+  const maxCoverable = Math.floor(dailyCapacity * daysRemaining);
+
+  // Get remaining untouched topics
+  const { data: allTopics } = await supabase
+    .from('topics')
+    .select('id, name, pyq_weight, importance, chapters!inner(subjects!inner(name))')
+    .order('pyq_weight', { ascending: true });
+
+  const { data: progress } = await supabase
+    .from('user_progress')
+    .select('topic_id, status')
+    .eq('user_id', userId);
+
+  const doneStatuses = new Set(['first_pass', 'revised', 'exam_ready', 'deferred_scope']);
+  const progressMap = new Map((progress || []).map((p) => [p.topic_id, p.status]));
+
+  const remainingTopics = (allTopics || []).filter((t) => {
+    const status = progressMap.get(t.id) || 'untouched';
+    return !doneStatuses.has(status);
+  });
+
+  const topicsRemaining = remainingTopics.length;
+
+  if (topicsRemaining <= maxCoverable * SCOPE_TRIAGE.OVERSHOOT) {
+    return { needs_triage: false, topics_remaining: topicsRemaining, max_coverable: maxCoverable, days_remaining: daysRemaining, suggested_deferrals: [] };
+  }
+
+  // Sort by priority (lowest first = defer first)
+  const scored = remainingTopics
+    .map((t) => {
+      const topicData = t as unknown as { id: string; name: string; pyq_weight: number; importance: number; chapters: { subjects: { name: string } } };
+      return {
+        topic_id: topicData.id,
+        topic_name: topicData.name,
+        subject_name: topicData.chapters?.subjects?.name || 'Unknown',
+        priority_score: (topicData.pyq_weight * 4) + (topicData.importance * 2),
+        pyq_weight: topicData.pyq_weight,
+      };
+    })
+    .sort((a, b) => a.priority_score - b.priority_score);
+
+  const deferCount = topicsRemaining - maxCoverable;
+  const suggested_deferrals: ScopeTriageItem[] = scored.slice(0, Math.max(0, deferCount));
+
+  return {
+    needs_triage: true,
+    topics_remaining: topicsRemaining,
+    max_coverable: maxCoverable,
+    days_remaining: daysRemaining,
+    suggested_deferrals,
+  };
 }
 
 function round2(n: number): number {

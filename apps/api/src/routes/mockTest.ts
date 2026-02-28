@@ -4,6 +4,7 @@ import {
   getMockTests,
   getMockAnalytics,
   getTopicMockHistory,
+  importMockCSV,
 } from '../services/mockTest.js';
 
 export async function mockTestRoutes(app: FastifyInstance) {
@@ -40,6 +41,19 @@ export async function mockTestRoutes(app: FastifyInstance) {
     Params: { topicId: string };
   }>('/api/mocks/topic/:topicId/history', async (request, reply) => {
     const result = await getTopicMockHistory(request.userId, request.params.topicId);
+    return reply.status(200).send(result);
+  });
+
+  app.post<{
+    Body: { csv: string };
+  }>('/api/mocks/import-csv', async (request, reply) => {
+    const { csv } = request.body;
+
+    if (!csv || typeof csv !== 'string') {
+      return reply.status(400).send({ error: 'csv string is required in request body' });
+    }
+
+    const result = await importMockCSV(request.userId, csv);
     return reply.status(200).send(result);
   });
 }

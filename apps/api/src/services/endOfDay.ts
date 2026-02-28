@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase.js';
 import { calculateVelocity, updateBuffer } from './velocity.js';
 import { runRecalibration } from './recalibration.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { GAMIFICATION } from '../constants/thresholds.js';
+import { GAMIFICATION, ENGAGEMENT } from '../constants/thresholds.js';
 import { appEvents } from './events.js';
 
 // Typed interface for daily_plan_items joined with topics
@@ -84,6 +84,48 @@ export async function processEndOfDay(userId: string, date: string) {
     await recalculateAllConfidence(userId);
   } catch (e) { console.warn('[endOfDay:decay]', e);
     // Decay trigger is non-critical
+  }
+
+  // Silent quit detection: check for gradual disengagement
+  try {
+    await detectSilentQuit(userId, date);
+  } catch (e) { console.warn('[endOfDay:silent-quit]', e); }
+}
+
+async function detectSilentQuit(userId: string, date: string) {
+  // Compare recent week sessions vs prior week sessions
+  const today = new Date(date);
+  const recentStart = toDateString(daysAgo(7, today));
+  const priorStart = toDateString(daysAgo(ENGAGEMENT.LOOKBACK_DAYS, today));
+  const priorEnd = toDateString(daysAgo(7, today));
+
+  const { data: recentLogs } = await supabase
+    .from('daily_logs')
+    .select('hours_studied')
+    .eq('user_id', userId)
+    .gte('log_date', recentStart)
+    .gt('hours_studied', 0);
+
+  const { data: priorLogs } = await supabase
+    .from('daily_logs')
+    .select('hours_studied')
+    .eq('user_id', userId)
+    .gte('log_date', priorStart)
+    .lt('log_date', priorEnd)
+    .gt('hours_studied', 0);
+
+  const recentSessions = (recentLogs || []).length;
+  const priorSessions = (priorLogs || []).length;
+
+  if (priorSessions < ENGAGEMENT.MIN_PRIOR_SESSIONS) return;
+
+  const dropRatio = 1 - (recentSessions / priorSessions);
+  if (dropRatio >= ENGAGEMENT.DROP_THRESHOLD) {
+    appEvents.emit('notification:queue', {
+      userId,
+      type: 'silent_quit_warning',
+      metadata: { recentSessions, priorSessions, dropRatio: Math.round(dropRatio * 100) },
+    });
   }
 }
 

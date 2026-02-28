@@ -26,6 +26,10 @@ import { BurnoutIndicator } from '../../components/dashboard/BurnoutIndicator';
 import { WeaknessRadarCard } from '../../components/weakness/WeaknessRadarCard';
 import { EmotionalBanner } from '../../components/dashboard/EmotionalBanner';
 import { GuidedOrientation } from '../../components/dashboard/GuidedOrientation';
+import { ReEntryCard } from '../../components/dashboard/ReEntryCard';
+import { ScopeTriageCard } from '../../components/dashboard/ScopeTriageCard';
+import { useScopeTriage } from '../../hooks/useStrategy';
+import { useProfile } from '../../hooks/useProfile';
 import { ConfidenceStatus, ExamMode } from '../../types';
 
 export default function DashboardScreen() {
@@ -45,6 +49,8 @@ export default function DashboardScreen() {
   const { data: caStats } = useCAStats();
   const { data: mocks } = useMockTests(1);
   const { data: strategyData } = useStrategy();
+  const { data: scopeTriage } = useScopeTriage();
+  const { data: profileData } = useProfile();
   const switchExamMode = useSwitchExamMode();
   const [examMode, setExamMode] = useState<ExamMode>('mains');
 
@@ -65,6 +71,9 @@ export default function DashboardScreen() {
     ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000)
     : 999;
   const isNewUser = accountAgeDays < 14;
+  const isLastAttempt = profileData?.attempt_number === 'third_plus';
+
+  const dashboardOrder = getDashboardOrder(strategyData?.strategy_mode || 'balanced');
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -84,7 +93,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.examModeToggle}>
-          {(['prelims', 'mains', 'post_prelims'] as ExamMode[]).map((m) => (
+          {(['prelims', 'mains', 'post_prelims', 'csat'] as ExamMode[]).map((m) => (
             <TouchableOpacity
               key={m}
               style={[styles.examModeBtn, examMode === m && styles.examModeBtnActive]}
@@ -92,7 +101,7 @@ export default function DashboardScreen() {
               disabled={switchExamMode.isPending}
             >
               <Text style={[styles.examModeBtnText, examMode === m && styles.examModeBtnTextActive]}>
-                {m === 'post_prelims' ? 'After Prelims' : m.charAt(0).toUpperCase() + m.slice(1)}
+                {m === 'post_prelims' ? 'After Prelims' : m === 'csat' ? 'CSAT' : m.charAt(0).toUpperCase() + m.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -118,92 +127,158 @@ export default function DashboardScreen() {
           briScore={burnout?.bri_score ?? 80}
         />
 
-        {plan && plan.items && plan.items.length > 0 && (
+        {isLastAttempt && (
+          <View style={[styles.section, { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.primary }]}>
+            <Text style={{ fontSize: theme.fontSize.sm, fontWeight: '700', color: theme.colors.primary }}>Focus Mode Active</Text>
+            <Text style={{ fontSize: theme.fontSize.xs, color: theme.colors.textSecondary, marginTop: 2 }}>Highest-ROI topics prioritized. Gamification hidden.</Text>
+          </View>
+        )}
+
+        {(burnout?.consecutive_missed_days ?? 0) >= 3 && (
           <View style={styles.section}>
-            <View style={styles.planPreview}>
-              <View style={styles.planHeader}>
-                <Text style={styles.sectionTitle}>Today's Plan</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/planner')}>
-                  <Text style={styles.viewAll}>View full plan</Text>
-                </TouchableOpacity>
-              </View>
-              {plan.items.slice(0, 3).map((item) => (
-                <View key={item.id} style={styles.planItem}>
-                  <View style={[styles.statusDot, {
-                    backgroundColor: item.status === 'completed' ? theme.colors.success : theme.colors.border,
-                  }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.planItemName, item.status === 'completed' && styles.completed]}>
-                      {item.topic?.name || 'Topic'}
-                    </Text>
-                    <Text style={styles.planItemMeta}>
-                      {item.type.toUpperCase()} - {item.estimated_hours}h
-                    </Text>
+            <ReEntryCard missedDays={burnout?.consecutive_missed_days ?? 0} />
+          </View>
+        )}
+
+        {scopeTriage?.needs_triage && (
+          <View style={styles.section}>
+            <ScopeTriageCard data={scopeTriage} />
+          </View>
+        )}
+
+        {dashboardOrder.map((cardId) => {
+          switch (cardId) {
+            case 'plan':
+              return plan && plan.items && plan.items.length > 0 ? (
+                <View key={cardId} style={styles.section}>
+                  <View style={styles.planPreview}>
+                    <View style={styles.planHeader}>
+                      <Text style={styles.sectionTitle}>Today's Plan</Text>
+                      <TouchableOpacity onPress={() => router.push('/(tabs)/planner')}>
+                        <Text style={styles.viewAll}>View full plan</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {plan.items.slice(0, 3).map((item) => (
+                      <View key={item.id} style={styles.planItem}>
+                        <View style={[styles.statusDot, {
+                          backgroundColor: item.status === 'completed' ? theme.colors.success : theme.colors.border,
+                        }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.planItemName, item.status === 'completed' && styles.completed]}>
+                            {item.topic?.name || 'Topic'}
+                          </Text>
+                          <Text style={styles.planItemMeta}>
+                            {item.type.toUpperCase()} - {item.estimated_hours}h
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 </View>
-              ))}
-            </View>
-          </View>
-        )}
+              ) : null;
 
-        {velocity && (
-          <View style={styles.section}>
-            <VelocityCard
-              velocityRatio={velocity.velocity_ratio}
-              status={velocity.status}
-              trend={velocity.trend}
-              projectedDate={velocity.projected_completion_date}
-              streak={velocity.streak}
-            />
-          </View>
-        )}
+            case 'velocity':
+              return velocity ? (
+                <View key={cardId} style={styles.section}>
+                  <VelocityCard
+                    velocityRatio={velocity.velocity_ratio}
+                    status={velocity.status}
+                    trend={velocity.trend}
+                    projectedDate={velocity.projected_completion_date}
+                    streak={velocity.streak}
+                  />
+                </View>
+              ) : null;
 
-        {benchmark && (
-          <View style={styles.section}>
-            <BenchmarkScoreCard profile={benchmark} compact />
-          </View>
-        )}
+            case 'benchmark':
+              return benchmark ? (
+                <View key={cardId} style={styles.section}>
+                  <BenchmarkScoreCard profile={benchmark} compact />
+                </View>
+              ) : null;
 
-        {!isNewUser && stress && (
-          <View style={styles.section}>
-            <StressThermometer
-              score={stress.score}
-              status={stress.status}
-              label={stress.label}
-              signals={stress.signals}
-              recommendation={stress.recommendation}
-              history={stress.history?.map((h) => h.score)}
-            />
-          </View>
-        )}
+            case 'stress':
+              return !isNewUser && stress ? (
+                <View key={cardId} style={styles.section}>
+                  <StressThermometer
+                    score={stress.score}
+                    status={stress.status}
+                    label={stress.label}
+                    signals={stress.signals}
+                    recommendation={stress.recommendation}
+                    history={stress.history?.map((h) => h.score)}
+                  />
+                </View>
+              ) : null;
 
-        {!isNewUser && buffer && (
-          <View style={styles.section}>
-            <BufferBankCard
-              balance={buffer.balance}
-              capacity={buffer.capacity}
-              lastTransaction={buffer.transactions?.[0] || null}
-            />
-          </View>
-        )}
+            case 'buffer':
+              return !isNewUser && buffer ? (
+                <View key={cardId} style={styles.section}>
+                  <BufferBankCard
+                    balance={buffer.balance}
+                    capacity={buffer.capacity}
+                    lastTransaction={buffer.transactions?.[0] || null}
+                  />
+                </View>
+              ) : null;
 
-        {!isNewUser && weakness && (
-          <View style={styles.section}>
-            <WeaknessRadarCard data={weakness} />
-          </View>
-        )}
+            case 'weakness':
+              return !isNewUser && weakness ? (
+                <View key={cardId} style={styles.section}>
+                  <WeaknessRadarCard data={weakness} />
+                </View>
+              ) : null;
 
-        {gamification && (
-          <View style={styles.section}>
-            <XPProgressCard profile={gamification} />
-          </View>
-        )}
+            case 'gamification':
+              return gamification && !isLastAttempt ? (
+                <View key={cardId} style={styles.section}>
+                  <XPProgressCard profile={gamification} />
+                </View>
+              ) : null;
 
-        {caStats && (
-          <View style={styles.section}>
-            <CADashboardCard stats={caStats} />
-          </View>
-        )}
+            case 'ca':
+              return caStats ? (
+                <View key={cardId} style={styles.section}>
+                  <CADashboardCard stats={caStats} />
+                </View>
+              ) : null;
+
+            case 'confidence':
+              return !isNewUser && confidence ? (
+                <View key={cardId} style={styles.section}>
+                  <View style={styles.confCard}>
+                    <Text style={styles.sectionTitle}>Revision Health</Text>
+                    <View style={styles.confRow}>
+                      {(['fresh', 'fading', 'stale', 'decayed'] as ConfidenceStatus[]).map((status) => {
+                        const count = confidence.distribution[status] || 0;
+                        const colors: Record<ConfidenceStatus, string> = {
+                          fresh: theme.colors.success,
+                          fading: theme.colors.warning,
+                          stale: theme.colors.orange,
+                          decayed: theme.colors.error,
+                        };
+                        const friendlyLabels: Record<ConfidenceStatus, string> = {
+                          fresh: 'Strong',
+                          fading: 'Needs review',
+                          stale: 'Rusty',
+                          decayed: 'Forgotten',
+                        };
+                        return (
+                          <View key={status} style={styles.confItem}>
+                            <Text style={[styles.confCount, { color: colors[status] }]}>{count}</Text>
+                            <Text style={styles.confLabel}>{friendlyLabels[status]}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </View>
+              ) : null;
+
+            default:
+              return null;
+          }
+        })}
 
         {!isNewUser && (
           <TouchableOpacity
@@ -219,37 +294,6 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
 
-        {!isNewUser && confidence && (
-          <View style={styles.section}>
-            <View style={styles.confCard}>
-              <Text style={styles.sectionTitle}>Revision Health</Text>
-              <View style={styles.confRow}>
-                {(['fresh', 'fading', 'stale', 'decayed'] as ConfidenceStatus[]).map((status) => {
-                  const count = confidence.distribution[status] || 0;
-                  const colors: Record<ConfidenceStatus, string> = {
-                    fresh: theme.colors.success,
-                    fading: theme.colors.warning,
-                    stale: theme.colors.orange,
-                    decayed: theme.colors.error,
-                  };
-                  const friendlyLabels: Record<ConfidenceStatus, string> = {
-                    fresh: 'Strong',
-                    fading: 'Needs review',
-                    stale: 'Rusty',
-                    decayed: 'Forgotten',
-                  };
-                  return (
-                    <View key={status} style={styles.confItem}>
-                      <Text style={[styles.confCount, { color: colors[status] }]}>{count}</Text>
-                      <Text style={styles.confLabel}>{friendlyLabels[status]}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-        )}
-
         {stressLoading && !stress && (
           <View style={styles.loadingSection}>
             <ActivityIndicator color={theme.colors.primary} />
@@ -261,6 +305,21 @@ export default function DashboardScreen() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+type DashboardCardId = 'plan' | 'velocity' | 'benchmark' | 'stress' | 'buffer' | 'weakness' | 'gamification' | 'ca' | 'confidence';
+
+function getDashboardOrder(mode: import('../../types').StrategyMode): DashboardCardId[] {
+  switch (mode) {
+    case 'working_professional':
+      return ['plan', 'velocity', 'benchmark', 'gamification', 'ca', 'confidence'];
+    case 'aggressive':
+      return ['plan', 'benchmark', 'velocity', 'confidence', 'weakness', 'stress', 'buffer', 'gamification', 'ca'];
+    case 'conservative':
+      return ['plan', 'velocity', 'buffer', 'benchmark', 'stress', 'weakness', 'gamification', 'ca', 'confidence'];
+    default: // balanced
+      return ['plan', 'velocity', 'benchmark', 'stress', 'buffer', 'weakness', 'gamification', 'ca', 'confidence'];
+  }
 }
 
 function getGreeting(): string {

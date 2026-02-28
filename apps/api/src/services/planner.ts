@@ -1,8 +1,8 @@
 import { supabase } from '../lib/supabase.js';
 import { calculateFatigueScore } from './burnout.js';
 import { getActiveSubjectIds, getImportanceModifiers } from './modeConfig.js';
-import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { PLANNER, BURNOUT } from '../constants/thresholds.js';
+import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
+import { PLANNER, BURNOUT, REVISION_RAMP, REPEATER, CONFIDENCE_CHALLENGE, LAST_ATTEMPT } from '../constants/thresholds.js';
 import type { ExamMode, StrategyParams } from '../types/index.js';
 
 // ── Types for internal planner context ──
@@ -43,8 +43,10 @@ interface ProgressEntry {
   status: string;
   last_touched?: string | null;
   confidence_status?: string | null;
+  confidence_score?: number | null;
   actual_hours_spent?: number | null;
   mock_accuracy?: number | null;
+  [key: string]: unknown;
 }
 
 interface PlannerProfile {
@@ -56,6 +58,8 @@ interface PlannerProfile {
   recovery_mode_end: string | null;
   fatigue_threshold: number;
   pyq_weight_minimum: number;
+  exam_date?: string | null;
+  attempt_number?: string | null;
 }
 
 interface DailyLogEntry {
@@ -67,7 +71,7 @@ interface DailyLogEntry {
 interface ScoredCandidate {
   topic: TopicWithJoins;
   priority: number;
-  type: 'new' | 'revision';
+  type: 'new' | 'revision' | 'challenge';
   subjectId: string | undefined;
 }
 
@@ -101,6 +105,25 @@ interface PlannerContext {
   maxAvgDifficulty: number;
   date: string;
   revisionRatio: number;
+  isRepeater: boolean;
+  isLastAttempt: boolean;
+  weakSubjects: Set<string>;
+  daysRemaining: number;
+}
+
+// ── Revision ratio ramp (pure function) ──
+
+function computeRevisionRatio(daysRemaining: number, baseRatio: number): number {
+  if (daysRemaining > REVISION_RAMP.START_DAYS) return baseRatio;
+  if (daysRemaining <= REVISION_RAMP.END_DAYS) return REVISION_RAMP.END_RATIO;
+  if (daysRemaining <= REVISION_RAMP.MID_DAYS) {
+    // Interpolate between MID_RATIO and END_RATIO
+    const t = (REVISION_RAMP.MID_DAYS - daysRemaining) / (REVISION_RAMP.MID_DAYS - REVISION_RAMP.END_DAYS);
+    return REVISION_RAMP.MID_RATIO + t * (REVISION_RAMP.END_RATIO - REVISION_RAMP.MID_RATIO);
+  }
+  // Between START_DAYS and MID_DAYS: interpolate baseRatio → MID_RATIO
+  const t = (REVISION_RAMP.START_DAYS - daysRemaining) / (REVISION_RAMP.START_DAYS - REVISION_RAMP.MID_DAYS);
+  return baseRatio + t * (REVISION_RAMP.MID_RATIO - baseRatio);
 }
 
 // ── 1. Data fetching ──
@@ -234,15 +257,39 @@ async function fetchPlannerData(userId: string, date: string): Promise<PlannerCo
   const typedLogs = (recentLogs || []) as unknown as DailyLogEntry[];
   const capacity = assessCapacity(typedProfile, fatigueScore, typedLogs, date);
 
-  // Compute revision ratio
-  const revisionRatio = typedProfile.strategy_params?.revision_frequency
+  // Compute revision ratio with exam proximity ramp
+  const baseRevisionRatio = typedProfile.strategy_params?.revision_frequency
     ? 1 / typedProfile.strategy_params.revision_frequency : PLANNER.DEFAULT_REVISION_RATIO;
+
+  // Get exam date for days remaining
+  const examDate = typedProfile.exam_date;
+  const daysRemaining = examDate ? daysUntil(new Date(examDate)) : 365;
+  const revisionRatio = computeRevisionRatio(daysRemaining, baseRevisionRatio);
+
+  // Repeater + last attempt detection
+  let isRepeater = false;
+  const weakSubjects = new Set<string>();
+  const { data: prevAttemptRows } = await supabase
+    .from('previous_attempts')
+    .select('stage, weak_subjects')
+    .eq('user_id', userId)
+    .limit(1);
+  const prevAttempt = prevAttemptRows?.[0] ?? null;
+
+  if (prevAttempt) {
+    isRepeater = true;
+    for (const subj of (prevAttempt.weak_subjects || []) as string[]) {
+      weakSubjects.add(subj);
+    }
+  }
+
+  const isLastAttempt = typedProfile.attempt_number === 'third_plus';
 
   return {
     profile: typedProfile, fatigueScore, recentLogs: typedLogs, allTopics,
     progressMap, revisionTopicIds, deferredTopicIds, subjectPlanCount,
     subjectTopicCounts, importanceModifiers, falseSecurityIds, blindSpotIds, overRevisedIds,
-    ...capacity, date, revisionRatio,
+    ...capacity, date, revisionRatio, isRepeater, isLastAttempt, weakSubjects, daysRemaining,
   };
 }
 
@@ -358,8 +405,16 @@ function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
   const modeImportanceBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
   const effectiveImportance = t.importance + modeImportanceBoost;
 
+  // Confidence challenge: high-confidence, high-PYQ topics for repeaters
+  const confidenceScore = prog?.confidence_score;
+  const challengeBoost = (ctx.isRepeater && confidenceScore != null && confidenceScore >= CONFIDENCE_CHALLENGE.THRESHOLD
+    && t.pyq_weight >= CONFIDENCE_CHALLENGE.PYQ_MIN) ? CONFIDENCE_CHALLENGE.BOOST : 0;
+
+  // Last attempt: extra PYQ boost for highest ROI topics
+  const lastAttemptBoost = ctx.isLastAttempt ? (t.pyq_weight >= 3 ? LAST_ATTEMPT.PYQ_BOOST_EXTRA : 0) : 0;
+
   let priority = (t.pyq_weight * PLANNER.PYQ_FACTOR) + (effectiveImportance * PLANNER.IMPORTANCE_FACTOR) + (urgency * PLANNER.URGENCY_FACTOR)
-    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost;
+    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost + challengeBoost + lastAttemptBoost;
 
   if (subjectId && (subjectPlanCount.get(subjectId) || 0) >= PLANNER.SUBJECT_REPEAT_LIMIT) {
     priority *= PLANNER.SUBJECT_REPEAT_PENALTY;
@@ -369,12 +424,24 @@ function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
 }
 
 function scoreRevisionTopic(t: TopicWithJoins, ctx: PlannerContext): number {
-  const { profile, importanceModifiers } = ctx;
+  const { profile, importanceModifiers, isRepeater, weakSubjects } = ctx;
   const subjectPapers: string[] = t.chapters?.subjects?.papers || [];
   const prelimsBoost = (profile.current_mode === 'prelims' && subjectPapers.includes('Prelims')) ? PLANNER.PRELIMS_BOOST : 0;
   const subjectId: string | undefined = t.chapters?.subject_id;
   const modeBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
-  return (t.pyq_weight * PLANNER.PYQ_FACTOR) + ((t.importance + modeBoost) * PLANNER.IMPORTANCE_FACTOR) + PLANNER.REVISION_BASE_BOOST + prelimsBoost;
+  let score = (t.pyq_weight * PLANNER.PYQ_FACTOR) + ((t.importance + modeBoost) * PLANNER.IMPORTANCE_FACTOR) + PLANNER.REVISION_BASE_BOOST + prelimsBoost;
+
+  // Repeater: boost weak subjects, penalize strong
+  if (isRepeater && subjectId) {
+    const subjectName = t.chapters?.subjects?.name || '';
+    if (weakSubjects.has(subjectName) || weakSubjects.has(subjectId)) {
+      score += REPEATER.WEAK_BOOST;
+    } else {
+      score += REPEATER.STRONG_PENALTY;
+    }
+  }
+
+  return score;
 }
 
 // ── 3. Constraint filtering ──
@@ -405,6 +472,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
 
   const maxRevisionHours = availableHours * revisionRatio;
   let revisionHours = 0;
+  let challengeCount = 0;
   const remaining = [...candidates];
   let lastSubjectId: string | null = null;
   let order = 0;
@@ -418,6 +486,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
       const hours = Math.min(item.topic.estimated_hours, availableHours - usedHours);
       if (hours < PLANNER.MIN_HOURS_PER_TOPIC) continue;
       if (item.type === 'revision' && revisionHours >= maxRevisionHours) continue;
+      if (item.type === 'challenge' && challengeCount >= CONFIDENCE_CHALLENGE.MAX_PER_DAY) continue;
 
       const subjectId = item.subjectId;
       if (subjectId) {
@@ -459,6 +528,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
 
     usedHours += hours;
     if (item.type === 'revision') revisionHours += hours;
+    if (item.type === 'challenge') challengeCount++;
     if (subjectId) {
       subjectsUsed.add(subjectId);
       subjectHours.set(subjectId, (subjectHours.get(subjectId) || 0) + hours);
@@ -513,12 +583,21 @@ export async function generateDailyPlan(userId: string, date: string) {
 
   const ctx = await fetchPlannerData(userId, date);
 
-  const newCandidates: ScoredCandidate[] = ctx.allTopics.map((t) => ({
-    topic: t, priority: scoreTopic(t, ctx), type: 'new', subjectId: t.chapters?.subject_id,
-  }));
+  const newCandidates: ScoredCandidate[] = ctx.allTopics.map((t) => {
+    // Detect challenge candidates
+    const prog = ctx.progressMap.get(t.id);
+    const confScore = prog?.confidence_score;
+    const isChallenge = ctx.isRepeater && confScore != null && confScore >= CONFIDENCE_CHALLENGE.THRESHOLD
+      && t.pyq_weight >= CONFIDENCE_CHALLENGE.PYQ_MIN;
+    return {
+      topic: t, priority: scoreTopic(t, ctx),
+      type: isChallenge ? 'challenge' as const : 'new' as const,
+      subjectId: t.chapters?.subject_id,
+    };
+  });
   const revCandidates: ScoredCandidate[] = ctx.allTopics
     .filter((t) => ctx.revisionTopicIds.has(t.id))
-    .map((t) => ({ topic: t, priority: scoreRevisionTopic(t, ctx), type: 'revision', subjectId: t.chapters?.subject_id }));
+    .map((t) => ({ topic: t, priority: scoreRevisionTopic(t, ctx), type: 'revision' as const, subjectId: t.chapters?.subject_id }));
 
   const constrained = applyConstraints([...revCandidates, ...newCandidates], ctx);
   constrained.sort((a, b) => b.priority - a.priority);

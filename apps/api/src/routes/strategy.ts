@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { getStrategy, switchMode, switchExamMode, customizeParams } from '../services/strategy.js';
+import { getStrategy, switchMode, switchExamMode, customizeParams, getStrategyDelta } from '../services/strategy.js';
+import { getProactiveScopeTriage } from '../services/strategyCascade.js';
 import { SwitchModePayload, CustomizePayload, ExamMode, STRATEGY_MODES, EXAM_MODES } from '../types/index.js';
 
 export async function strategyRoutes(app: FastifyInstance) {
@@ -35,6 +36,16 @@ export async function strategyRoutes(app: FastifyInstance) {
     }
 
     const result = await switchExamMode(request.userId, examMode as ExamMode);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/strategy/scope-triage', async (request, reply) => {
+    const result = await getProactiveScopeTriage(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/strategy/delta', async (request, reply) => {
+    const result = await getStrategyDelta(request.userId);
     return reply.status(200).send(result);
   });
 

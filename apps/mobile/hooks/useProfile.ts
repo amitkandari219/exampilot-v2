@@ -5,6 +5,7 @@ interface ProfileData {
   name: string;
   exam_date: string | null;
   avatar_url: string | null;
+  attempt_number: string | null;
 }
 
 export function useProfile() {

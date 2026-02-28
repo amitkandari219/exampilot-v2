@@ -207,3 +207,69 @@ export const VELOCITY_WEIGHTING = {
   WEIGHT_7D: 0.6,
   WEIGHT_14D: 0.4,
 } as const;
+
+// Burnout fatigue sensitivity default (used in burnout)
+export const FATIGUE_SENSITIVITY = {
+  DEFAULT: 1.0,
+} as const;
+
+// Revision ramp constants (used in planner)
+export const REVISION_RAMP = {
+  START_DAYS: 90,
+  MID_DAYS: 60,
+  END_DAYS: 30,
+  MID_RATIO: 0.35,
+  END_RATIO: 0.45,
+} as const;
+
+// Repeater-specific planner constants (used in planner)
+export const REPEATER = {
+  WEAK_BOOST: 5,
+  STRONG_PENALTY: -3,
+} as const;
+
+// Confidence challenge constants (used in planner)
+export const CONFIDENCE_CHALLENGE = {
+  THRESHOLD: 0.9,
+  BOOST: 4,
+  PYQ_MIN: 3,
+  MAX_PER_DAY: 1,
+} as const;
+
+// Proactive scope triage constants (used in strategyCascade)
+export const SCOPE_TRIAGE = {
+  OVERSHOOT: 1.2,
+  MIN_DAYS: 30,
+} as const;
+
+// Engagement / silent quit detection (used in endOfDay)
+export const ENGAGEMENT = {
+  DROP_THRESHOLD: 0.6,
+  LOOKBACK_DAYS: 18,
+  MIN_PRIOR_SESSIONS: 4,
+} as const;
+
+// CSAT-specific modifiers (used in modeConfig, planner)
+export const CSAT_MODIFIERS = {
+  APTITUDE_BOOST: 3,
+  ETHICS_BOOST: 2,
+  COMPREHENSION_BOOST: 2,
+} as const;
+
+// Mock test historical cutoffs (used in mockTest)
+export const MOCK_CUTOFFS = {
+  prelims_2024: 98,
+  prelims_2023: 87.5,
+  prelims_2022: 90,
+  prelims_2021: 87.54,
+  mains_2024: 750,
+  mains_2023: 735,
+} as const;
+
+// Last attempt mode constants (used in modeConfig, planner)
+export const LAST_ATTEMPT = {
+  MIN_ATTEMPTS: 3,
+  FATIGUE_SENSITIVITY: 1.3,
+  REVISION_RATIO: 0.40,
+  PYQ_BOOST_EXTRA: 3,
+} as const;

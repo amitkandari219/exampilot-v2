@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
@@ -67,9 +67,11 @@ export default function TargetsScreen() {
   const chosenMode = (params.chosen_mode || 'balanced') as StrategyMode;
   const defaults = useMemo(() => getDefaultTargets(answers, chosenMode), [answers, chosenMode]);
   const [targets, setTargets] = useState<UserTargets>(defaults);
+  const isFirstAttempt = answers.attempt_number === 'first';
+  const [expanded, setExpanded] = useState(!isFirstAttempt);
 
   const update = (key: keyof UserTargets, val: number) =>
-    setTargets((prev) => ({ ...prev, [key]: val }));
+    setTargets((prev: UserTargets) => ({ ...prev, [key]: val }));
 
   return (
     <QuestionScreen
@@ -86,6 +88,30 @@ export default function TargetsScreen() {
         })
       }
     >
+      {!expanded ? (
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Your personalized targets</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Daily study</Text>
+            <Text style={styles.summaryValue}>{targets.daily_hours}h</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>New topics/day</Text>
+            <Text style={styles.summaryValue}>{targets.daily_new_topics}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Revisions/week</Text>
+            <Text style={styles.summaryValue}>{targets.weekly_revisions}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Tests/month</Text>
+            <Text style={styles.summaryValue}>{targets.weekly_tests}</Text>
+          </View>
+          <TouchableOpacity style={styles.adjustButton} onPress={() => setExpanded(true)} activeOpacity={0.7}>
+            <Text style={styles.adjustButtonText}>I want to adjust</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <View style={styles.sliders}>
         <SliderRow
           theme={theme}
@@ -154,6 +180,7 @@ export default function TargetsScreen() {
           onChange={(v) => update('weekly_ca_hours', v)}
         />
       </View>
+      )}
     </QuestionScreen>
   );
 }
@@ -185,5 +212,41 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   slider: {
     height: 36,
+  },
+  summaryCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+  },
+  summaryTitle: {
+    fontSize: theme.fontSize.md,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  summaryLabel: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  adjustButton: {
+    marginTop: theme.spacing.md,
+    alignItems: 'center',
+  },
+  adjustButtonText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
 });

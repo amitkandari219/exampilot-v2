@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import type { StrategyMode, StrategyParams, PersonaParams, ExamMode } from '../types/index.js';
+import { LAST_ATTEMPT } from '../constants/thresholds.js';
 
 // ── Strategy mode defaults (single source of truth) ──
 
@@ -114,6 +115,23 @@ export function getPersonaDefaults(mode: StrategyMode): PersonaParams {
   return personaDefaults[mode];
 }
 
+export function getLastAttemptOverrides(basePersona: PersonaParams): Partial<PersonaParams> {
+  return {
+    fatigue_sensitivity: LAST_ATTEMPT.FATIGUE_SENSITIVITY,
+    revision_ratio_in_plan: LAST_ATTEMPT.REVISION_RATIO,
+  };
+}
+
+export async function isLastAttemptUser(userId: string): Promise<boolean> {
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('attempt_number')
+    .eq('id', userId)
+    .single();
+
+  return profile?.attempt_number === 'third_plus';
+}
+
 // ── Mode config queries (leaf node — no service imports) ──
 
 export interface ModeConfigEntry {
@@ -133,6 +151,20 @@ export async function getModeConfig(mode: ExamMode): Promise<ModeConfigEntry[]> 
   return (data || []) as ModeConfigEntry[];
 }
 
+// CSAT-specific subject importance boosts
+// Applied on top of standard mode config when exam mode is 'csat'
+export function getCSATImportanceBoosts(): Map<string, number> {
+  // These are subject name patterns — matched against subject names at query time
+  // The actual subject_ids are resolved in getImportanceModifiers
+  return new Map([
+    ['aptitude', 3],     // CSAT_MODIFIERS.APTITUDE_BOOST
+    ['ethics', 2],       // CSAT_MODIFIERS.ETHICS_BOOST
+    ['comprehension', 2], // CSAT_MODIFIERS.COMPREHENSION_BOOST
+    ['decision making', 2],
+    ['interpersonal', 2],
+  ]);
+}
+
 export async function getActiveSubjectIds(userId: string): Promise<Set<string> | null> {
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -144,7 +176,7 @@ export async function getActiveSubjectIds(userId: string): Promise<Set<string> |
 
   const mode = profile.current_mode as ExamMode;
 
-  if (mode === 'mains' || mode === 'post_prelims') return null;
+  if (mode === 'mains' || mode === 'post_prelims' || mode === 'csat') return null;
 
   const config = await getModeConfig(mode);
 
@@ -176,6 +208,24 @@ export async function getImportanceModifiers(mode: ExamMode): Promise<Map<string
       modifiers.set(entry.subject_id, entry.importance_modifier);
     }
   }
+
+  // Apply CSAT-specific boosts
+  if (mode === 'csat') {
+    const csatBoosts = getCSATImportanceBoosts();
+    const { data: subjects } = await supabase
+      .from('subjects')
+      .select('id, name');
+
+    for (const subj of (subjects || [])) {
+      const nameLC = subj.name.toLowerCase();
+      for (const [pattern, boost] of csatBoosts) {
+        if (nameLC.includes(pattern)) {
+          modifiers.set(subj.id, (modifiers.get(subj.id) || 0) + boost);
+        }
+      }
+    }
+  }
+
   return modifiers;
 }
 

@@ -1,16 +1,19 @@
 import { supabase } from '../lib/supabase.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { BRI_WEIGHTS, BURNOUT } from '../constants/thresholds.js';
+import { BRI_WEIGHTS, BURNOUT, FATIGUE_SENSITIVITY } from '../constants/thresholds.js';
 import { appEvents } from './events.js';
 
 export async function calculateFatigueScore(userId: string): Promise<number> {
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('daily_hours')
+    .select('daily_hours, fatigue_sensitivity')
     .eq('id', userId)
     .single();
 
   const targetHours = profile?.daily_hours || 6;
+  interface ProfileWithSensitivity { daily_hours: number; fatigue_sensitivity?: number | null }
+  const typedProfile = profile as unknown as ProfileWithSensitivity | null;
+  const sensitivity = typedProfile?.fatigue_sensitivity ?? FATIGUE_SENSITIVITY.DEFAULT;
 
   // Get recent daily logs
   const { data: logs } = await supabase
@@ -48,7 +51,8 @@ export async function calculateFatigueScore(userId: string): Promise<number> {
 
   // Fatigue formula — use max(targetHours, 6) to prevent false alerts for low-hour users (WPs at 3h/day)
   const effectiveTarget = Math.max(targetHours, BURNOUT.FATIGUE_MIN_TARGET_HOURS);
-  const fatigue = (consecutiveDays * 10) + (avgDifficulty3d * 8) + (hours3d / effectiveTarget * 20) - (restDays7 * 15);
+  const rawFatigue = (consecutiveDays * 10) + (avgDifficulty3d * 8) + (hours3d / effectiveTarget * 20) - (restDays7 * 15);
+  const fatigue = rawFatigue * sensitivity;
 
   return Math.max(0, Math.min(100, Math.round(fatigue)));
 }

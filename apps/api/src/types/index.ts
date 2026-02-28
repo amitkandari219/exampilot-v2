@@ -1,7 +1,7 @@
 import type { StrategyMode as _SM, ExamMode as _EM } from '@exampilot/shared-types';
 
 export const STRATEGY_MODES: readonly _SM[] = ['conservative', 'aggressive', 'balanced', 'working_professional'];
-export const EXAM_MODES: readonly _EM[] = ['mains', 'prelims', 'post_prelims'];
+export const EXAM_MODES: readonly _EM[] = ['mains', 'prelims', 'post_prelims', 'csat'];
 
 // Re-export all shared types
 export type {
@@ -17,6 +17,7 @@ export type {
   SimulationScenarioType, SimulationScenario, SimulationSnapshot, SimulationDelta, SimulationResult,
   CADailyLog, CATag, CAStreak, CAStats, CASubjectGap,
   UserProgress, BufferTransactionType, BufferTransaction, DailyPlan, DailyPlanItem, SubjectCoverage, WeeklyReviewSummary,
+  ScopeTriageItem, ScopeTriageResult, StrategyDeltaItem, StrategyDelta, MockCSVRow, MockCSVResult,
 } from '@exampilot/shared-types';
 
 // ── API-only types ──

@@ -13,6 +13,7 @@ export type {
   CADailyLog, CATag, CAStreak, CAStats, CASubjectGap,
   UserProgress, BufferTransactionType, BufferTransaction,
   SubjectCoverage, WeeklyReviewSummary,
+  ScopeTriageItem, ScopeTriageResult, StrategyDeltaItem, StrategyDelta, MockCSVRow, MockCSVResult,
 } from '@exampilot/shared-types';
 
 // ── Mobile-only types ──
@@ -51,6 +52,7 @@ export interface UserProfile {
   recovery_mode_active: boolean;
   recovery_mode_start: string | null;
   recovery_mode_end: string | null;
+  attempt_number?: string | null;
 }
 
 export interface OnboardingAnswers {

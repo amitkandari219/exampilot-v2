@@ -8,7 +8,8 @@ export type NotificationType =
   | 'streak_milestone'
   | 'badge_unlocked'
   | 'mock_improvement'
-  | 'buffer_debt';
+  | 'buffer_debt'
+  | 'silent_quit_warning';
 
 const NOTIFICATION_TEMPLATES: Record<NotificationType, { title: string; body: string }> = {
   recalibration_triggered: { title: 'Your plan needs a small adjustment', body: 'Tap to see recovery options' },
@@ -19,6 +20,7 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, { title: string; body: st
   badge_unlocked: { title: 'Badge Unlocked: {name}', body: '{description}' },
   mock_improvement: { title: 'Mock score improved!', body: 'Your {subject} accuracy went up {pct}%' },
   buffer_debt: { title: 'Buffer in debt', body: 'Complete extra topics to recover' },
+  silent_quit_warning: { title: 'We noticed you\'ve been studying less', body: 'That\'s okay — want to try a lighter plan?' },
 };
 
 export async function queueNotification(

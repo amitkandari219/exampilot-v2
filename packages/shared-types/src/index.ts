@@ -1,13 +1,13 @@
 // ── Type aliases ──
 export type StrategyMode = 'conservative' | 'aggressive' | 'balanced' | 'working_professional';
-export type ExamMode = 'mains' | 'prelims' | 'post_prelims';
+export type ExamMode = 'mains' | 'prelims' | 'post_prelims' | 'csat';
 export type GsPaper = 'GS-I' | 'GS-II' | 'GS-III' | 'GS-IV' | 'Prelims';
 export type PyqTrend = 'rising' | 'stable' | 'declining';
 export type TopicStatus = 'untouched' | 'in_progress' | 'first_pass' | 'revised' | 'exam_ready' | 'deferred_scope';
 export type ConfidenceStatus = 'fresh' | 'fading' | 'stale' | 'decayed';
 export type VelocityStatus = 'ahead' | 'on_track' | 'behind' | 'at_risk';
 export type EnergyLevel = 'full' | 'moderate' | 'low' | 'empty';
-export type PlanItemType = 'new' | 'revision' | 'decay_revision' | 'stretch';
+export type PlanItemType = 'new' | 'revision' | 'decay_revision' | 'stretch' | 'challenge';
 export type PlanItemStatus = 'pending' | 'completed' | 'skipped' | 'deferred';
 export type BurnoutStatus = 'low' | 'moderate' | 'high' | 'critical';
 export type HealthCategory = 'critical' | 'weak' | 'moderate' | 'strong' | 'exam_ready';
@@ -510,4 +510,49 @@ export interface CASubjectGap {
   tag_count: number;
   percentage: number;
   alert: string | null;
+}
+
+// ── Scope Triage ──
+export interface ScopeTriageItem {
+  topic_id: string;
+  topic_name: string;
+  subject_name: string;
+  priority_score: number;
+  pyq_weight: number;
+}
+
+export interface ScopeTriageResult {
+  needs_triage: boolean;
+  topics_remaining: number;
+  max_coverable: number;
+  days_remaining: number;
+  suggested_deferrals: ScopeTriageItem[];
+}
+
+// ── Strategy Delta ──
+export interface StrategyDeltaItem {
+  param: string;
+  label: string;
+  previous: string | number;
+  current: string | number;
+  direction: 'up' | 'down' | 'changed';
+}
+
+export interface StrategyDelta {
+  has_previous: boolean;
+  items: StrategyDeltaItem[];
+}
+
+// ── Mock CSV Import ──
+export interface MockCSVRow {
+  date: string;
+  subject: string;
+  score: number;
+  max_score: number;
+  duration_minutes: number;
+}
+
+export interface MockCSVResult {
+  imported: number;
+  errors: Array<{ row: number; message: string }>;
 }

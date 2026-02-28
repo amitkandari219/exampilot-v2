@@ -1,7 +1,8 @@
 import { supabase } from '../lib/supabase.js';
-import type { MockTest, MockAnalytics, MockTopicHistory, MockTrend } from '../types/index.js';
+import type { MockTest, MockAnalytics, MockTopicHistory, MockTrend, MockCSVResult } from '../types/index.js';
 import { toDateString } from '../utils/dateUtils.js';
 import { appEvents } from './events.js';
+import { MOCK_CUTOFFS } from '../constants/thresholds.js';
 
 interface SubjectBreakdown {
   subject_id: string;
@@ -406,8 +407,15 @@ export async function getMockAnalytics(userId: string): Promise<MockAnalytics> {
     recommendation = 'Excellent performance! Maintain consistency and focus on timed practice.';
   }
 
+  // Compute cutoff delta for latest mock
+  const latestCutoff = MOCK_CUTOFFS.prelims_2024;
+  const scoreTrendWithCutoff = score_trend.map((t: { test_date: string; score_pct: number; test_name: string }) => ({
+    ...t,
+    cutoff_delta: t.score_pct > 0 ? Math.round((t.score_pct / 100 * 200) - latestCutoff) : null,
+  }));
+
   return {
-    score_trend,
+    score_trend: scoreTrendWithCutoff,
     subject_accuracy,
     weakest_topics,
     strongest_topics,
@@ -415,6 +423,7 @@ export async function getMockAnalytics(userId: string): Promise<MockAnalytics> {
     avg_score_pct: Math.round(avgScorePct * 10) / 10,
     best_score_pct: Math.round(bestScorePct * 10) / 10,
     recommendation,
+    cutoff_reference: latestCutoff,
   };
 }
 
@@ -479,4 +488,57 @@ export async function getMockTests(userId: string, limit = 20): Promise<MockTest
 
   if (error) throw error;
   return (data || []) as MockTest[];
+}
+
+export async function importMockCSV(userId: string, csvContent: string): Promise<MockCSVResult> {
+  const lines = csvContent.trim().split('\n');
+  if (lines.length < 2) {
+    return { imported: 0, errors: [{ row: 0, message: 'CSV must have a header row and at least one data row' }] };
+  }
+
+  // Skip header
+  const dataLines = lines.slice(1);
+  const errors: Array<{ row: number; message: string }> = [];
+  let imported = 0;
+
+  for (let i = 0; i < dataLines.length; i++) {
+    const line = dataLines[i].trim();
+    if (!line) continue;
+
+    const cols = line.split(',').map((c) => c.trim());
+    if (cols.length < 4) {
+      errors.push({ row: i + 2, message: 'Expected at least 4 columns: date,subject,score,max_score' });
+      continue;
+    }
+
+    const [dateStr, subject, scoreStr, maxScoreStr] = cols;
+    const score = parseFloat(scoreStr);
+    const maxScore = parseFloat(maxScoreStr);
+
+    if (!dateStr || isNaN(score) || isNaN(maxScore) || maxScore <= 0) {
+      errors.push({ row: i + 2, message: 'Invalid data: check date, score, and max_score values' });
+      continue;
+    }
+
+    // Derive questions from score (approximate: score = correct*2 - incorrect*0.66)
+    // Simplify: total_questions = max_score / 2
+    const totalQuestions = Math.round(maxScore / 2);
+    const correct = Math.max(0, Math.round(score / 2));
+    const incorrect = Math.max(0, totalQuestions - correct);
+
+    try {
+      await createMockTest(userId, {
+        test_name: subject || 'CSV Import',
+        test_date: dateStr,
+        total_questions: totalQuestions,
+        correct,
+        incorrect,
+      });
+      imported++;
+    } catch (e) {
+      errors.push({ row: i + 2, message: `Import failed: ${(e as Error).message}` });
+    }
+  }
+
+  return { imported, errors };
 }
