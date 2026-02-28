@@ -19,3 +19,12 @@ Thumbs.db
 # Build outputs
 /tmp/
 *.log
+
+# Supabase temp
+**/.temp/
+
+# Backup files
+*.bak
+
+# Duplicate migration folders
+supabase/migrations 2
