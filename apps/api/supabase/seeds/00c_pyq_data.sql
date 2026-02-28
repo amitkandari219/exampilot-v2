@@ -311,6 +311,11 @@ BEGIN
 
     subject_papers := rec.papers;
 
+    -- Skip subjects with no papers (e.g., Essay)
+    IF array_length(subject_papers, 1) IS NULL OR array_length(subject_papers, 1) = 0 THEN
+      CONTINUE;
+    END IF;
+
     CASE rec.importance
       WHEN 5 THEN target_rows := 8 + abs(hashtext(rec.topic_id::text || 'target')) % 3;
       WHEN 4 THEN target_rows := 5 + abs(hashtext(rec.topic_id::text || 'target')) % 3;
@@ -397,16 +402,16 @@ SELECT
     THEN 'declining'::pyq_trend
     ELSE 'stable'::pyq_trend
   END,
-  (SELECT year FROM pyq_data p2
+  coalesce((SELECT year FROM pyq_data p2
    JOIN topics t2 ON t2.id = p2.topic_id
    JOIN chapters c2 ON c2.id = t2.chapter_id
    WHERE c2.subject_id = s.id
-   GROUP BY year ORDER BY sum(question_count) DESC LIMIT 1),
-  (SELECT coalesce(sum(question_count), 0) FROM pyq_data p3
+   GROUP BY year ORDER BY sum(question_count) DESC LIMIT 1), 0),
+  coalesce((SELECT sum(question_count) FROM pyq_data p3
    JOIN topics t3 ON t3.id = p3.topic_id
    JOIN chapters c3 ON c3.id = t3.chapter_id
    WHERE c3.subject_id = s.id
-   GROUP BY year ORDER BY sum(question_count) DESC LIMIT 1)
+   GROUP BY year ORDER BY sum(question_count) DESC LIMIT 1), 0)
 FROM subjects s
 LEFT JOIN chapters c ON c.subject_id = s.id
 LEFT JOIN topics t ON t.chapter_id = c.id

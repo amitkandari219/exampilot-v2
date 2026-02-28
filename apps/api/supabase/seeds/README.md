@@ -29,12 +29,14 @@ All seed files use `ON CONFLICT DO NOTHING` — safe to run multiple times.
 
 ## Test Users
 
-| User ID | Mode | Hours/day | Exam Date |
-|---------|------|-----------|-----------|
-| `d0000000-...-000000000001` | balanced | 8 | 2026-08-28 |
-| `d0000000-...-000000000002` | aggressive | 10 | 2026-06-28 |
-| `d0000000-...-000000000003` | conservative | 6 | 2026-10-28 |
-| `d0000000-...-000000000004` | working_professional | 3 | 2026-12-28 |
+All test users have password: `password123`
+
+| User ID | Email | Mode | Hours/day |
+|---------|-------|------|-----------|
+| `d0000000-...-000000000001` | test-balanced@exampilot.dev | balanced | 8 |
+| `d0000000-...-000000000002` | test-aggressive@exampilot.dev | aggressive | 10 |
+| `d0000000-...-000000000003` | test-conservative@exampilot.dev | conservative | 6 |
+| `d0000000-...-000000000004` | test-wp@exampilot.dev | working_professional | 3 |
 
 ## Adding New Seeds
 

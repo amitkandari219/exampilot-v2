@@ -6,7 +6,7 @@
     "test:api": "npm test --workspace=apps/api",
     "test:mobile": "npm test --workspace=apps/mobile",
     "db:reset": "npx supabase db reset",
-    "db:seed": "cat apps/api/supabase/seeds/00a_strategy_defaults.sql apps/api/supabase/seeds/00b_syllabus.sql apps/api/supabase/seeds/00c_pyq_data.sql apps/api/supabase/seeds/01_test_users.sql | npx supabase db execute --stdin"
+    "db:seed": "npx supabase db reset --seed-only"
   },
   "workspaces": [
     "packages/*",
