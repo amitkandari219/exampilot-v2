@@ -31,6 +31,7 @@ export default function CompleteScreen() {
 
   const queryClient = useQueryClient();
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -88,7 +89,11 @@ export default function CompleteScreen() {
 
     api.completeOnboarding(payload)
       .then(() => setSubmitted(true))
-      .catch(() => setSubmitted(true)); // Navigate forward even on error
+      .catch((err) => {
+        console.warn('[onboarding:complete]', err);
+        setSubmitError(true);
+        setSubmitted(true);
+      });
   }, []);
 
   const modeNames: Record<string, string> = {
@@ -139,14 +144,45 @@ export default function CompleteScreen() {
           style={[styles.startButton, !submitted && styles.startButtonDisabled]}
           disabled={!submitted}
           onPress={() => {
+            if (submitError) {
+              // Retry the submission
+              setSubmitted(false);
+              setSubmitError(false);
+              const retryPayload: OnboardingV2Payload = {
+                answers,
+                chosen_mode: params.chosen_mode as StrategyMode,
+                targets,
+                promise_text: params.promise_text || undefined,
+                exam_date: params.exam_date || '',
+                previous_attempt: params.prev_stage ? {
+                  stage: params.prev_stage as PreviousAttemptData['stage'],
+                  prelims_score: params.prev_prelims_score ? parseFloat(params.prev_prelims_score) : undefined,
+                  mains_score: params.prev_mains_score ? parseFloat(params.prev_mains_score) : undefined,
+                  weak_subjects: params.prev_weak_subjects
+                    ? params.prev_weak_subjects.split(',').map((s) => s.trim()).filter(Boolean)
+                    : undefined,
+                } : undefined,
+              };
+              api.completeOnboarding(retryPayload)
+                .then(() => { setSubmitted(true); setSubmitError(false); })
+                .catch(() => { setSubmitted(true); setSubmitError(true); });
+              return;
+            }
             queryClient.removeQueries();
             queryClient.clear();
             router.replace('/');
           }}
           activeOpacity={0.8}
         >
-          <Text style={styles.startButtonText}>{submitted ? 'Start Preparing' : 'Setting up...'}</Text>
+          <Text style={styles.startButtonText}>
+            {!submitted ? 'Setting up...' : submitError ? 'Retry' : 'Start Preparing'}
+          </Text>
         </TouchableOpacity>
+        {submitError && (
+          <Text style={styles.errorText}>
+            Setup failed. Check your connection and retry.
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -224,5 +260,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: theme.fontSize.lg,
     fontWeight: '700',
     color: theme.colors.background,
+  },
+  errorText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.error,
+    textAlign: 'center' as const,
+    marginTop: theme.spacing.sm,
   },
 });

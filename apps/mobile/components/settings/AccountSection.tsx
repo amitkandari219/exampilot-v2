@@ -5,7 +5,6 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { Theme } from '../../constants/theme';
 import { toDateString } from '../../lib/dateUtils';
-import { supabase } from '../../lib/supabase';
 import { api } from '../../lib/api';
 
 function crossAlert(
@@ -63,21 +62,8 @@ export function AccountSection({
           style: 'destructive',
           onPress: async () => {
             setResetting(true);
-            let saveName = profileName || '';
-            let saveDate = profileExamDate ? toDateString(profileExamDate) : '';
-            try {
-              if (userId) {
-                const { data: freshProfile } = await supabase
-                  .from('user_profiles')
-                  .select('name, exam_date')
-                  .eq('id', userId)
-                  .single();
-                if (freshProfile?.name) saveName = freshProfile.name;
-                if (freshProfile?.exam_date) saveDate = freshProfile.exam_date;
-              }
-            } catch (e) {
-              console.warn('[settings:prefill-profile]', e);
-            }
+            const saveName = profileName || '';
+            const saveDate = profileExamDate ? toDateString(profileExamDate) : '';
             if (Platform.OS === 'web') {
               if (saveName) localStorage.setItem('prefill_name', saveName);
               if (saveDate) localStorage.setItem('prefill_exam_date', saveDate);
