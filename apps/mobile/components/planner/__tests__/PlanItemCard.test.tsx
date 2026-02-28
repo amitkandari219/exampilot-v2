@@ -60,7 +60,7 @@ describe('PlanItemCard', () => {
     const { getByText } = renderWithProviders(
       <PlanItemCard item={revisionItem} onComplete={onComplete} onDefer={onDefer} />
     );
-    expect(getByText('REVISION')).toBeTruthy();
+    expect(getByText('REVISE')).toBeTruthy();
   });
 
   it('renders estimated hours', () => {
