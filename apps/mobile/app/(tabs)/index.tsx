@@ -219,6 +219,7 @@ export default function DashboardScreen() {
                     trend={velocity.trend}
                     projectedDate={velocity.projected_completion_date}
                     streak={velocity.streak}
+                    highPyqCoveragePct={velocity.high_pyq_coverage_pct}
                   />
                 </View>
               ) : null;

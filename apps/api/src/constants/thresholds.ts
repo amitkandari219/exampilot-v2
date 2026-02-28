@@ -10,6 +10,7 @@ export const VELOCITY = {
   AHEAD: 1.1,
   ON_TRACK: 0.9,
   BEHIND: 0.7,
+  HIGH_PYQ_WEIGHT_MIN: 3,
 } as const;
 
 // Buffer bank constants (used in velocity)

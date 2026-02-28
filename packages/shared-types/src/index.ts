@@ -257,7 +257,7 @@ export interface MockSubjectAccuracy {
 }
 
 export interface MockAnalytics {
-  score_trend: Array<{ test_date: string; score_pct: number; test_name: string }>;
+  score_trend: Array<{ test_date: string; score_pct: number; test_name: string; cutoff_delta?: number | null }>;
   subject_accuracy: Array<MockSubjectAccuracy & { subject_name: string }>;
   weakest_topics: Array<{ topic_id: string; topic_name: string; accuracy: number; total_questions: number; trend: MockTrend }>;
   strongest_topics: Array<{ topic_id: string; topic_name: string; accuracy: number; total_questions: number }>;
@@ -265,6 +265,7 @@ export interface MockAnalytics {
   avg_score_pct: number;
   best_score_pct: number;
   recommendation: string;
+  cutoff_reference?: number;
 }
 
 export interface MockTopicHistory {
@@ -328,6 +329,7 @@ export interface DailyPlanItem {
   status: PlanItemStatus;
   completed_at: string | null;
   actual_hours: number | null;
+  reason_text?: string;
 }
 
 // ── Weekly Review ──

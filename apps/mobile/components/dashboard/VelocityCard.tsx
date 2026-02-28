@@ -13,6 +13,7 @@ interface VelocityCardProps {
   projectedDate: string | null;
   streak: { current_count: number; best_count: number } | null;
   history?: number[];
+  highPyqCoveragePct?: number;
 }
 
 function getStatusColors(theme: Theme) {
@@ -31,7 +32,7 @@ const statusLabels: Record<VelocityStatus, string> = {
   at_risk: 'Needs Attention',
 };
 
-export function VelocityCard({ velocityRatio, status, trend, projectedDate, streak, history }: VelocityCardProps) {
+export function VelocityCard({ velocityRatio, status, trend, projectedDate, streak, history, highPyqCoveragePct }: VelocityCardProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const color = getStatusColors(theme)[status];
@@ -67,6 +68,12 @@ export function VelocityCard({ velocityRatio, status, trend, projectedDate, stre
           <Text style={styles.footerText}>Streak: {streak.current_count}d</Text>
         )}
       </View>
+      {highPyqCoveragePct != null && (
+        <View style={styles.pyqRow}>
+          <Text style={styles.pyqLabel}>High-PYQ topics covered</Text>
+          <Text style={[styles.pyqValue, { color }]}>{Math.round(highPyqCoveragePct * 100)}%</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -122,5 +129,22 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   footerText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.textMuted,
+  },
+  pyqRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+    paddingTop: theme.spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  pyqLabel: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textMuted,
+  },
+  pyqValue: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '700',
   },
 });

@@ -91,6 +91,10 @@ export function PlanItemCard({ item, onComplete, onDefer, allPriorityScores = []
           )}
         </View>
 
+        {item.reason_text && !isCompleted && (
+          <Text style={styles.reasonText}>{item.reason_text}</Text>
+        )}
+
         <View style={styles.footerRow}>
           <PyqDots weight={pyqWeight} styles={styles} />
           <Text style={[styles.timeText, isCompleted && styles.textDimmed]}>
@@ -206,6 +210,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   typeBadgeText: {
     fontSize: theme.fontSize.xs,
     fontWeight: '700',
+  },
+  reasonText: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textMuted,
+    fontStyle: 'italic',
+    marginBottom: theme.spacing.xs,
   },
   footerRow: {
     flexDirection: 'row',

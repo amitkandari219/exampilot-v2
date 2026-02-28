@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { GamificationProfile } from '../../types';
+import { InfoTooltip } from '../common/InfoTooltip';
 
 interface Props {
   profile: GamificationProfile;
@@ -21,6 +22,7 @@ export function XPProgressCard({ profile }: Props) {
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <Text style={styles.sectionLabel}>LEVEL & POINTS</Text>
+        <InfoTooltip text="Earn points by completing study tasks, maintaining streaks, and hitting milestones. Level up to unlock badges." />
         <View style={styles.levelBadge}>
           <Text style={styles.levelText}>Level {profile.current_level}</Text>
         </View>

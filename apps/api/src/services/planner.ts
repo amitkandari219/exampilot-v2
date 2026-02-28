@@ -630,6 +630,20 @@ export async function generateDailyPlan(userId: string, date: string) {
   return formatPlan(completePlan);
 }
 
+function buildReasonText(type: string, pyqWeight: number, difficulty: number): string {
+  switch (type) {
+    case 'challenge': return 'Testing mastery — high-confidence topic with strong PYQ history';
+    case 'decay_revision': return 'Hasn\'t been reviewed recently — time to refresh';
+    case 'revision': return pyqWeight >= 3 ? 'Due for revision — high PYQ frequency' : 'Due for revision';
+    case 'stretch': return 'Bonus topic for extra progress';
+    default:
+      if (pyqWeight >= 4) return 'High PYQ frequency — commonly asked in exams';
+      if (pyqWeight >= 3) return 'Moderate PYQ frequency — worth prioritizing';
+      if (difficulty >= 4) return 'Complex topic — best tackled with fresh energy';
+      return 'New topic to cover';
+  }
+}
+
 function formatPlan(plan: any) {
   if (!plan) return null;
 
@@ -652,6 +666,7 @@ function formatPlan(plan: any) {
     } : undefined,
     chapter_name: item.topics?.chapters?.name,
     subject_name: item.topics?.chapters?.subjects?.name,
+    reason_text: buildReasonText(item.type, item.topics?.pyq_weight || 0, item.topics?.difficulty || 3),
   })).sort((a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order);
 
   const fs = plan.fatigue_score || 0;

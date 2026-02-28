@@ -1,9 +1,10 @@
-import React, {  useState , useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { CAStats } from '../../types';
 import { CALogSheet } from './CALogSheet';
+import { InfoTooltip } from '../common/InfoTooltip';
 
 interface Props {
   stats: CAStats;
@@ -26,6 +27,7 @@ export function CADashboardCard({ stats }: Props) {
         <View style={styles.topRow}>
           <View>
             <Text style={styles.label}>CURRENT AFFAIRS</Text>
+            <InfoTooltip text="Track your daily current affairs reading. Consistency matters more than hours — aim for a daily streak." />
             <View style={styles.streakRow}>
               <Text style={[styles.streakCount, { color: streakColor }]}>
                 {stats.streak.current_streak}

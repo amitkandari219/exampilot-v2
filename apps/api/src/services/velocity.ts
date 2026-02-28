@@ -75,15 +75,22 @@ export async function calculateVelocity(userId: string) {
   let completedGravity = 0;
   let totalTopics = 0;
   let completedTopicCount = 0;
+  let highPyqTotal = 0;
+  let highPyqCompleted = 0;
 
   for (const t of topics || []) {
     const gravity = t.pyq_weight; // gravity = pyq_weight only (1-5 per topic)
     totalGravity += gravity;
     totalTopics++;
     const status = progressMap.get(t.id) || 'untouched';
-    if (completedStatuses.includes(status)) {
+    const isCompleted = completedStatuses.includes(status);
+    if (isCompleted) {
       completedGravity += gravity;
       completedTopicCount++;
+    }
+    if (gravity >= VELOCITY_THRESHOLDS.HIGH_PYQ_WEIGHT_MIN) {
+      highPyqTotal++;
+      if (isCompleted) highPyqCompleted++;
     }
   }
 
@@ -178,6 +185,7 @@ export async function calculateVelocity(userId: string) {
     total_gravity: totalGravity, // ADDED: expose for consumers
     completed_gravity: completedGravity, // ADDED
     remaining_gravity: remainingGravity, // ADDED
+    high_pyq_coverage_pct: highPyqTotal > 0 ? highPyqCompleted / highPyqTotal : 0,
   };
 }
 
