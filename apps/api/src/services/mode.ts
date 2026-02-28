@@ -84,12 +84,10 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
     // Non-critical
   }
 
-  // 5. Regenerate tomorrow's plan
+  // 5. Regenerate today's plan (so user sees immediate effect)
   try {
     const { regeneratePlan } = await import('./planner.js');
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    await regeneratePlan(userId, toDateString(tomorrow));
+    await regeneratePlan(userId, toDateString(new Date()));
   } catch (e) { console.warn('[mode:plan-regen]', e);
     // Non-critical
   }

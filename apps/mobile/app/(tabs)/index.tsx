@@ -32,6 +32,29 @@ import { useScopeTriage } from '../../hooks/useStrategy';
 import { useProfile } from '../../hooks/useProfile';
 import { ConfidenceStatus, ExamMode } from '../../types';
 
+const EXAM_MODE_INFO: Record<ExamMode, { label: string; description: string; color: string }> = {
+  prelims: {
+    label: 'Prelims Focus',
+    description: '5 Mains-only subjects paused. Heavy revision on core GS topics.',
+    color: '#E67E22',
+  },
+  mains: {
+    label: 'Mains Mode',
+    description: 'Full syllabus active. Balanced across all GS papers + optional.',
+    color: '#3498DB',
+  },
+  post_prelims: {
+    label: 'After Prelims',
+    description: 'Catching up on Ethics, IR, World History & Internal Security.',
+    color: '#9B59B6',
+  },
+  csat: {
+    label: 'CSAT Focus',
+    description: 'Aptitude, ethics & comprehension boosted. Lighter syllabus load.',
+    color: '#1ABC9C',
+  },
+};
+
 export default function DashboardScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -107,6 +130,16 @@ export default function DashboardScreen() {
           ))}
         </View>
 
+        <View style={[styles.modeContext, { borderLeftColor: EXAM_MODE_INFO[examMode].color }]}>
+          <Text style={[styles.modeContextLabel, { color: EXAM_MODE_INFO[examMode].color }]}>
+            {EXAM_MODE_INFO[examMode].label}
+          </Text>
+          <Text style={styles.modeContextDesc}>{EXAM_MODE_INFO[examMode].description}</Text>
+          {switchExamMode.isPending && (
+            <Text style={styles.modeContextSwitching}>Switching — regenerating plan...</Text>
+          )}
+        </View>
+
         {velocity?.days_remaining != null && (
           <View style={styles.countdownBar}>
             <Text style={styles.countdownNumber}>{velocity.days_remaining}</Text>
@@ -153,7 +186,7 @@ export default function DashboardScreen() {
                 <View key={cardId} style={styles.section}>
                   <View style={styles.planPreview}>
                     <View style={styles.planHeader}>
-                      <Text style={styles.sectionTitle}>Today's Plan</Text>
+                      <Text style={styles.sectionTitle}>Today's {EXAM_MODE_INFO[examMode].label.split(' ')[0]} Plan</Text>
                       <TouchableOpacity onPress={() => router.push('/(tabs)/planner')}>
                         <Text style={styles.viewAll}>View full plan</Text>
                       </TouchableOpacity>
@@ -466,6 +499,31 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   examModeBtnTextActive: {
     color: theme.colors.background,
+  },
+  modeContext: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    paddingLeft: theme.spacing.md,
+    borderLeftWidth: 3,
+    marginBottom: theme.spacing.md,
+  },
+  modeContextLabel: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  modeContextDesc: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  modeContextSwitching: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.primary,
+    fontStyle: 'italic' as const,
+    marginTop: 4,
   },
   simulatorButton: {
     flexDirection: 'row',

@@ -54,9 +54,16 @@ export function useSwitchExamMode() {
   return useMutation({
     mutationFn: (examMode: ExamMode) => api.switchExamMode(examMode),
     onSuccess: () => {
+      // Invalidate everything affected by exam mode change
       queryClient.invalidateQueries({ queryKey: ['strategy'] });
       queryClient.invalidateQueries({ queryKey: ['velocity'] });
       queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['stress'] });
+      queryClient.invalidateQueries({ queryKey: ['burnout'] });
+      queryClient.invalidateQueries({ queryKey: ['benchmark'] });
+      queryClient.invalidateQueries({ queryKey: ['weakness'] });
+      queryClient.invalidateQueries({ queryKey: ['confidence'] });
+      queryClient.invalidateQueries({ queryKey: ['scope-triage'] });
     },
   });
 }
