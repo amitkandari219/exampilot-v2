@@ -83,7 +83,7 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
       {/* Velocity Ratio */}
       <ComparisonRow
         styles={styles}
-        label="Velocity"
+        label="Study Speed"
         baseline={formatRatio(baseline.velocity_ratio)}
         projected={formatRatio(projected.velocity_ratio)}
         deltaText={formatDelta(delta.velocity_ratio_change)}
@@ -138,7 +138,7 @@ export function SimulationResultCard({ result }: SimulationResultCardProps) {
       {showBuffer && (
         <ComparisonRow
           styles={styles}
-          label="Buffer"
+          label="Backup Days"
           baseline={baseline.buffer_balance.toFixed(1)}
           projected={projected.buffer_balance.toFixed(1)}
           deltaText={formatDelta(delta.buffer_balance_change)}
@@ -173,15 +173,15 @@ function getSummaryText(result: SimulationResult): string {
 
   switch (scenario.type) {
     case 'skip_days':
-      return `Skipping ${scenario.params.days} day(s) would ${direction} your velocity ratio by ${Math.abs(ratioChange).toFixed(2)}.`;
+      return `Skipping ${scenario.params.days} day(s) would ${direction} your study speed by ${Math.abs(ratioChange).toFixed(2)}.`;
     case 'change_hours':
-      return `Changing to ${scenario.params.daily_hours}h/day would ${direction} your velocity ratio by ${Math.abs(ratioChange).toFixed(2)}.`;
+      return `Changing to ${scenario.params.daily_hours}h/day would ${direction} your study speed by ${Math.abs(ratioChange).toFixed(2)}.`;
     case 'change_strategy':
-      return `Switching to ${scenario.params.strategy_mode} mode would ${direction} your velocity ratio by ${Math.abs(ratioChange).toFixed(2)}.`;
+      return `Switching strategy would ${direction} your study speed by ${Math.abs(ratioChange).toFixed(2)}.`;
     case 'change_exam_date':
-      return `Moving exam to ${scenario.params.exam_date} would ${direction} your velocity ratio by ${Math.abs(ratioChange).toFixed(2)}.`;
+      return `Moving exam to ${scenario.params.exam_date} would ${direction} your study speed by ${Math.abs(ratioChange).toFixed(2)}.`;
     case 'defer_topics':
-      return `Deferring ${scenario.params.count} topic(s) would ${direction} your velocity ratio by ${Math.abs(ratioChange).toFixed(2)}.`;
+      return `Deferring ${scenario.params.count} topic(s) would ${direction} your study speed by ${Math.abs(ratioChange).toFixed(2)}.`;
     default:
       return '';
   }

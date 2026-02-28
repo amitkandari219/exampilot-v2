@@ -15,6 +15,7 @@ import { useWeaknessOverview } from '../../hooks/useWeakness';
 import { useGamification } from '../../hooks/useGamification';
 import { useBenchmark } from '../../hooks/useBenchmark';
 import { useCAStats } from '../../hooks/useCurrentAffairs';
+import { useMockTests } from '../../hooks/useMockTest';
 import { XPProgressCard } from '../../components/gamification/XPProgressCard';
 import { BenchmarkScoreCard } from '../../components/benchmark/BenchmarkScoreCard';
 import { CADashboardCard } from '../../components/ca/CADashboardCard';
@@ -42,6 +43,7 @@ export default function DashboardScreen() {
   const { data: gamification } = useGamification();
   const { data: benchmark } = useBenchmark();
   const { data: caStats } = useCAStats();
+  const { data: mocks } = useMockTests(1);
   const { data: strategyData } = useStrategy();
   const switchExamMode = useSwitchExamMode();
   const [examMode, setExamMode] = useState<ExamMode>('mains');
@@ -111,8 +113,8 @@ export default function DashboardScreen() {
           streakCount={velocity?.streak?.current_count ?? 0}
           inRecovery={burnout?.in_recovery ?? false}
           isLightDay={plan?.is_light_day ?? false}
-          lastMockScore={null}
-          consecutiveMissedDays={0}
+          lastMockScore={mocks?.[0] ? (mocks[0].score / mocks[0].max_score) * 100 : null}
+          consecutiveMissedDays={burnout?.consecutive_missed_days ?? 0}
           briScore={burnout?.bri_score ?? 80}
         />
 

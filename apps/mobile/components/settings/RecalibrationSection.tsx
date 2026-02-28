@@ -22,16 +22,16 @@ function formatParamChange(entry: RecalibrationStatus['last_entry']) {
   if (!entry || !entry.params_changed) return null;
   const changes: string[] = [];
   if (entry.old_fatigue_threshold !== entry.new_fatigue_threshold) {
-    changes.push(`Fatigue: ${entry.old_fatigue_threshold} → ${entry.new_fatigue_threshold}`);
+    changes.push(`Energy: ${entry.old_fatigue_threshold} → ${entry.new_fatigue_threshold}`);
   }
   if (entry.old_buffer_capacity !== entry.new_buffer_capacity) {
-    changes.push(`Buffer: ${((entry.old_buffer_capacity || 0) * 100).toFixed(0)}% → ${((entry.new_buffer_capacity || 0) * 100).toFixed(0)}%`);
+    changes.push(`Backup: ${((entry.old_buffer_capacity || 0) * 100).toFixed(0)}% → ${((entry.new_buffer_capacity || 0) * 100).toFixed(0)}%`);
   }
   if (entry.old_fsrs_target_retention !== entry.new_fsrs_target_retention) {
-    changes.push(`Retention: ${((entry.old_fsrs_target_retention || 0) * 100).toFixed(0)}% → ${((entry.new_fsrs_target_retention || 0) * 100).toFixed(0)}%`);
+    changes.push(`Memory goal: ${((entry.old_fsrs_target_retention || 0) * 100).toFixed(0)}% → ${((entry.new_fsrs_target_retention || 0) * 100).toFixed(0)}%`);
   }
   if (entry.old_burnout_threshold !== entry.new_burnout_threshold) {
-    changes.push(`Burnout: ${entry.old_burnout_threshold} → ${entry.new_burnout_threshold}`);
+    changes.push(`Burnout limit: ${entry.old_burnout_threshold} → ${entry.new_burnout_threshold}`);
   }
   return changes.length > 0 ? changes.join('\n') : null;
 }
@@ -45,27 +45,27 @@ export function RecalibrationSection({ theme, recalStatus, triggerRecalibration,
 
   const handleManualRecalibrate = () => {
     Alert.alert(
-      'Recalibrate Now',
-      'This will re-evaluate your persona parameters based on recent performance. Continue?',
+      'Adjust Now',
+      'This will re-evaluate your study settings based on recent performance. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Recalibrate',
+          text: 'Adjust',
           onPress: () => {
             triggerRecalibration.mutate(undefined, {
               onSuccess: (result) => {
                 if (result.status === 'applied') {
-                  Alert.alert('Recalibrated', 'Your parameters have been updated based on recent performance.');
+                  Alert.alert('Adjusted', 'Your study settings have been updated based on recent performance.');
                 } else if (result.status === 'no_change') {
-                  Alert.alert('No Changes', 'Your current parameters are already well-suited to your performance.');
+                  Alert.alert('No Changes', 'Your current settings are already well-suited to your performance.');
                 } else if (result.skipped_reason === 'cooldown') {
-                  Alert.alert('Cooldown Active', 'Please wait at least 3 days between recalibrations.');
+                  Alert.alert('Cooldown Active', 'Please wait at least 3 days between adjustments.');
                 } else if (result.skipped_reason === 'recovery_mode_active') {
-                  Alert.alert('Recovery Active', 'Recalibration is paused during recovery mode.');
+                  Alert.alert('Recovery Active', 'Auto-adjust is paused during recovery mode.');
                 } else if (result.skipped_reason === 'insufficient_data') {
-                  Alert.alert('Not Enough Data', 'Need at least 5 days of study data to recalibrate.');
+                  Alert.alert('Not Enough Data', 'Need at least 5 days of study data to adjust.');
                 } else {
-                  Alert.alert('Skipped', result.skipped_reason || 'Recalibration was skipped.');
+                  Alert.alert('Skipped', result.skipped_reason || 'Adjustment was skipped.');
                 }
               },
             });
@@ -77,9 +77,9 @@ export function RecalibrationSection({ theme, recalStatus, triggerRecalibration,
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Recalibration Engine</Text>
+      <Text style={styles.sectionTitle}>Auto-Adjust</Text>
       <View style={styles.recoveryRow}>
-        <Text style={styles.paramLabel}>Auto-Recalibrate</Text>
+        <Text style={styles.paramLabel}>Auto-Adjust</Text>
         <Switch
           value={recalStatus?.auto_recalibrate ?? true}
           onValueChange={handleAutoRecalibrateToggle}
@@ -89,7 +89,7 @@ export function RecalibrationSection({ theme, recalStatus, triggerRecalibration,
       </View>
       {recalStatus?.last_recalibrated_at && (
         <View style={styles.paramRow}>
-          <Text style={styles.paramLabel}>Last Recalibrated</Text>
+          <Text style={styles.paramLabel}>Last Adjusted</Text>
           <Text style={styles.paramValue}>
             {new Date(recalStatus.last_recalibrated_at).toLocaleDateString()}
           </Text>
@@ -111,7 +111,7 @@ export function RecalibrationSection({ theme, recalStatus, triggerRecalibration,
         {triggerRecalibration.isPending ? (
           <ActivityIndicator size="small" color={theme.colors.primary} />
         ) : (
-          <Text style={styles.recalibrateText}>Recalibrate Now</Text>
+          <Text style={styles.recalibrateText}>Adjust Now</Text>
         )}
       </TouchableOpacity>
     </View>

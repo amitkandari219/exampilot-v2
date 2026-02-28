@@ -74,12 +74,20 @@ export interface UserTargets {
   weekly_ca_hours: number;
 }
 
+export interface PreviousAttemptData {
+  stage: 'prelims' | 'mains' | 'interview' | 'did_not_appear';
+  prelims_score?: number;
+  mains_score?: number;
+  weak_subjects?: string[];
+}
+
 export interface OnboardingV2Payload {
   answers: OnboardingV2Answers;
   chosen_mode: StrategyMode;
   targets: UserTargets;
   promise_text?: string;
   exam_date: string;
+  previous_attempt?: PreviousAttemptData;
 }
 
 // ── Syllabus ──

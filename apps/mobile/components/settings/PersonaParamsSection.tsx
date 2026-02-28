@@ -12,21 +12,21 @@ export function PersonaParamsSection({ theme, personaParams }: PersonaParamsSect
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Persona Parameters</Text>
+      <Text style={styles.sectionTitle}>Study Parameters</Text>
       <View style={styles.paramRow}>
-        <Text style={styles.paramLabel}>Fatigue Threshold</Text>
+        <Text style={styles.paramLabel}>Energy Threshold</Text>
         <Text style={styles.paramValue}>{personaParams.fatigue_threshold || 85}</Text>
       </View>
       <View style={styles.paramRow}>
-        <Text style={styles.paramLabel}>Buffer Capacity</Text>
+        <Text style={styles.paramLabel}>Backup Days Capacity</Text>
         <Text style={styles.paramValue}>{((personaParams.buffer_capacity || 0.15) * 100).toFixed(0)}%</Text>
       </View>
       <View style={styles.paramRow}>
-        <Text style={styles.paramLabel}>FSRS Target Retention</Text>
+        <Text style={styles.paramLabel}>Memory Target</Text>
         <Text style={styles.paramValue}>{((personaParams.fsrs_target_retention || 0.9) * 100).toFixed(0)}%</Text>
       </View>
       <View style={styles.paramRow}>
-        <Text style={styles.paramLabel}>Burnout Threshold</Text>
+        <Text style={styles.paramLabel}>Burnout Limit</Text>
         <Text style={styles.paramValue}>{personaParams.burnout_threshold || 75}</Text>
       </View>
     </View>

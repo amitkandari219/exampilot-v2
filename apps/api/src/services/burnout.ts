@@ -271,6 +271,23 @@ export async function getBurnoutData(userId: string) {
     appEvents.emit('notification:queue', { userId, type: 'recovery_suggestion' });
   }
 
+  // Compute consecutive missed days (for EmotionalBanner comeback trigger)
+  const { data: recentLogs } = await supabase
+    .from('daily_logs')
+    .select('log_date, hours_studied')
+    .eq('user_id', userId)
+    .gte('log_date', toDateString(daysAgo(7)))
+    .order('log_date', { ascending: false });
+
+  let consecutiveMissedDays = 0;
+  const todayDate = new Date();
+  for (let i = 1; i <= 7; i++) {
+    const dateStr = toDateString(daysAgo(i, todayDate));
+    const log = (recentLogs || []).find((l) => l.log_date === dateStr);
+    if (!log || log.hours_studied === 0) consecutiveMissedDays++;
+    else break;
+  }
+
   // Get 7-day history
   const { data: history } = await supabase
     .from('burnout_snapshots')
@@ -288,5 +305,6 @@ export async function getBurnoutData(userId: string) {
     recovery_end: profile?.recovery_mode_end,
     signals,
     history: history || [],
+    consecutive_missed_days: consecutiveMissedDays,
   };
 }

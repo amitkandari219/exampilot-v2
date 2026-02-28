@@ -79,8 +79,8 @@ export default function StrategyRevealScreen() {
 
   const modeNames: Record<string, string> = {
     balanced: 'Balanced',
-    aggressive: 'Aggressive',
-    conservative: 'Conservative',
+    aggressive: 'Fast Track',
+    conservative: 'Slow & Steady',
     working_professional: 'Working Professional',
   };
 

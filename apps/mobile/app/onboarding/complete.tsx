@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChatBubble } from '../../components/onboarding/ChatBubble';
 import { api } from '../../lib/api';
-import { OnboardingV2Answers, OnboardingV2Payload, UserTargets, StrategyMode, Challenge } from '../../types';
+import { OnboardingV2Answers, OnboardingV2Payload, UserTargets, StrategyMode, Challenge, PreviousAttemptData } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 
@@ -23,6 +23,10 @@ export default function CompleteScreen() {
     exam_date: string;
     targets: string;
     promise_text: string;
+    prev_stage: string;
+    prev_prelims_score: string;
+    prev_mains_score: string;
+    prev_weak_subjects: string;
   }>();
 
   const queryClient = useQueryClient();
@@ -59,6 +63,19 @@ export default function CompleteScreen() {
       }),
     ]).start();
 
+    // Build previous attempt data if repeater
+    let previousAttempt: PreviousAttemptData | undefined;
+    if (params.prev_stage) {
+      previousAttempt = {
+        stage: params.prev_stage as PreviousAttemptData['stage'],
+        prelims_score: params.prev_prelims_score ? parseFloat(params.prev_prelims_score) : undefined,
+        mains_score: params.prev_mains_score ? parseFloat(params.prev_mains_score) : undefined,
+        weak_subjects: params.prev_weak_subjects
+          ? params.prev_weak_subjects.split(',').map((s) => s.trim()).filter(Boolean)
+          : undefined,
+      };
+    }
+
     // Submit to API
     const payload: OnboardingV2Payload = {
       answers,
@@ -66,6 +83,7 @@ export default function CompleteScreen() {
       targets,
       promise_text: params.promise_text || undefined,
       exam_date: params.exam_date || '',
+      previous_attempt: previousAttempt,
     };
 
     api.completeOnboarding(payload)
@@ -75,8 +93,8 @@ export default function CompleteScreen() {
 
   const modeNames: Record<string, string> = {
     balanced: 'Balanced',
-    aggressive: 'Aggressive',
-    conservative: 'Conservative',
+    aggressive: 'Fast Track',
+    conservative: 'Slow & Steady',
     working_professional: 'Working Professional',
   };
 

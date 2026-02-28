@@ -11,7 +11,7 @@ interface Props {
 const CATEGORY_LABELS: Record<BadgeCategory, string> = {
   streak: 'Streak',
   study: 'Study',
-  milestone: 'XP Milestones',
+  milestone: 'Point Milestones',
   recovery: 'Recovery',
   special: 'Special',
 };
@@ -50,7 +50,7 @@ export function BadgeGrid({ badges }: Props) {
                   {badge.name}
                 </Text>
                 {badge.unlocked && badge.xp_reward > 0 && (
-                  <Text style={styles.badgeXp}>+{badge.xp_reward} XP</Text>
+                  <Text style={styles.badgeXp}>+{badge.xp_reward} pts</Text>
                 )}
               </View>
             ))}

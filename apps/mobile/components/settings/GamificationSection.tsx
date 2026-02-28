@@ -23,7 +23,7 @@ export function GamificationSection({ theme, gamification, badges }: Gamificatio
         <Text style={styles.paramValue}>{gamification.current_level}</Text>
       </View>
       <View style={styles.paramRow}>
-        <Text style={styles.paramLabel}>Total XP</Text>
+        <Text style={styles.paramLabel}>Total Points</Text>
         <Text style={styles.paramValue}>{gamification.xp_total.toLocaleString()}</Text>
       </View>
       <View style={styles.paramRow}>

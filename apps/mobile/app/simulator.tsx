@@ -25,9 +25,9 @@ const SCENARIOS: Array<{
 ];
 
 const STRATEGY_OPTIONS: { value: StrategyMode; label: string }[] = [
-  { value: 'conservative', label: 'Conservative' },
+  { value: 'conservative', label: 'Slow & Steady' },
   { value: 'balanced', label: 'Balanced' },
-  { value: 'aggressive', label: 'Aggressive' },
+  { value: 'aggressive', label: 'Fast Track' },
   { value: 'working_professional', label: 'Working Professional' },
 ];
 

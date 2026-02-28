@@ -3,7 +3,7 @@ export type {
   StrategyMode, ExamMode, GsPaper, PyqTrend, TopicStatus, ConfidenceStatus,
   VelocityStatus, EnergyLevel, PlanItemType, PlanItemStatus, BurnoutStatus, HealthCategory,
   StrategyParams, PersonaParams,
-  UserType, Challenge, OnboardingV2Answers, UserTargets, OnboardingV2Payload,
+  UserType, Challenge, OnboardingV2Answers, UserTargets, OnboardingV2Payload, PreviousAttemptData,
   Chapter, Topic,
   XPTriggerType, BadgeCategory, XPTransaction, BadgeDefinition, UserBadge, GamificationProfile, BadgeWithStatus,
   BenchmarkStatus, BenchmarkComponents, BenchmarkProfile, BenchmarkHistoryPoint,
@@ -156,6 +156,7 @@ export interface BurnoutData {
     engagement: number;
   };
   history: Array<{ date: string; bri_score: number; fatigue_score: number }>;
+  consecutive_missed_days: number;
 }
 
 export interface StressData {

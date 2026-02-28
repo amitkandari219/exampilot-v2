@@ -175,6 +175,17 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
     });
   }
 
+  // Insert previous attempt data if provided (repeaters)
+  if (payload.previous_attempt) {
+    await supabase.from('previous_attempts').upsert({
+      user_id: userId,
+      stage: payload.previous_attempt.stage,
+      prelims_score: payload.previous_attempt.prelims_score ?? null,
+      mains_score: payload.previous_attempt.mains_score ?? null,
+      weak_subjects: payload.previous_attempt.weak_subjects ?? [],
+    }, { onConflict: 'user_id' });
+  }
+
   // Insert persona snapshot
   await supabase.from('persona_snapshots').insert({
     user_id: userId,

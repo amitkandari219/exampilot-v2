@@ -87,7 +87,7 @@ export default function ProgressScreen() {
               size={80}
               strokeWidth={5}
               color={theme.colors.success}
-              label="Gravity"
+              label="Priority"
             />
             <Text style={styles.ringLabel}>Weighted</Text>
           </View>
@@ -95,8 +95,8 @@ export default function ProgressScreen() {
 
         {velocity && (
           <View style={styles.statsRow}>
-            <StatBox label="Velocity" value={`${velocity.velocity_ratio.toFixed(2)}x`} />
-            <StatBox label="Buffer" value={`${(buffer?.balance || 0).toFixed(1)}d`} />
+            <StatBox label="Study Speed" value={`${velocity.velocity_ratio.toFixed(2)}x`} />
+            <StatBox label="Backup Days" value={`${(buffer?.balance || 0).toFixed(1)}d`} />
             <StatBox label="Streak" value={`${velocity.streak?.current_count || 0}d`} />
           </View>
         )}
@@ -115,13 +115,13 @@ export default function ProgressScreen() {
 
         {velocityChartData.length > 1 && (
           <View style={styles.section}>
-            <HistoryChart data={velocityChartData} title="Velocity (30d)" color={theme.colors.primary} />
+            <HistoryChart data={velocityChartData} title="Study Speed (30d)" color={theme.colors.primary} />
           </View>
         )}
 
         {stressChartData.length > 1 && (
           <View style={styles.section}>
-            <HistoryChart data={stressChartData} title="Stress (7d)" color={theme.colors.success} />
+            <HistoryChart data={stressChartData} title="Wellness (7d)" color={theme.colors.success} />
           </View>
         )}
 

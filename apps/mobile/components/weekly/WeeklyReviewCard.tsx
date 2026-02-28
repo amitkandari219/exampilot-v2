@@ -143,7 +143,7 @@ export function WeeklyReviewCard({ review }: Props) {
   const levelStart = review.level_start || 1;
   const levelEnd = review.level_end || 1;
   const leveledUp = levelStart !== levelEnd;
-  const levelLabel = leveledUp ? `Lv ${levelStart}\u2192${levelEnd}` : `Lv ${levelEnd}`;
+  const levelLabel = leveledUp ? `Level ${levelStart}\u2192${levelEnd}` : `Level ${levelEnd}`;
   const benchmarkDelta = (review.benchmark_score_start != null && review.benchmark_score_end != null)
     ? review.benchmark_score_end - review.benchmark_score_start
     : null;
@@ -179,7 +179,7 @@ export function WeeklyReviewCard({ review }: Props) {
       {/* XP & Level */}
       <View style={styles.divider} />
       <View style={styles.metricsRow}>
-        <MetricPill value={`+${xpEarned.toLocaleString()}`} label="XP" />
+        <MetricPill value={`+${xpEarned.toLocaleString()}`} label="Points" />
         <MetricPill value={levelLabel} label="Level" />
         <MetricPill value={`${badgesUnlocked.length}`} label="Badges" />
       </View>
@@ -218,7 +218,7 @@ export function WeeklyReviewCard({ review }: Props) {
       <View style={styles.divider} />
       <View style={styles.deltasRow}>
         <DeltaChip label="Improved" value={review.topics_improved} />
-        <DeltaChip label="Decayed" value={-review.topics_decayed} />
+        <DeltaChip label="Forgotten" value={-review.topics_decayed} />
         <DeltaChip label="Crit" value={review.critical_count_change} />
       </View>
     </View>
