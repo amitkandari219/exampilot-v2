@@ -279,6 +279,18 @@ function assessCapacity(
   }
   if (isLightDay) availableHours *= BURNOUT.LIGHT_DAY_MULTIPLIER;
 
+  // Cold restart detection: cap plan at 60% after 2+ consecutive missed days
+  let consecutiveMissedDays = 0;
+  for (let i = 1; i <= 7; i++) {
+    const dateStr = toDateString(daysAgo(i, today));
+    const log = recentLogs.find((l) => l.log_date === dateStr);
+    if (!log || log.hours_studied === 0) consecutiveMissedDays++;
+    else break;
+  }
+  if (consecutiveMissedDays >= BURNOUT.COLD_RESTART_MISSED_DAYS) {
+    availableHours *= BURNOUT.COLD_RESTART_CAP;
+  }
+
   let energyLevel: string;
   if (fatigueScore < PLANNER.FATIGUE_ENERGY_FULL) energyLevel = 'full';
   else if (fatigueScore < PLANNER.FATIGUE_ENERGY_MODERATE) energyLevel = 'moderate';

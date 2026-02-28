@@ -75,7 +75,7 @@ export const strategyModes: ModeDefinition[] = [
   },
   {
     mode: 'aggressive',
-    title: 'Aggressive',
+    title: 'Fast Track',
     subtitle: 'High intensity',
     description:
       'Fast-paced coverage with frequent testing and answer writing. Best for experienced aspirants or those with 8+ hours daily.',
@@ -84,7 +84,7 @@ export const strategyModes: ModeDefinition[] = [
   },
   {
     mode: 'conservative',
-    title: 'Conservative',
+    title: 'Slow & Steady',
     subtitle: 'Deep & thorough',
     description:
       'Focuses on deep understanding with generous revision cycles. Great for those who prefer mastery over speed.',

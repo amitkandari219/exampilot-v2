@@ -14,10 +14,10 @@ export function ReviewRatingSheet({ visible, topicName, onRate, onClose }: Revie
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const RATING_OPTIONS = [
-    { rating: 1, label: 'Again', color: theme.colors.error, description: 'Completely forgot' },
-    { rating: 2, label: 'Hard', color: theme.colors.orange, description: 'Recalled with difficulty' },
-    { rating: 3, label: 'Good', color: theme.colors.primary, description: 'Recalled with some effort' },
-    { rating: 4, label: 'Easy', color: theme.colors.success, description: 'Recalled effortlessly' },
+    { rating: 1, label: "Don't remember", color: theme.colors.error, description: 'Completely forgot' },
+    { rating: 2, label: 'Barely remember', color: theme.colors.orange, description: 'Recalled with difficulty' },
+    { rating: 3, label: 'Remember well', color: theme.colors.primary, description: 'Recalled with some effort' },
+    { rating: 4, label: 'Easy recall', color: theme.colors.success, description: 'Recalled effortlessly' },
   ];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

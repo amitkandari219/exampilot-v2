@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { useDailyPlan, useCompletePlanItem, useDeferPlanItem } from '../../hooks/usePlanner';
@@ -18,10 +18,21 @@ export default function PlannerScreen() {
   const { data: burnout } = useBurnout();
   const completeMutation = useCompletePlanItem();
   const deferMutation = useDeferPlanItem();
+  const [hoursModal, setHoursModal] = useState<{ itemId: string; estimated: number } | null>(null);
+  const [hoursInput, setHoursInput] = useState('');
 
   const handleComplete = (itemId: string) => {
     const item = plan?.items?.find((i) => i.id === itemId);
-    completeMutation.mutate({ itemId, actualHours: item?.estimated_hours || 1 });
+    const estimated = item?.estimated_hours || 1;
+    setHoursInput(String(estimated));
+    setHoursModal({ itemId, estimated });
+  };
+
+  const confirmComplete = () => {
+    if (!hoursModal) return;
+    const hours = parseFloat(hoursInput) || hoursModal.estimated;
+    completeMutation.mutate({ itemId: hoursModal.itemId, actualHours: hours });
+    setHoursModal(null);
   };
 
   const handleDefer = (itemId: string) => {
@@ -96,6 +107,30 @@ export default function PlannerScreen() {
         }
         contentContainerStyle={styles.list}
       />
+      <Modal visible={!!hoursModal} transparent animationType="fade" onRequestClose={() => setHoursModal(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>How long did you study?</Text>
+            <TextInput
+              style={styles.hoursInput}
+              value={hoursInput}
+              onChangeText={setHoursInput}
+              keyboardType="decimal-pad"
+              selectTextOnFocus
+              autoFocus
+            />
+            <Text style={styles.hoursUnit}>hours</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setHoursModal(null)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalConfirm} onPress={confirmComplete}>
+                <Text style={styles.modalConfirmText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -147,5 +182,70 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: theme.fontSize.xs,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    width: '100%',
+    maxWidth: 280,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: theme.fontSize.md,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  hoursInput: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    textAlign: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: theme.colors.primary,
+    minWidth: 80,
+    paddingVertical: theme.spacing.xs,
+  },
+  hoursUnit: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  modalCancel: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textMuted,
+    fontWeight: '600',
+  },
+  modalConfirm: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.background,
+    fontWeight: '700',
   },
 });

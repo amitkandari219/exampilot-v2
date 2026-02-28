@@ -20,19 +20,19 @@ export function XPProgressCard({ profile }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.sectionLabel}>LEVEL & XP</Text>
+        <Text style={styles.sectionLabel}>LEVEL & POINTS</Text>
         <View style={styles.levelBadge}>
-          <Text style={styles.levelText}>Lv {profile.current_level}</Text>
+          <Text style={styles.levelText}>Level {profile.current_level}</Text>
         </View>
       </View>
 
-      <Text style={styles.xpHero}>{profile.xp_total.toLocaleString()} XP</Text>
+      <Text style={styles.xpHero}>{profile.xp_total.toLocaleString()} Points</Text>
 
       <View style={styles.progressBarBg}>
         <View style={[styles.progressBarFill, { width: `${progressPct * 100}%` }]} />
       </View>
       <Text style={styles.progressLabel}>
-        {profile.xp_progress_in_level.toLocaleString()}/{profile.xp_for_next_level.toLocaleString()} → Lv {profile.current_level + 1}
+        {profile.xp_progress_in_level.toLocaleString()}/{profile.xp_for_next_level.toLocaleString()} → Level {profile.current_level + 1}
       </Text>
 
       <View style={styles.divider} />

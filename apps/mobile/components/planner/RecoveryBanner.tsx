@@ -26,7 +26,7 @@ export function RecoveryBanner({ day, totalDays }: RecoveryBannerProps) {
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
 
-      <Text style={styles.encouragement}>Optimized for peak performance</Text>
+      <Text style={styles.encouragement}>Rest now, come back stronger</Text>
     </View>
   );
 }

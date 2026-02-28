@@ -206,11 +206,11 @@ export function WeeklyReviewCard({ review }: Props) {
       {/* Grid */}
       <View style={styles.divider} />
       <View style={styles.grid}>
-        <GridItem label="Velocity" value={`${review.avg_velocity_ratio.toFixed(2)}x`} color={velocityColor} />
-        <GridItem label="Plan Adherence" value={`${review.plan_completion_rate}%`} />
-        <GridItem label="Stress" value={`${review.avg_stress}`} />
-        <GridItem label="BRI" value={`${review.avg_bri}`} color={briColor} />
-        <GridItem label="Buffer" value={`${review.buffer_balance_change >= 0 ? '+' : ''}${review.buffer_balance_change.toFixed(1)}d`} color={review.buffer_balance_change >= 0 ? theme.colors.success : theme.colors.error} />
+        <GridItem label="Study Speed" value={`${review.avg_velocity_ratio.toFixed(2)}x`} color={velocityColor} />
+        <GridItem label="Plan followed" value={`${review.plan_completion_rate}%`} />
+        <GridItem label="Wellness" value={`${review.avg_stress}`} />
+        <GridItem label="Burnout Risk" value={`${review.avg_bri}`} color={briColor} />
+        <GridItem label="Backup Days" value={`${review.buffer_balance_change >= 0 ? '+' : ''}${review.buffer_balance_change.toFixed(1)}d`} color={review.buffer_balance_change >= 0 ? theme.colors.success : theme.colors.error} />
         <GridItem label="Streak" value={`${review.current_streak}d`} />
       </View>
 

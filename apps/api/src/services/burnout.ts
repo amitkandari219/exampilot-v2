@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { BRI_WEIGHTS } from '../constants/thresholds.js';
+import { BRI_WEIGHTS, BURNOUT } from '../constants/thresholds.js';
 import { appEvents } from './events.js';
 
 export async function calculateFatigueScore(userId: string): Promise<number> {
@@ -46,8 +46,9 @@ export async function calculateFatigueScore(userId: string): Promise<number> {
   // Rest days in last 7
   const restDays7 = 7 - recentLogs.filter((l) => l.hours_studied > 0).length;
 
-  // Fatigue formula
-  const fatigue = (consecutiveDays * 10) + (avgDifficulty3d * 8) + (hours3d / targetHours * 20) - (restDays7 * 15);
+  // Fatigue formula — use max(targetHours, 6) to prevent false alerts for low-hour users (WPs at 3h/day)
+  const effectiveTarget = Math.max(targetHours, BURNOUT.FATIGUE_MIN_TARGET_HOURS);
+  const fatigue = (consecutiveDays * 10) + (avgDifficulty3d * 8) + (hours3d / effectiveTarget * 20) - (restDays7 * 15);
 
   return Math.max(0, Math.min(100, Math.round(fatigue)));
 }

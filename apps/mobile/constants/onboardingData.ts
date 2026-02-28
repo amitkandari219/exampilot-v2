@@ -55,11 +55,11 @@ export const motivationalResponses: Record<string, Record<string, string>> = {
 // Value prop items based on challenges
 export const valuePropItems: Record<Challenge, string> = {
   consistency: 'Daily smart plans that adapt to your pace',
-  revision: 'FSRS-powered spaced repetition for 90%+ retention',
+  revision: 'Smart revision schedule for 90%+ retention',
   answer_writing: 'Weekly answer writing targets with tracking',
-  time_management: 'Velocity tracking to keep you on schedule',
+  time_management: 'Study speed tracking to keep you on schedule',
   current_affairs: 'Daily CA tracker with subject gap alerts',
-  motivation: 'XP system and streaks to keep you engaged',
+  motivation: 'Points system and streaks to keep you engaged',
   syllabus_coverage: 'Weighted syllabus coverage with PYQ analysis',
   optional_subject: 'Smart optional subject integration in your plan',
 };

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
+import { InfoTooltip } from '../common/InfoTooltip';
 import { BenchmarkProfile } from '../../types';
 
 interface Props {
@@ -66,7 +67,10 @@ export function BenchmarkScoreCard({ profile, compact = false }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.sectionLabel}>EXAM READINESS</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.sectionLabel}>EXAM READINESS</Text>
+          <InfoTooltip text="Your overall preparation score based on syllabus coverage, topic confidence, weak areas, study consistency, and study speed. Higher is better." />
+        </View>
         <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
           <Text style={[styles.statusText, { color: statusColor }]}>
             {STATUS_LABELS[profile.status] || profile.status}
@@ -85,7 +89,7 @@ export function BenchmarkScoreCard({ profile, compact = false }: Props) {
           <ComponentBar label="Confidence" value={profile.components.confidence} />
           <ComponentBar label="Weakness" value={profile.components.weakness} />
           <ComponentBar label="Consistency" value={profile.components.consistency} />
-          <ComponentBar label="Velocity" value={profile.components.velocity} />
+          <ComponentBar label="Speed" value={profile.components.velocity} />
         </View>
       </View>
 

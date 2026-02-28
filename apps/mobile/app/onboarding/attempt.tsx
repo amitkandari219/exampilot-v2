@@ -21,12 +21,13 @@ export default function AttemptScreen() {
       question="Which attempt is this?"
       subtitle="Experience changes strategy"
       nextDisabled={attempt === null}
-      onNext={() =>
+      onNext={() => {
+        const isRepeater = attempt === 'second' || attempt === 'third_plus';
         router.push({
-          pathname: '/onboarding/approach',
+          pathname: isRepeater ? '/onboarding/autopsy' : '/onboarding/approach',
           params: { ...params, attempt_number: attempt! },
-        })
-      }
+        });
+      }}
     >
       {attemptOptions.map((opt) => (
         <SelectionCard

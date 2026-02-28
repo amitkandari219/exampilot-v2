@@ -24,6 +24,9 @@ export const BUFFER = {
 // Burnout/fatigue constants (used in planner, burnout)
 export const BURNOUT = {
   FATIGUE_DEFAULT: 85,
+  FATIGUE_MIN_TARGET_HOURS: 6,
+  COLD_RESTART_MISSED_DAYS: 2,
+  COLD_RESTART_CAP: 0.6,
   LIGHT_DAY_MULTIPLIER: 0.6,
   RECOVERY_HALF: 0.5,
   RAMP_DAY1: 0.7,

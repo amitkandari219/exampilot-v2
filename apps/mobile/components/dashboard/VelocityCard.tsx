@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { Sparkline } from '../common/Sparkline';
+import { InfoTooltip } from '../common/InfoTooltip';
 import { VelocityStatus } from '../../types';
 
 interface VelocityCardProps {
@@ -39,7 +40,10 @@ export function VelocityCard({ velocityRatio, status, trend, projectedDate, stre
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.label}>Velocity</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.label}>Study Speed</Text>
+          <InfoTooltip text="How fast you're covering the syllabus compared to what's needed. 1.0x means you're exactly on pace. Above 1.0x = ahead, below = falling behind." />
+        </View>
         <View style={[styles.badge, { backgroundColor: color + '20' }]}>
           <Text style={[styles.badgeText, { color }]}>{statusLabels[status]}</Text>
         </View>

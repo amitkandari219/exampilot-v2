@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { HealthDetailSheet } from './HealthDetailSheet';
+import { InfoTooltip } from '../common/InfoTooltip';
 import type { WeaknessOverview, HealthCategory } from '../../types';
 
 interface WeaknessRadarCardProps {
@@ -31,7 +32,10 @@ export function WeaknessRadarCard({ data }: WeaknessRadarCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Weakness Radar</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.title}>Weakness Radar</Text>
+          <InfoTooltip text="Topics that need the most attention based on your completion, revision frequency, mock accuracy, and how recently you studied them." />
+        </View>
         {alertCount > 0 && (
           <View style={styles.alertBadge}>
             <Text style={styles.alertText}>{alertCount} need attention</Text>

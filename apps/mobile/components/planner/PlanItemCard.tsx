@@ -12,9 +12,9 @@ interface PlanItemCardProps {
 
 const TYPE_CONFIG: Record<PlanItemType, { label: string; color: string }> = {
   new: { label: 'NEW', color: '#3B82F6' },
-  revision: { label: 'REVISION', color: '#A855F7' },
-  decay_revision: { label: 'DECAY', color: '#F59E0B' },
-  stretch: { label: 'STRETCH', color: '#6366F1' },
+  revision: { label: 'REVISE', color: '#A855F7' },
+  decay_revision: { label: 'REVISE', color: '#F59E0B' },
+  stretch: { label: 'BONUS', color: '#6366F1' },
 };
 
 export function PlanItemCard({ item, onComplete, onDefer }: PlanItemCardProps) {

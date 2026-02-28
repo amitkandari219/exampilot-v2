@@ -30,11 +30,11 @@ const CATEGORY_LABELS: Record<HealthCategory, string> = {
   exam_ready: 'Ready',
 };
 
-const COMPONENTS: { key: 'confidence' | 'revision' | 'effort' | 'stability'; label: string; weight: string }[] = [
-  { key: 'confidence', label: 'Confidence', weight: '40%' },
-  { key: 'revision', label: 'Revision', weight: '25%' },
-  { key: 'effort', label: 'Effort', weight: '20%' },
-  { key: 'stability', label: 'Stability', weight: '15%' },
+const COMPONENTS: { key: 'completion' | 'revision' | 'accuracy' | 'recency'; label: string; weight: string }[] = [
+  { key: 'accuracy', label: 'Accuracy', weight: '30%' },
+  { key: 'completion', label: 'Completion', weight: '25%' },
+  { key: 'recency', label: 'Recency', weight: '25%' },
+  { key: 'revision', label: 'Revision', weight: '20%' },
 ];
 
 function getBarColor(score: number, theme: Theme): string {

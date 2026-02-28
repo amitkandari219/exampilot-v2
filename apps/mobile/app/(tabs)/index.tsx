@@ -23,6 +23,8 @@ import { VelocityCard } from '../../components/dashboard/VelocityCard';
 import { BufferBankCard } from '../../components/dashboard/BufferBankCard';
 import { BurnoutIndicator } from '../../components/dashboard/BurnoutIndicator';
 import { WeaknessRadarCard } from '../../components/weakness/WeaknessRadarCard';
+import { EmotionalBanner } from '../../components/dashboard/EmotionalBanner';
+import { GuidedOrientation } from '../../components/dashboard/GuidedOrientation';
 import { ConfidenceStatus, ExamMode } from '../../types';
 
 export default function DashboardScreen() {
@@ -56,6 +58,12 @@ export default function DashboardScreen() {
   const greeting = getGreeting();
   const userName = user?.user_metadata?.name || 'Aspirant';
 
+  // Progressive disclosure: hide advanced metrics for users in first 14 days
+  const accountAgeDays = user?.created_at
+    ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000)
+    : 999;
+  const isNewUser = accountAgeDays < 14;
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -82,82 +90,31 @@ export default function DashboardScreen() {
               disabled={switchExamMode.isPending}
             >
               <Text style={[styles.examModeBtnText, examMode === m && styles.examModeBtnTextActive]}>
-                {m === 'post_prelims' ? 'Post-Pre' : m.charAt(0).toUpperCase() + m.slice(1)}
+                {m === 'post_prelims' ? 'After Prelims' : m.charAt(0).toUpperCase() + m.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {gamification && (
-          <View style={styles.section}>
-            <XPProgressCard profile={gamification} />
+        {velocity?.days_remaining != null && (
+          <View style={styles.countdownBar}>
+            <Text style={styles.countdownNumber}>{velocity.days_remaining}</Text>
+            <Text style={styles.countdownLabel}>days to exam</Text>
           </View>
         )}
 
-        {benchmark && (
-          <View style={styles.section}>
-            <BenchmarkScoreCard profile={benchmark} compact />
-          </View>
+        {accountAgeDays <= 3 && (
+          <GuidedOrientation dayNumber={Math.max(1, accountAgeDays)} />
         )}
 
-        {caStats && (
-          <View style={styles.section}>
-            <CADashboardCard stats={caStats} />
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.simulatorButton}
-          onPress={() => router.push('/simulator')}
-          activeOpacity={0.7}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.simulatorTitle}>What If Simulator</Text>
-            <Text style={styles.simulatorSubtitle}>Project hypothetical scenarios</Text>
-          </View>
-          <Text style={styles.simulatorArrow}>&rsaquo;</Text>
-        </TouchableOpacity>
-
-        {stress && (
-          <View style={styles.section}>
-            <StressThermometer
-              score={stress.score}
-              status={stress.status}
-              label={stress.label}
-              signals={stress.signals}
-              recommendation={stress.recommendation}
-              history={stress.history?.map((h) => h.score)}
-            />
-          </View>
-        )}
-
-        {weakness && (
-          <View style={styles.section}>
-            <WeaknessRadarCard data={weakness} />
-          </View>
-        )}
-
-        {velocity && (
-          <View style={styles.section}>
-            <VelocityCard
-              velocityRatio={velocity.velocity_ratio}
-              status={velocity.status}
-              trend={velocity.trend}
-              projectedDate={velocity.projected_completion_date}
-              streak={velocity.streak}
-            />
-          </View>
-        )}
-
-        {buffer && (
-          <View style={styles.section}>
-            <BufferBankCard
-              balance={buffer.balance}
-              capacity={buffer.capacity}
-              lastTransaction={buffer.transactions?.[0] || null}
-            />
-          </View>
-        )}
+        <EmotionalBanner
+          streakCount={velocity?.streak?.current_count ?? 0}
+          inRecovery={burnout?.in_recovery ?? false}
+          isLightDay={plan?.is_light_day ?? false}
+          lastMockScore={null}
+          consecutiveMissedDays={0}
+          briScore={burnout?.bri_score ?? 80}
+        />
 
         {plan && plan.items && plan.items.length > 0 && (
           <View style={styles.section}>
@@ -187,10 +144,83 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {confidence && (
+        {velocity && (
+          <View style={styles.section}>
+            <VelocityCard
+              velocityRatio={velocity.velocity_ratio}
+              status={velocity.status}
+              trend={velocity.trend}
+              projectedDate={velocity.projected_completion_date}
+              streak={velocity.streak}
+            />
+          </View>
+        )}
+
+        {benchmark && (
+          <View style={styles.section}>
+            <BenchmarkScoreCard profile={benchmark} compact />
+          </View>
+        )}
+
+        {!isNewUser && stress && (
+          <View style={styles.section}>
+            <StressThermometer
+              score={stress.score}
+              status={stress.status}
+              label={stress.label}
+              signals={stress.signals}
+              recommendation={stress.recommendation}
+              history={stress.history?.map((h) => h.score)}
+            />
+          </View>
+        )}
+
+        {!isNewUser && buffer && (
+          <View style={styles.section}>
+            <BufferBankCard
+              balance={buffer.balance}
+              capacity={buffer.capacity}
+              lastTransaction={buffer.transactions?.[0] || null}
+            />
+          </View>
+        )}
+
+        {!isNewUser && weakness && (
+          <View style={styles.section}>
+            <WeaknessRadarCard data={weakness} />
+          </View>
+        )}
+
+        {gamification && (
+          <View style={styles.section}>
+            <XPProgressCard profile={gamification} />
+          </View>
+        )}
+
+        {caStats && (
+          <View style={styles.section}>
+            <CADashboardCard stats={caStats} />
+          </View>
+        )}
+
+        {!isNewUser && (
+          <TouchableOpacity
+            style={styles.simulatorButton}
+            onPress={() => router.push('/simulator')}
+            activeOpacity={0.7}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.simulatorTitle}>What If Simulator</Text>
+              <Text style={styles.simulatorSubtitle}>Project hypothetical scenarios</Text>
+            </View>
+            <Text style={styles.simulatorArrow}>&rsaquo;</Text>
+          </TouchableOpacity>
+        )}
+
+        {!isNewUser && confidence && (
           <View style={styles.section}>
             <View style={styles.confCard}>
-              <Text style={styles.sectionTitle}>Confidence Distribution</Text>
+              <Text style={styles.sectionTitle}>Revision Health</Text>
               <View style={styles.confRow}>
                 {(['fresh', 'fading', 'stale', 'decayed'] as ConfidenceStatus[]).map((status) => {
                   const count = confidence.distribution[status] || 0;
@@ -200,10 +230,16 @@ export default function DashboardScreen() {
                     stale: theme.colors.orange,
                     decayed: theme.colors.error,
                   };
+                  const friendlyLabels: Record<ConfidenceStatus, string> = {
+                    fresh: 'Strong',
+                    fading: 'Needs review',
+                    stale: 'Rusty',
+                    decayed: 'Forgotten',
+                  };
                   return (
                     <View key={status} style={styles.confItem}>
                       <Text style={[styles.confCount, { color: colors[status] }]}>{count}</Text>
-                      <Text style={styles.confLabel}>{status}</Text>
+                      <Text style={styles.confLabel}>{friendlyLabels[status]}</Text>
                     </View>
                   );
                 })}
@@ -322,6 +358,27 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: theme.fontSize.xxs,
     color: theme.colors.textMuted,
     textTransform: 'capitalize',
+  },
+  countdownBar: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '40',
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  countdownNumber: {
+    fontSize: theme.fontSize.xxl,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  countdownLabel: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
   },
   examModeToggle: {
     flexDirection: 'row',

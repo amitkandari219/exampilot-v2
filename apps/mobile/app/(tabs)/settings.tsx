@@ -8,7 +8,7 @@ import { StrategyCard } from '../../components/settings/StrategyCard';
 import { ProfileSection } from '../../components/settings/ProfileSection';
 import { AppearanceSection } from '../../components/settings/AppearanceSection';
 import { GamificationSection } from '../../components/settings/GamificationSection';
-import { PersonaParamsSection } from '../../components/settings/PersonaParamsSection';
+// PersonaParamsSection hidden — internal algorithm parameters not user-facing
 import { RecalibrationSection } from '../../components/settings/RecalibrationSection';
 import { RecoverySection } from '../../components/settings/RecoverySection';
 import { AccountSection } from '../../components/settings/AccountSection';
@@ -144,11 +144,6 @@ export default function SettingsScreen() {
           params={params}
           onModeChange={handleModeChange}
           onParamsChange={handleParamsChange}
-        />
-
-        <PersonaParamsSection
-          theme={theme}
-          personaParams={personaParams}
         />
 
         <RecalibrationSection

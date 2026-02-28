@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { Sparkline } from '../common/Sparkline';
+import { InfoTooltip } from '../common/InfoTooltip';
 
 interface BufferBankCardProps {
   balance: number;
@@ -25,7 +26,10 @@ export function BufferBankCard({ balance, capacity, maxBuffer, status, lastTrans
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.label}>{inDebt ? 'Buffer Bank (DEBT)' : 'Buffer Bank'}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.label}>{inDebt ? 'Backup Days (Behind)' : 'Backup Days'}</Text>
+          <InfoTooltip text="Days you've banked by studying extra. These act as a safety net — if you miss a day, your backup covers it. Negative means you're behind schedule." />
+        </View>
         {lastTransaction && (
           <Text style={[styles.txText, { color: lastTransaction.amount >= 0 ? theme.colors.success : theme.colors.error }]}>
             {lastTransaction.amount >= 0 ? '+' : ''}{lastTransaction.amount.toFixed(1)}

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { Sparkline } from '../common/Sparkline';
+import { InfoTooltip } from '../common/InfoTooltip';
 
 interface StressThermometerProps {
   score: number;
@@ -31,8 +32,8 @@ export function StressThermometer({ score, status, label, signals, recommendatio
   const color = getColor(score, theme);
 
   const signalEntries = [
-    { name: 'Velocity', value: signals.velocity },
-    { name: 'Buffer', value: signals.buffer },
+    { name: 'Speed', value: signals.velocity },
+    { name: 'Backup', value: signals.buffer },
     { name: 'Time', value: signals.time },
     { name: 'Confidence', value: signals.confidence },
   ];
@@ -40,7 +41,10 @@ export function StressThermometer({ score, status, label, signals, recommendatio
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Stress Level</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.title}>Study Wellness</Text>
+          <InfoTooltip text="An overall health check of your preparation. Higher score means things are going well — your speed, backup days, time left, and confidence are all factored in." />
+        </View>
         <View style={[styles.badge, { backgroundColor: color + '20' }]}>
           <Text style={[styles.badgeText, { color }]}>{label}</Text>
         </View>

@@ -162,10 +162,17 @@ async function upsertStreak(userId: string, streakType: string, isActive: boolea
 
     const newCount = isConsecutive ? streak.current_count + 1 : 1;
     const bestCount = Math.max(streak.best_count, newCount);
+    // Reset weekly freeze at every 7-day boundary
+    const resetFreeze = newCount % 7 === 0;
 
     await supabase
       .from('streaks')
-      .update({ current_count: newCount, best_count: bestCount, last_active_date: date })
+      .update({
+        current_count: newCount,
+        best_count: bestCount,
+        last_active_date: date,
+        ...(resetFreeze ? { freeze_used_this_week: false } : {}),
+      })
       .eq('id', streak.id);
 
     const milestones = GAMIFICATION.STREAK_MILESTONES;
@@ -174,9 +181,25 @@ async function upsertStreak(userId: string, streakType: string, isActive: boolea
       appEvents.emit('notification:queue', { userId, type: 'streak_milestone', metadata: { count: newCount } });
     }
   } else {
-    await supabase
-      .from('streaks')
-      .update({ current_count: 0 })
-      .eq('id', streak.id);
+    // Streak freeze: allow 1 free miss per 7-day window before resetting
+    const lastDate = streak.last_active_date ? new Date(streak.last_active_date) : null;
+    const today = new Date(date);
+    const daysSinceLast = lastDate ? Math.floor((today.getTime() - lastDate.getTime()) / 86400000) : 999;
+
+    // Only freeze on first missed day (daysSinceLast === 1 means yesterday was active, today is the first miss)
+    // and only if streak is at least 2 days (no point freezing a 1-day streak)
+    if (daysSinceLast <= 1 && streak.current_count >= 2 && !streak.freeze_used_this_week) {
+      // Use the freeze — don't reset, mark freeze as used
+      await supabase
+        .from('streaks')
+        .update({ freeze_used_this_week: true })
+        .eq('id', streak.id);
+    } else {
+      // No freeze available or second miss — reset streak
+      await supabase
+        .from('streaks')
+        .update({ current_count: 0, freeze_used_this_week: false })
+        .eq('id', streak.id);
+    }
   }
 }
