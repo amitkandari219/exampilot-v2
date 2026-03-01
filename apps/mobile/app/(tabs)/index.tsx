@@ -73,7 +73,11 @@ export default function DashboardScreen() {
   const [examMode, setExamMode] = useState<ExamMode>('mains');
 
   useEffect(() => {
-    if (strategyData?.current_mode) setExamMode(strategyData.current_mode);
+    if (strategyData?.current_mode) {
+      const mode = strategyData.current_mode;
+      // Migrate legacy post_prelims to mains (identical behavior)
+      setExamMode(mode in EXAM_MODE_INFO ? mode : 'mains');
+    }
   }, [strategyData]);
 
   const handleExamModeChange = (newMode: ExamMode) => {
@@ -125,11 +129,11 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        <View style={[styles.modeContext, { borderLeftColor: EXAM_MODE_INFO[examMode].color }]}>
-          <Text style={[styles.modeContextLabel, { color: EXAM_MODE_INFO[examMode].color }]}>
-            {EXAM_MODE_INFO[examMode].label}
+        <View style={[styles.modeContext, { borderLeftColor: (EXAM_MODE_INFO[examMode] || EXAM_MODE_INFO.mains).color }]}>
+          <Text style={[styles.modeContextLabel, { color: (EXAM_MODE_INFO[examMode] || EXAM_MODE_INFO.mains).color }]}>
+            {(EXAM_MODE_INFO[examMode] || EXAM_MODE_INFO.mains).label}
           </Text>
-          <Text style={styles.modeContextDesc}>{EXAM_MODE_INFO[examMode].description}</Text>
+          <Text style={styles.modeContextDesc}>{(EXAM_MODE_INFO[examMode] || EXAM_MODE_INFO.mains).description}</Text>
           {switchExamMode.isPending && (
             <Text style={styles.modeContextSwitching}>Switching — regenerating plan...</Text>
           )}
