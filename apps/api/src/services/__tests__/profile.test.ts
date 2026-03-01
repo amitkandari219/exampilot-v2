@@ -33,6 +33,7 @@ describe('profile service', () => {
         name: 'Amit',
         exam_date: '2027-06-01',
         avatar_url: 'https://example.com/avatar.jpg',
+        attempt_number: null,
       });
     });
 
@@ -45,7 +46,7 @@ describe('profile service', () => {
       );
 
       const result = await getProfile('user-1');
-      expect(result).toEqual({ name: '', exam_date: null, avatar_url: null });
+      expect(result).toEqual({ name: '', exam_date: null, avatar_url: null, attempt_number: null });
     });
 
     it('throws on error', async () => {

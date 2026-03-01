@@ -389,6 +389,35 @@ function computeDelta(baseline: SimulationSnapshot, projected: SimulationSnapsho
   };
 }
 
+// --- Attempt Budget (T5-13) ---
+
+function applyAttemptBudget(
+  baseline: SimulationSnapshot,
+  params: { age: number; attempts_used: number; category?: string },
+): FocusSubjectSnapshot {
+  // UPSC age limits: General ≤32, OBC ≤35, SC/ST no upper limit
+  const ageLimit = (params.category === 'obc') ? 35
+    : (params.category === 'sc' || params.category === 'st') ? 65
+    : 32;
+  const maxAttempts = (params.category === 'obc') ? 9
+    : (params.category === 'sc' || params.category === 'st') ? Infinity
+    : 6;
+
+  const attemptsRemaining = Math.max(0, maxAttempts - params.attempts_used);
+  const yearsRemaining = Math.max(0, ageLimit - params.age);
+  const effectiveAttempts = Math.min(attemptsRemaining, yearsRemaining);
+
+  // Project velocity impact based on remaining attempts
+  // More attempts = can afford to be more methodical
+  const urgencyFactor = effectiveAttempts <= 1 ? 0.7 : effectiveAttempts <= 2 ? 0.85 : 1.0;
+
+  return {
+    ...baseline,
+    velocity_ratio: baseline.velocity_ratio * urgencyFactor,
+    status: urgencyFactor < 0.8 ? 'at_risk' : baseline.status,
+  };
+}
+
 // --- Main entry point ---
 
 export async function runSimulation(userId: string, scenario: SimulationScenario): Promise<SimulationResult> {
@@ -414,6 +443,9 @@ export async function runSimulation(userId: string, scenario: SimulationScenario
       break;
     case 'focus_subject':
       projected = await applyFocusSubject(userId, baseline, scenario.params as { subject_id: string; days: number }, revisionPct);
+      break;
+    case 'attempt_budget':
+      projected = applyAttemptBudget(baseline, scenario.params as { age: number; attempts_used: number; category?: string });
       break;
     default:
       throw new Error(`Unknown scenario type: ${(scenario as SimulationScenario).type}`);
@@ -500,6 +532,21 @@ export async function runSimulation(userId: string, scenario: SimulationScenario
         recommendation = `A ${focusDays}-day focus sprint improves subject coverage to ~${afterPct}% but slightly delays overall progress. Consider a shorter sprint of 3–5 days instead.`;
       } else {
         recommendation = `A ${focusDays}-day focus sprint puts your overall prep at risk. Other subjects may drop to ~${retentionPct}% confidence. Limit the sprint to 3 days or interleave with lighter revision of other subjects.`;
+      }
+      break;
+    }
+    case 'attempt_budget': {
+      const attemptsUsed = scenario.params.attempts_used ?? 0;
+      const maxAttempts = (scenario.params.category === 'obc') ? 9
+        : (scenario.params.category === 'sc' || scenario.params.category === 'st') ? Infinity
+        : 6;
+      const remaining = maxAttempts === Infinity ? 'unlimited' : String(Math.max(0, maxAttempts - attemptsUsed));
+      if (remaining === 'unlimited' || Number(remaining) >= 3) {
+        recommendation = `You have ${remaining} attempt(s) remaining. Focus on steady improvement — you have room to learn from each cycle.`;
+      } else if (Number(remaining) >= 1) {
+        recommendation = `You have ${remaining} attempt(s) remaining. Every attempt counts — maximize PYQ coverage and revision depth.`;
+      } else {
+        recommendation = `You have exhausted your attempts. Focus on optionals and essay for maximum marks in your remaining window.`;
       }
       break;
     }

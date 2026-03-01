@@ -22,3 +22,17 @@ export function useTopicHealth(topicId: string) {
     enabled: !!topicId && (!isDemoMode || !!demoTopicHealth[topicId]),
   });
 }
+
+export function useTopicUrgency() {
+  return useQuery({
+    queryKey: ['topic-urgency'],
+    queryFn: () => api.getTopicUrgency(),
+  });
+}
+
+export function useDiminishingReturns() {
+  return useQuery({
+    queryKey: ['diminishing-returns'],
+    queryFn: () => api.getDiminishingReturns(),
+  });
+}

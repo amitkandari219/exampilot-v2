@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase.js';
 import type { HealthCategory } from '../types/index.js';
 import { getActiveSubjectIds } from './modeConfig.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { HEALTH_WEIGHTS } from '../constants/thresholds.js';
+import { HEALTH_WEIGHTS, URGENCY, DIMINISHING_RETURNS } from '../constants/thresholds.js';
 
 // Typed interfaces for Supabase join results
 interface SubjectRow { id: string; name: string }
@@ -580,4 +580,100 @@ export async function getHealthTrend(userId: string, topicId: string, days = 30)
       category: t.category,
     })),
   };
+}
+
+// ---- TOPIC URGENCY SIGNAL (T4-11) ----
+
+export async function getTopicUrgency(userId: string) {
+  const [profileRes, snapshotsRes, topicsRes] = await Promise.all([
+    supabase.from('user_profiles').select('exam_date').eq('id', userId).single(),
+    supabase.from('weakness_snapshots').select('topic_id, health_score').eq('user_id', userId).order('snapshot_date', { ascending: false }),
+    supabase.from('topics').select('id, name, importance, pyq_weight, chapters!inner(name, subjects!inner(name))').order('pyq_weight', { ascending: false }),
+  ]);
+
+  const examDate = profileRes.data?.exam_date ? new Date(profileRes.data.exam_date) : null;
+  const daysRemaining = examDate ? Math.max(1, Math.ceil((examDate.getTime() - Date.now()) / 86400000)) : 365;
+  const timeUrgency = Math.min(100, Math.max(0, 100 - (daysRemaining / 3.65)));
+
+  const healthMap = new Map<string, number>();
+  const seen = new Set<string>();
+  for (const s of (snapshotsRes.data || []) as { topic_id: string; health_score: number }[]) {
+    if (!seen.has(s.topic_id)) { seen.add(s.topic_id); healthMap.set(s.topic_id, s.health_score); }
+  }
+
+  interface UrgencyTopic { id: string; name: string; importance: number; pyq_weight: number; chapters: { name: string; subjects: { name: string } } }
+  const topics = (topicsRes.data || []) as unknown as UrgencyTopic[];
+
+  const results = topics.map((t) => {
+    const health = healthMap.get(t.id) ?? 50;
+    const pyqSignal = Math.min(100, (t.pyq_weight / 5) * 100);
+    const healthSignal = 100 - health;
+    const importanceSignal = Math.min(100, (t.importance / 5) * 100);
+
+    const urgencyScore = Math.round(
+      pyqSignal * URGENCY.PYQ_WEIGHT + healthSignal * URGENCY.HEALTH_WEIGHT +
+      timeUrgency * URGENCY.TIME_WEIGHT + importanceSignal * URGENCY.IMPORTANCE_WEIGHT
+    );
+    const level = urgencyScore >= URGENCY.HIGH_THRESHOLD ? 'high' : urgencyScore >= URGENCY.MEDIUM_THRESHOLD ? 'medium' : 'low';
+
+    return {
+      topic_id: t.id, topic_name: t.name, subject_name: (t.chapters as UrgencyTopic['chapters'])?.subjects?.name,
+      chapter_name: (t.chapters as UrgencyTopic['chapters'])?.name,
+      urgency_score: urgencyScore, level, health_score: health, pyq_weight: t.pyq_weight,
+    };
+  });
+
+  results.sort((a, b) => b.urgency_score - a.urgency_score);
+  return { days_remaining: daysRemaining, topics: results.slice(0, 30) };
+}
+
+// ---- DIMINISHING RETURNS DETECTION (T4-16) ----
+
+export async function getDiminishingReturns(userId: string) {
+  const sinceStr = toDateString(daysAgo(DIMINISHING_RETURNS.LOOKBACK_DAYS));
+
+  const [progressRes, snapshotsRes] = await Promise.all([
+    supabase.from('user_progress')
+      .select('topic_id, actual_hours_spent, confidence_score, health_score, topics!inner(name, chapters!inner(name, subjects!inner(name)))')
+      .eq('user_id', userId)
+      .gte('actual_hours_spent', DIMINISHING_RETURNS.MIN_HOURS),
+    supabase.from('weakness_snapshots')
+      .select('topic_id, health_score, snapshot_date')
+      .eq('user_id', userId)
+      .gte('snapshot_date', sinceStr)
+      .order('snapshot_date', { ascending: true }),
+  ]);
+
+  // Build trend map: topic_id → [oldest_score, newest_score]
+  const trendMap = new Map<string, { oldest: number; newest: number }>();
+  for (const s of (snapshotsRes.data || []) as { topic_id: string; health_score: number }[]) {
+    const existing = trendMap.get(s.topic_id);
+    if (!existing) trendMap.set(s.topic_id, { oldest: s.health_score, newest: s.health_score });
+    else existing.newest = s.health_score;
+  }
+
+  interface ProgressRow {
+    topic_id: string; actual_hours_spent: number; confidence_score: number; health_score: number;
+    topics: { name: string; chapters: { name: string; subjects: { name: string } } };
+  }
+  const rows = (progressRes.data || []) as unknown as ProgressRow[];
+
+  const flagged = rows.filter((r) => {
+    const trend = trendMap.get(r.topic_id);
+    if (!trend) return false;
+    const scoreDelta = trend.newest - trend.oldest;
+    return scoreDelta <= DIMINISHING_RETURNS.SCORE_PLATEAU_DELTA && r.actual_hours_spent >= DIMINISHING_RETURNS.MIN_HOURS;
+  }).map((r) => {
+    const trend = trendMap.get(r.topic_id)!;
+    return {
+      topic_id: r.topic_id, topic_name: r.topics.name,
+      subject_name: r.topics.chapters?.subjects?.name, chapter_name: r.topics.chapters?.name,
+      hours_spent: r.actual_hours_spent, health_score: r.health_score,
+      score_delta: trend.newest - trend.oldest,
+      suggestion: 'This topic has plateaued despite significant study time. Try a different approach: practice questions, mock tests, or move to related topics.',
+    };
+  });
+
+  flagged.sort((a, b) => b.hours_spent - a.hours_spent);
+  return { topics: flagged.slice(0, 15) };
 }

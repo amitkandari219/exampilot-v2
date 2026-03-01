@@ -21,3 +21,10 @@ export function useBenchmarkHistory(days = 30) {
       : api.getBenchmarkHistory(days) as Promise<BenchmarkHistoryPoint[]>,
   });
 }
+
+export function usePeerBenchmark() {
+  return useQuery({
+    queryKey: ['benchmark', 'peer'],
+    queryFn: () => api.getPeerBenchmark(),
+  });
+}

@@ -125,6 +125,16 @@ export async function runDailyMaintenance() {
     }
   }
 
+  // Step 8: Compute cohort stats for peer benchmarking (daily)
+  try {
+    const { computeCohortStats } = await import('./cohort.js');
+    await computeCohortStats('all');
+    await computeCohortStats('prelims_all');
+    await computeCohortStats('mains_all');
+  } catch (e: any) {
+    errors.push({ userId: 'system', step: 'computeCohortStats', error: e.message });
+  }
+
   // Process notification queue
   try {
     const { processQueue } = await import('./notification.js');

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import type { StrategyMode } from '../types/index.js';
-import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
 import { RECALIBRATION as RECAL_CONSTANTS } from '../constants/thresholds.js';
 import { getPersonaDefaults } from './modeConfig.js';
 import { appEvents } from './events.js';
@@ -15,8 +15,6 @@ interface TunableParams {
 
 // --- Constants ---
 
-const COOLDOWN_DAYS = RECAL_CONSTANTS.COOLDOWN_DAYS;
-const MODE_DRIFT_LIMIT = RECAL_CONSTANTS.DRIFT_LIMIT;
 const BOUNDS = RECAL_CONSTANTS.BOUNDS;
 const STEPS = RECAL_CONSTANTS.STEPS;
 const SIG = RECAL_CONSTANTS.SIGNALS;
@@ -170,11 +168,13 @@ export async function gatherSignals(userId: string, windowDays: number = RECAL_C
 export function computeAdjustments(
   current: TunableParams,
   signals: RecalibrationSignals,
-  mode: StrategyMode
+  mode: StrategyMode,
+  options?: { driftLimit?: number }
 ): { newParams: TunableParams; adjustments: ParamAdjustment[] } {
   const defaults = getModeDefaults(mode);
   const adjustments: ParamAdjustment[] = [];
   const newParams = { ...current };
+  const driftLimit = options?.driftLimit ?? RECAL_CONSTANTS.DRIFT_LIMIT;
 
   const { velocityRatio, velocityTrend, briScore, fatigueAvg, stressAvg, confidenceAvg, criticalWeaknessPct } = signals;
 
@@ -195,7 +195,7 @@ export function computeAdjustments(
   }
   if (retStep !== 0) {
     const raw = current.fsrs_target_retention + retStep;
-    const clamped = clampWithDrift(raw, 'fsrs_target_retention', defaults.fsrs_target_retention);
+    const clamped = clampWithDrift(raw, 'fsrs_target_retention', defaults.fsrs_target_retention, driftLimit);
     if (clamped !== current.fsrs_target_retention) {
       adjustments.push({ param: 'fsrs_target_retention', oldValue: current.fsrs_target_retention, newValue: clamped, step: retStep, reason: retReason });
       newParams.fsrs_target_retention = clamped;
@@ -216,7 +216,7 @@ export function computeAdjustments(
   }
   if (burnStep !== 0) {
     const raw = current.burnout_threshold + burnStep;
-    const clamped = clampWithDrift(raw, 'burnout_threshold', defaults.burnout_threshold);
+    const clamped = clampWithDrift(raw, 'burnout_threshold', defaults.burnout_threshold, driftLimit);
     if (clamped !== current.burnout_threshold) {
       adjustments.push({ param: 'burnout_threshold', oldValue: current.burnout_threshold, newValue: clamped, step: burnStep, reason: burnReason });
       newParams.burnout_threshold = clamped;
@@ -237,7 +237,7 @@ export function computeAdjustments(
   }
   if (fatStep !== 0) {
     const raw = current.fatigue_threshold + fatStep;
-    const clamped = clampWithDrift(raw, 'fatigue_threshold', defaults.fatigue_threshold);
+    const clamped = clampWithDrift(raw, 'fatigue_threshold', defaults.fatigue_threshold, driftLimit);
     if (clamped !== current.fatigue_threshold) {
       adjustments.push({ param: 'fatigue_threshold', oldValue: current.fatigue_threshold, newValue: clamped, step: fatStep, reason: fatReason });
       newParams.fatigue_threshold = clamped;
@@ -261,7 +261,7 @@ export function computeAdjustments(
   }
   if (bufStep !== 0) {
     const raw = current.buffer_capacity + bufStep;
-    const clamped = clampWithDrift(raw, 'buffer_capacity', defaults.buffer_capacity);
+    const clamped = clampWithDrift(raw, 'buffer_capacity', defaults.buffer_capacity, driftLimit);
     if (clamped !== current.buffer_capacity) {
       adjustments.push({ param: 'buffer_capacity', oldValue: current.buffer_capacity, newValue: clamped, step: bufStep, reason: bufReason });
       newParams.buffer_capacity = clamped;
@@ -273,10 +273,10 @@ export function computeAdjustments(
 
 // --- Guardrail: clamp within absolute bounds AND ±20% of mode default ---
 
-function clampWithDrift(value: number, param: keyof TunableParams, modeDefault: number): number {
+function clampWithDrift(value: number, param: keyof TunableParams, modeDefault: number, driftLimit: number = RECAL_CONSTANTS.DRIFT_LIMIT): number {
   const [min, max] = BOUNDS[param];
-  const driftMin = modeDefault * (1 - MODE_DRIFT_LIMIT);
-  const driftMax = modeDefault * (1 + MODE_DRIFT_LIMIT);
+  const driftMin = modeDefault * (1 - driftLimit);
+  const driftMax = modeDefault * (1 + driftLimit);
   const effectiveMin = Math.max(min, driftMin);
   const effectiveMax = Math.min(max, driftMax);
   // Round to avoid floating point noise
@@ -292,7 +292,7 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
   // 1. Fetch profile
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('strategy_mode, fatigue_threshold, buffer_capacity, fsrs_target_retention, burnout_threshold, auto_recalibrate, last_recalibrated_at, recovery_mode_active')
+    .select('strategy_mode, fatigue_threshold, buffer_capacity, fsrs_target_retention, burnout_threshold, auto_recalibrate, last_recalibrated_at, recovery_mode_active, exam_date, attempt_number')
     .eq('id', userId)
     .single();
 
@@ -308,7 +308,12 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
     return { status: 'skipped', skipped_reason: 'recovery_mode_active' };
   }
 
-  // 4. Cooldown check: skip if last params_changed recalibration was <3 days ago
+  // 4. Cooldown check — reduced to 1 day during final sprint (≤30 days to exam)
+  const daysToExam = profile.exam_date ? daysUntil(new Date(profile.exam_date)) : Infinity;
+  const cooldownDays = daysToExam <= RECAL_CONSTANTS.FINAL_SPRINT_DAYS
+    ? RECAL_CONSTANTS.FINAL_SPRINT_COOLDOWN_DAYS
+    : RECAL_CONSTANTS.COOLDOWN_DAYS;
+
   const { data: lastChanged } = await supabase
     .from('recalibration_log')
     .select('recalibrated_at')
@@ -320,7 +325,7 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
 
   if (lastChanged) {
     const daysSince = (Date.now() - new Date(lastChanged.recalibrated_at).getTime()) / 86400000;
-    if (daysSince < COOLDOWN_DAYS) {
+    if (daysSince < cooldownDays) {
       return { status: 'skipped', skipped_reason: 'cooldown' };
     }
   }
@@ -340,9 +345,11 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
     burnout_threshold: profile.burnout_threshold,
   };
 
-  // 7. Compute adjustments
+  // 7. Compute adjustments — repeaters (attempt_number ≥ 2) get wider drift
   const mode = profile.strategy_mode as StrategyMode;
-  const { newParams, adjustments } = computeAdjustments(current, signals, mode);
+  const isRepeater = (profile.attempt_number ?? 1) >= 2;
+  const driftLimit = isRepeater ? RECAL_CONSTANTS.REPEATER_DRIFT_LIMIT : RECAL_CONSTANTS.DRIFT_LIMIT;
+  const { newParams, adjustments } = computeAdjustments(current, signals, mode, { driftLimit });
   const paramsChanged = adjustments.length > 0;
 
   // 8. Persist

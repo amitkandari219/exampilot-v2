@@ -49,3 +49,18 @@ export function useRegeneratePlan() {
     },
   });
 }
+
+export function useResumePoint() {
+  return useQuery({
+    queryKey: ['resume-point'],
+    queryFn: () => api.getResumePoint(),
+  });
+}
+
+export function useMicroSessionPlan(minutes: number) {
+  return useQuery({
+    queryKey: ['micro-session', minutes],
+    queryFn: () => api.getMicroSessionPlan(minutes),
+    enabled: minutes > 0,
+  });
+}

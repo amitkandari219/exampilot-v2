@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase.js';
 import type { CAStats, CASubjectGap } from '../types/index.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
+import { WORKPLACE_CA } from '../constants/thresholds.js';
 
 // Typed interfaces for Supabase join results
 interface CATagWithSubject {
@@ -20,8 +21,8 @@ interface CADailyLogWithTags {
 
 export async function logCA(
   userId: string,
-  payload: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[] }
-): Promise<{ success: boolean }> {
+  payload: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[]; source?: 'personal' | 'workplace' }
+): Promise<{ success: boolean; study_credit_hours?: number }> {
   const today = toDateString(new Date());
 
   // Upsert daily log (idempotent per day)
@@ -58,7 +59,37 @@ export async function logCA(
   // Update streak
   await updateStreak(userId, today);
 
-  return { success: true };
+  // Workplace CA credit: WP users reading CA at work get partial study hours credit
+  let studyCreditHours: number | undefined;
+  if (payload.source === 'workplace' && payload.hours_spent > 0) {
+    const creditHours = Math.min(
+      payload.hours_spent * WORKPLACE_CA.CREDIT_MULTIPLIER,
+      WORKPLACE_CA.MAX_DAILY_CREDIT_HOURS
+    );
+    studyCreditHours = Math.round(creditHours * 10) / 10;
+
+    // Add credit to today's daily_log hours (upsert)
+    const { data: existingLog } = await supabase
+      .from('daily_logs')
+      .select('hours_studied')
+      .eq('user_id', userId)
+      .eq('log_date', today)
+      .single();
+
+    if (existingLog) {
+      await supabase
+        .from('daily_logs')
+        .update({ hours_studied: existingLog.hours_studied + studyCreditHours })
+        .eq('user_id', userId)
+        .eq('log_date', today);
+    } else {
+      await supabase
+        .from('daily_logs')
+        .insert({ user_id: userId, log_date: today, hours_studied: studyCreditHours, avg_difficulty: 1 });
+    }
+  }
+
+  return { success: true, study_credit_hours: studyCreditHours };
 }
 
 async function updateStreak(userId: string, todayStr: string): Promise<void> {

@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase.js';
 import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
 import { piecewiseLerp } from '../utils/math.js';
-import { STRESS_WEIGHTS } from '../constants/thresholds.js';
+import { STRESS_WEIGHTS, WORK_PRESSURE } from '../constants/thresholds.js';
 
 // Anchor points per signal
 const VELOCITY_POINTS: [number, number][] = [[0.2, 0], [0.4, 10], [0.6, 30], [0.8, 55], [1.0, 80], [1.2, 100]];
@@ -19,6 +19,15 @@ const SIGNAL_RECOMMENDATIONS: Record<SignalName, string> = {
   confidence: 'Topic confidence is the weakest signal. Schedule quick revisions for fading topics before they decay further.',
 };
 
+export async function updateWorkPressure(userId: string, level: number) {
+  const clamped = Math.max(1, Math.min(5, Math.round(level)));
+  await supabase
+    .from('user_profiles')
+    .update({ work_pressure_level: clamped })
+    .eq('id', userId);
+  return { work_pressure_level: clamped };
+}
+
 export async function calculateStress(userId: string) {
   // Fetch velocity snapshot + profile + confidence in parallel
   const [velocityRes, profileRes, confidenceRes] = await Promise.all([
@@ -31,7 +40,7 @@ export async function calculateStress(userId: string) {
       .single(),
     supabase
       .from('user_profiles')
-      .select('buffer_balance, buffer_initial, buffer_capacity, exam_date, created_at')
+      .select('buffer_balance, buffer_initial, buffer_capacity, exam_date, created_at, strategy_mode, work_pressure_level')
       .eq('id', userId)
       .single(),
     supabase
@@ -87,8 +96,25 @@ export async function calculateStress(userId: string) {
     ? progressRows.reduce((s, p) => s + p.confidence_score, 0) / progressRows.length : 50;
   const signalConfidence = piecewiseLerp(avgConfidence, CONFIDENCE_POINTS);
 
-  // ---- Composite ----
-  const score = signalVelocity * STRESS_WEIGHTS.VELOCITY + signalBuffer * STRESS_WEIGHTS.BUFFER + signalTime * STRESS_WEIGHTS.TIME + signalConfidence * STRESS_WEIGHTS.CONFIDENCE;
+  // ---- Signal: Work Pressure (WP users only) ----
+  const isWP = profile?.strategy_mode === 'working_professional';
+  const workPressureLevel = (profile as unknown as { work_pressure_level?: number })?.work_pressure_level ?? WORK_PRESSURE.DEFAULT_LEVEL;
+  const signalWorkPressure = isWP ? Math.max(0, 100 - ((workPressureLevel / 5) * 100)) : 0;
+
+  // ---- Composite (with WP work-pressure redistribution) ----
+  let score: number;
+  if (isWP) {
+    // Redistribute: reduce other weights proportionally to make room for work pressure
+    const wpWeight = WORK_PRESSURE.WEIGHT;
+    const scale = 1 - wpWeight;
+    score = signalVelocity * STRESS_WEIGHTS.VELOCITY * scale +
+            signalBuffer * STRESS_WEIGHTS.BUFFER * scale +
+            signalTime * STRESS_WEIGHTS.TIME * scale +
+            signalConfidence * STRESS_WEIGHTS.CONFIDENCE * scale +
+            signalWorkPressure * wpWeight;
+  } else {
+    score = signalVelocity * STRESS_WEIGHTS.VELOCITY + signalBuffer * STRESS_WEIGHTS.BUFFER + signalTime * STRESS_WEIGHTS.TIME + signalConfidence * STRESS_WEIGHTS.CONFIDENCE;
+  }
   const roundedScore = Math.round(Math.max(0, Math.min(100, score)));
 
   let status: string;
@@ -141,6 +167,7 @@ export async function calculateStress(userId: string) {
       buffer: Math.round(signalBuffer),
       time: Math.round(signalTime),
       confidence: Math.round(signalConfidence),
+      ...(isWP ? { work_pressure: Math.round(signalWorkPressure) } : {}),
     },
     weakest_signal: weakest,
     recommendation,

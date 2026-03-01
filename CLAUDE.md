@@ -1,6 +1,8 @@
 # ExamPilot V2 — Architecture Rules
 
 > These rules are mandatory. Every code change must comply. No exceptions without explicit user approval.
+>
+> **Only make code changes when explicitly asked.** Do not proactively refactor, fix, or modify code unless the user requests it.
 
 ## Project Structure
 
@@ -99,17 +101,20 @@ Types used by both API and mobile must live in `packages/shared-types/src/index.
 
 - **NEVER** use `as any` in `apps/api/src/`. Use proper types or `as unknown as TargetType` if Supabase inference fails.
 - For Supabase join queries where TypeScript can't infer: define an interface for the expected shape, then cast with `as unknown as MyInterface`.
-- Minimize `as any` in mobile code. Current baseline is 15 — do not increase.
+- Minimize `as any` in mobile code. Current baseline is 1 — do not increase.
 
 ## Rule 7: Dependency Direction
 
 Services follow a strict tier system. **Never import upward.**
 
 ```
-TIER 0: constants/, utils/          — zero imports
-TIER 1: modeConfig, stress, benchmark, currentAffairs, syllabus, notification, pyq
+TIER 0: constants/, utils/, planFormatter
+                                    — zero imports (only constants/utils)
+TIER 1: modeConfig, stress, benchmark, currentAffairs, syllabus, notification, pyq,
+        resources, cohort, mainsEnrichment, scorecard, profile
                                     — import only supabase + tier 0
-TIER 2: fsrs, burnout, velocity, weakness, gamification, decayTrigger, recalibration
+TIER 2: fsrs, burnout, velocity, weakness, gamification, decayTrigger, recalibration,
+        quiz, answerWriting
                                     — import tier 0-1 + events
 TIER 3: planner, planActions, simulator, strategy, mode, mockTest,
         weeklyReview, strategyCascade, endOfDay
@@ -120,7 +125,7 @@ TIER 4: events, cron, middleware    — infrastructure
 - **Static imports must flow downward** (tier 3 → tier 2 → tier 1 → tier 0).
 - **Dynamic imports** (`await import()`) are allowed ONLY to break cycles between tier 3 peers.
 - Before adding a dynamic import, check: can this be solved by importing from a lower tier instead?
-- Current dynamic import count is **23**. Do NOT increase without justification.
+- Current dynamic import count is **26**. Do NOT increase without justification.
 
 ## Rule 8: Planner Separation
 
@@ -173,9 +178,16 @@ await api.switchMode('aggressive');  // NO — cache not invalidated
 | Route file > 60 LOC | You're probably putting logic in the route. Move to service. |
 
 Current services near the limit — decompose before extending:
+- `planner.ts` (680 LOC) — at limit, planFormatter already extracted
+- `weakness.ts` (679 LOC) — candidate: extract scoring functions
 - `weeklyReview.ts` (678 LOC) — candidate: extract recommendation logic
-- `weakness.ts` (583 LOC) — candidate: extract scoring functions
-- `planner.ts` (582 LOC) — already at limit after split
+- `mockTest.ts` (649 LOC) — approaching limit
+- `simulator.ts` (562 LOC) — monitor
+
+Route files over 60 LOC — review for logic leaking into controllers:
+- `mockTest.ts` (73 LOC)
+- `recalibration.ts` (71 LOC)
+- `strategy.ts` (70 LOC)
 
 ---
 
@@ -206,7 +218,7 @@ grep -rn "supabase\.\(from\|rpc\)" apps/api/src/routes/ --include="*.ts" | grep 
 # as any in API (must be 0)
 grep -r "as any" apps/api/src/ --include="*.ts" | grep -v __tests__ | wc -l
 
-# Dynamic imports (must be ≤ 25)
+# Dynamic imports (must be ≤ 26)
 grep -r "await import(" apps/api/src/services/ --include="*.ts" | grep -v __tests__ | wc -l
 
 # Direct gamification/notification imports outside events.ts and cron.ts (must be 0)

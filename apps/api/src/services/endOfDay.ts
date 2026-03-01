@@ -90,6 +90,11 @@ export async function processEndOfDay(userId: string, date: string) {
   try {
     await detectSilentQuit(userId, date);
   } catch (e) { console.warn('[endOfDay:silent-quit]', e); }
+
+  // Psychological baggage check-in for repeaters (every 7 days)
+  try {
+    await repeaterCheckIn(userId, date);
+  } catch (e) { console.warn('[endOfDay:repeater-checkin]', e); }
 }
 
 async function detectSilentQuit(userId: string, date: string) {
@@ -127,6 +132,37 @@ async function detectSilentQuit(userId: string, date: string) {
       metadata: { recentSessions, priorSessions, dropRatio: Math.round(dropRatio * 100) },
     });
   }
+}
+
+async function repeaterCheckIn(userId: string, date: string) {
+  // Only for repeater users
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('attempt_number, created_at')
+    .eq('id', userId)
+    .single();
+
+  if (!profile || !profile.attempt_number || profile.attempt_number === 'first') return;
+
+  // Check if 7 days since account creation or last check-in
+  const daysSinceCreation = Math.floor((new Date(date).getTime() - new Date(profile.created_at).getTime()) / 86400000);
+  if (daysSinceCreation % 7 !== 0 || daysSinceCreation === 0) return;
+
+  const messages = [
+    'How are you feeling about your preparation? Remember — each attempt teaches something valuable.',
+    'Take a moment to acknowledge your progress this week. Repeating shows resilience, not failure.',
+    'Your experience from previous attempts is an advantage. Are you channeling it into better strategy?',
+    'Check in with yourself: are you studying with purpose, or just logging hours? Quality over quantity.',
+    'Past results don\'t define this attempt. Focus on what you can control today.',
+  ];
+
+  const messageIndex = Math.floor(daysSinceCreation / 7) % messages.length;
+
+  appEvents.emit('notification:queue', {
+    userId,
+    type: 'repeater_checkin',
+    metadata: { message: messages[messageIndex], week_number: Math.floor(daysSinceCreation / 7) },
+  });
 }
 
 async function updateStreaks(userId: string, date: string) {

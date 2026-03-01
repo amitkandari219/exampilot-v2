@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { calculateHealthScores, getWeaknessOverview, getTopicHealth, getHealthTrend, getRadarInsights } from '../services/weakness.js';
+import { calculateHealthScores, getWeaknessOverview, getTopicHealth, getHealthTrend, getRadarInsights, getTopicUrgency, getDiminishingReturns } from '../services/weakness.js';
 
 export async function weaknessRoutes(app: FastifyInstance) {
   app.get('/api/weakness', async (request, reply) => {
@@ -32,6 +32,16 @@ export async function weaknessRoutes(app: FastifyInstance) {
 
   app.post('/api/weakness/recalculate', async (request, reply) => {
     const result = await calculateHealthScores(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/weakness/urgency', async (request, reply) => {
+    const result = await getTopicUrgency(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/weakness/diminishing-returns', async (request, reply) => {
+    const result = await getDiminishingReturns(request.userId);
     return reply.status(200).send(result);
   });
 }

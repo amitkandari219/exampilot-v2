@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { getStrategy, switchMode, switchExamMode, customizeParams, getStrategyDelta } from '../services/strategy.js';
 import { getProactiveScopeTriage } from '../services/strategyCascade.js';
+import { getMainsDelta } from '../services/mainsEnrichment.js';
 import { SwitchModePayload, CustomizePayload, ExamMode, STRATEGY_MODES, EXAM_MODES } from '../types/index.js';
 
 export async function strategyRoutes(app: FastifyInstance) {
@@ -59,6 +60,11 @@ export async function strategyRoutes(app: FastifyInstance) {
     }
 
     const result = await customizeParams(request.userId, { params });
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/strategy/mains-delta', async (request, reply) => {
+    const result = await getMainsDelta(request.userId);
     return reply.status(200).send(result);
   });
 }

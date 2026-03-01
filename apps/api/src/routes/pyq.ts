@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getPyqStats, getTopicPyqDetail } from '../services/pyq.js';
+import { getPyqStats, getTopicPyqDetail, getPyqVolatility, getPyqCorrelation } from '../services/pyq.js';
 
 export async function pyqRoutes(app: FastifyInstance) {
   app.get('/api/pyq-stats', async (request, reply) => {
@@ -11,6 +11,16 @@ export async function pyqRoutes(app: FastifyInstance) {
     Params: { topicId: string };
   }>('/api/pyq/:topicId', async (request, reply) => {
     const result = await getTopicPyqDetail(request.params.topicId);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/pyq-volatility', async (request, reply) => {
+    const result = await getPyqVolatility();
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/pyq-correlation', async (request, reply) => {
+    const result = await getPyqCorrelation(request.userId);
     return reply.status(200).send(result);
   });
 }

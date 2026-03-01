@@ -4,6 +4,7 @@ import {
   getBenchmarkHistory,
   calculateBenchmark,
 } from '../services/benchmark.js';
+import { getPeerBenchmark } from '../services/cohort.js';
 
 export async function benchmarkRoutes(app: FastifyInstance) {
   app.get('/api/benchmark', async (request, reply) => {
@@ -19,6 +20,12 @@ export async function benchmarkRoutes(app: FastifyInstance) {
 
   app.post('/api/benchmark/calculate', async (request, reply) => {
     const result = await calculateBenchmark(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  // T2-8: Peer benchmarking
+  app.get('/api/benchmark/peer', async (request, reply) => {
+    const result = await getPeerBenchmark(request.userId);
     return reply.status(200).send(result);
   });
 }

@@ -23,6 +23,9 @@ import { profileRoutes } from './routes/profile.js';
 import { decayTriggerRoutes } from './routes/decayTrigger.js';
 import { modeRoutes } from './routes/mode.js';
 import { cronRoutes } from './routes/cron.js';
+import { resourceRoutes } from './routes/resources.js';
+import { answerWritingRoutes } from './routes/answerWriting.js';
+import { quizRoutes } from './routes/quiz.js';
 
 const app = Fastify({ logger: true });
 
@@ -57,6 +60,9 @@ async function start() {
   await app.register(decayTriggerRoutes);
   await app.register(modeRoutes);
   await app.register(cronRoutes);
+  await app.register(resourceRoutes);
+  await app.register(answerWritingRoutes);
+  await app.register(quizRoutes);
 
   app.get('/health', async () => ({ status: 'ok' }));
 

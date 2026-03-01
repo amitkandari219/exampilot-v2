@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { generateDailyPlan, completePlanItem, deferPlanItem, skipPlanItem, regeneratePlan } from '../services/planner.js';
+import { getResumePoint, getMicroSessionPlan } from '../services/planActions.js';
 import { todayString } from '../utils/dateUtils.js';
 
 export async function plannerRoutes(app: FastifyInstance) {
@@ -40,6 +41,19 @@ export async function plannerRoutes(app: FastifyInstance) {
   }>('/api/daily-plan/regenerate', async (request, reply) => {
     const date = request.body?.date || todayString();
     const result = await regeneratePlan(request.userId, date, request.body?.hours);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/daily-plan/resume-point', async (request, reply) => {
+    const result = await getResumePoint(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  app.get<{
+    Querystring: { minutes?: string };
+  }>('/api/daily-plan/micro', async (request, reply) => {
+    const minutes = parseInt(request.query.minutes || '15', 10);
+    const result = await getMicroSessionPlan(request.userId, minutes);
     return reply.status(200).send(result);
   });
 }

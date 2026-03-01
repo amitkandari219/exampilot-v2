@@ -2,8 +2,9 @@ import { supabase } from '../lib/supabase.js';
 import { calculateFatigueScore } from './burnout.js';
 import { getActiveSubjectIds, getImportanceModifiers } from './modeConfig.js';
 import { toDateString, daysAgo, daysUntil } from '../utils/dateUtils.js';
-import { PLANNER, BURNOUT, REVISION_RAMP, REPEATER, CONFIDENCE_CHALLENGE, LAST_ATTEMPT } from '../constants/thresholds.js';
+import { PLANNER, BURNOUT, REVISION_RAMP, REPEATER, CONFIDENCE_CHALLENGE, LAST_ATTEMPT, SUBJECT_SWAP, WEEKEND_PLAN } from '../constants/thresholds.js';
 import type { ExamMode, StrategyParams } from '../types/index.js';
+import { formatPlan } from './planFormatter.js';
 
 // ── Types for internal planner context ──
 
@@ -14,6 +15,7 @@ interface TopicWithJoins {
   importance: number;
   difficulty: number;
   estimated_hours: number;
+  estimated_micro_minutes: number;
   pyq_weight: number;
   pyq_frequency: number;
   display_order: number;
@@ -109,6 +111,9 @@ interface PlannerContext {
   isLastAttempt: boolean;
   weakSubjects: Set<string>;
   daysRemaining: number;
+  stressSwapSubjectId: string | null;
+  stressSwapActive: boolean;
+  isWeekendHeavy: boolean;
 }
 
 // ── Revision ratio ramp (pure function) ──
@@ -285,11 +290,32 @@ async function fetchPlannerData(userId: string, date: string): Promise<PlannerCo
 
   const isLastAttempt = typedProfile.attempt_number === 'third_plus';
 
+  // Subject swap on stress: find dominant subject from recent plans
+  let stressSwapSubjectId: string | null = null;
+  let stressSwapActive = false;
+  const { data: latestStressRow } = await supabase
+    .from('velocity_snapshots')
+    .select('stress_score')
+    .eq('user_id', userId)
+    .order('snapshot_date', { ascending: false })
+    .limit(1)
+    .single();
+
+  const latestStress = latestStressRow?.stress_score ?? 100;
+  if (latestStress < SUBJECT_SWAP.STRESS_THRESHOLD && subjectPlanCount.size > 0) {
+    stressSwapActive = true;
+    let maxCount = 0;
+    for (const [subId, count] of subjectPlanCount) {
+      if (count > maxCount) { maxCount = count; stressSwapSubjectId = subId; }
+    }
+  }
+
   return {
     profile: typedProfile, fatigueScore, recentLogs: typedLogs, allTopics,
     progressMap, revisionTopicIds, deferredTopicIds, subjectPlanCount,
     subjectTopicCounts, importanceModifiers, falseSecurityIds, blindSpotIds, overRevisedIds,
     ...capacity, date, revisionRatio, isRepeater, isLastAttempt, weakSubjects, daysRemaining,
+    stressSwapSubjectId, stressSwapActive,
   };
 }
 
@@ -297,7 +323,7 @@ async function fetchPlannerData(userId: string, date: string): Promise<PlannerCo
 
 function assessCapacity(
   profile: PlannerProfile, fatigueScore: number, recentLogs: DailyLogEntry[], date: string,
-): { availableHours: number; isLightDay: boolean; isPostHeavy: boolean; energyLevel: string; maxTopics: number; maxAvgDifficulty: number } {
+): { availableHours: number; isLightDay: boolean; isPostHeavy: boolean; energyLevel: string; maxTopics: number; maxAvgDifficulty: number; isWeekendHeavy: boolean } {
   const fatigueThreshold = profile.fatigue_threshold || BURNOUT.FATIGUE_DEFAULT;
 
   let consecutiveDays = 0;
@@ -338,6 +364,14 @@ function assessCapacity(
     availableHours *= BURNOUT.COLD_RESTART_CAP;
   }
 
+  // T4-4: Weekend-heavy mode for WP — boost available hours on weekends
+  const planDate2 = new Date(date);
+  const isWpWeekend = profile.strategy_mode === 'working_professional'
+    && (planDate2.getDay() === 0 || planDate2.getDay() === 6);
+  if (isWpWeekend && !isLightDay) {
+    availableHours *= WEEKEND_PLAN.HOURS_MULTIPLIER;
+  }
+
   let energyLevel: string;
   if (fatigueScore < PLANNER.FATIGUE_ENERGY_FULL) energyLevel = 'full';
   else if (fatigueScore < PLANNER.FATIGUE_ENERGY_MODERATE) energyLevel = 'moderate';
@@ -355,7 +389,7 @@ function assessCapacity(
     maxTopics = Math.min(maxTopics, Math.max(1, defaultTopicCount - 1));
   }
 
-  return { availableHours, isLightDay, isPostHeavy, energyLevel, maxTopics, maxAvgDifficulty };
+  return { availableHours, isLightDay, isPostHeavy, energyLevel, maxTopics, maxAvgDifficulty, isWeekendHeavy: isWpWeekend };
 }
 
 // ── 2. Topic scoring (pure functions, no DB calls) ──
@@ -413,8 +447,20 @@ function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
   // Last attempt: extra PYQ boost for highest ROI topics
   const lastAttemptBoost = ctx.isLastAttempt ? (t.pyq_weight >= 3 ? LAST_ATTEMPT.PYQ_BOOST_EXTRA : 0) : 0;
 
+  // Subject swap on stress: penalize dominant subject, boost alternatives
+  const stressSwapBoost = ctx.stressSwapActive && subjectId
+    ? (subjectId === ctx.stressSwapSubjectId ? SUBJECT_SWAP.RECENT_SUBJECT_PENALTY : SUBJECT_SWAP.ALT_SUBJECT_BOOST)
+    : 0;
+
+  // T4-4: Weekend-heavy — boost high-difficulty and deep-study topics on WP weekends
+  let weekendHeavyBoost = 0;
+  if (ctx.isWeekendHeavy) {
+    if (t.difficulty >= 4) weekendHeavyBoost += WEEKEND_PLAN.DIFFICULTY_BOOST;
+    if (t.estimated_micro_minutes >= WEEKEND_PLAN.DEEP_TOPIC_MIN_MINUTES) weekendHeavyBoost += WEEKEND_PLAN.DEEP_STUDY_BOOST;
+  }
+
   let priority = (t.pyq_weight * PLANNER.PYQ_FACTOR) + (effectiveImportance * PLANNER.IMPORTANCE_FACTOR) + (urgency * PLANNER.URGENCY_FACTOR)
-    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost + challengeBoost + lastAttemptBoost;
+    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost + challengeBoost + lastAttemptBoost + stressSwapBoost + weekendHeavyBoost;
 
   if (subjectId && (subjectPlanCount.get(subjectId) || 0) >= PLANNER.SUBJECT_REPEAT_LIMIT) {
     priority *= PLANNER.SUBJECT_REPEAT_PENALTY;
@@ -628,60 +674,6 @@ export async function generateDailyPlan(userId: string, date: string) {
     .single();
 
   return formatPlan(completePlan);
-}
-
-function buildReasonText(type: string, pyqWeight: number, difficulty: number): string {
-  switch (type) {
-    case 'challenge': return 'Testing mastery — high-confidence topic with strong PYQ history';
-    case 'decay_revision': return 'Hasn\'t been reviewed recently — time to refresh';
-    case 'revision': return pyqWeight >= 3 ? 'Due for revision — high PYQ frequency' : 'Due for revision';
-    case 'stretch': return 'Bonus topic for extra progress';
-    default:
-      if (pyqWeight >= 4) return 'High PYQ frequency — commonly asked in exams';
-      if (pyqWeight >= 3) return 'Moderate PYQ frequency — worth prioritizing';
-      if (difficulty >= 4) return 'Complex topic — best tackled with fresh energy';
-      return 'New topic to cover';
-  }
-}
-
-function formatPlan(plan: any) {
-  if (!plan) return null;
-
-  const items = (plan.daily_plan_items || []).map((item: any) => ({
-    id: item.id,
-    plan_id: item.plan_id,
-    topic_id: item.topic_id,
-    type: item.type,
-    estimated_hours: item.estimated_hours,
-    priority_score: item.priority_score,
-    display_order: item.display_order,
-    status: item.status,
-    completed_at: item.completed_at,
-    actual_hours: item.actual_hours,
-    topic: item.topics ? {
-      name: item.topics.name,
-      chapter_id: item.topics.chapter_id,
-      pyq_weight: item.topics.pyq_weight,
-      difficulty: item.topics.difficulty,
-    } : undefined,
-    chapter_name: item.topics?.chapters?.name,
-    subject_name: item.topics?.chapters?.subjects?.name,
-    reason_text: buildReasonText(item.type, item.topics?.pyq_weight || 0, item.topics?.difficulty || 3),
-  })).sort((a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order);
-
-  const fs = plan.fatigue_score || 0;
-  const fatigueStatus = fs > PLANNER.FATIGUE_STATUS_CRITICAL ? 'critical' : fs > PLANNER.FATIGUE_STATUS_HIGH ? 'high' : fs > PLANNER.FATIGUE_STATUS_MODERATE ? 'moderate' : 'low';
-
-  return {
-    id: plan.id,
-    plan_date: plan.plan_date,
-    available_hours: plan.available_hours,
-    is_light_day: plan.is_light_day,
-    fatigue_score: plan.fatigue_score,
-    fatigue_status: fatigueStatus,
-    energy_level: plan.energy_level,
-    items,
-  };
 }
 
 // Re-export mutation functions from planActions

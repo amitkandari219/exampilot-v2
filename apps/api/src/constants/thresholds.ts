@@ -127,7 +127,10 @@ export const FSRS = {
 // Recalibration constants (used in recalibration)
 export const RECALIBRATION = {
   DRIFT_LIMIT: 0.10,
+  REPEATER_DRIFT_LIMIT: 0.15,
   COOLDOWN_DAYS: 3,
+  FINAL_SPRINT_DAYS: 30,
+  FINAL_SPRINT_COOLDOWN_DAYS: 1,
   MIN_DATA_POINTS: 5,
   DEFAULT_WINDOW_DAYS: 7,
   EXTENDED_WINDOW_DAYS: 14,
@@ -265,6 +268,67 @@ export const MOCK_CUTOFFS = {
   prelims_2021: 87.54,
   mains_2024: 750,
   mains_2023: 735,
+} as const;
+
+// Topic urgency signal (used in weakness, planner)
+export const URGENCY = {
+  PYQ_WEIGHT: 0.30,
+  HEALTH_WEIGHT: 0.30,
+  TIME_WEIGHT: 0.25,
+  IMPORTANCE_WEIGHT: 0.15,
+  HIGH_THRESHOLD: 75,
+  MEDIUM_THRESHOLD: 50,
+} as const;
+
+// Diminishing returns detection (used in weakness)
+export const DIMINISHING_RETURNS = {
+  MIN_HOURS: 5,
+  LOOKBACK_DAYS: 14,
+  SCORE_PLATEAU_DELTA: 5,
+  HOURS_INCREASE_RATIO: 1.5,
+} as const;
+
+// Work-pressure signal for WP users (used in stress)
+export const WORK_PRESSURE = {
+  WEIGHT: 0.15,
+  DEFAULT_LEVEL: 3,
+} as const;
+
+// Maintenance mode for mastered topics (used in fsrs)
+export const MAINTENANCE_MODE = {
+  MIN_CONFIDENCE: 80,
+  MIN_REVISIONS: 3,
+  STABILITY_MULTIPLIER: 2.0,
+} as const;
+
+// Workplace CA credit (used in currentAffairs, endOfDay)
+export const WORKPLACE_CA = {
+  CREDIT_MULTIPLIER: 0.5,
+  MAX_DAILY_CREDIT_HOURS: 1.0,
+} as const;
+
+// Subject swap on stress (used in planner)
+export const SUBJECT_SWAP = {
+  STRESS_THRESHOLD: 35,
+  RECENT_SUBJECT_PENALTY: -6,
+  ALT_SUBJECT_BOOST: 3,
+  LOOKBACK_PLANS: 3,
+} as const;
+
+// Micro-session constants (used in planner, planActions)
+export const MICRO_SESSION = {
+  DEFAULT_MINUTES: 15,
+  MAX_ITEMS: 3,
+  REVISION_BOOST: 5,
+  URGENCY_BOOST: 3,
+} as const;
+
+// Weekend-heavy plan constants for WP users (used in planner)
+export const WEEKEND_PLAN = {
+  HOURS_MULTIPLIER: 1.5,
+  DEEP_TOPIC_MIN_MINUTES: 30,
+  DIFFICULTY_BOOST: 4,
+  DEEP_STUDY_BOOST: 3,
 } as const;
 
 // Last attempt mode constants (used in modeConfig, planner)

@@ -32,3 +32,21 @@ export function useConfidenceOverview() {
     queryFn: () => isDemoMode ? Promise.resolve(demoConfidence as unknown as ConfidenceOverview) : api.getConfidenceOverview() as Promise<ConfidenceOverview>,
   });
 }
+
+export function useMaintenanceTopics() {
+  return useQuery({
+    queryKey: ['maintenance-topics'],
+    queryFn: () => api.getMaintenanceTopics(),
+  });
+}
+
+export function useEnableMaintenanceMode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (topicId: string) => api.enableMaintenanceMode(topicId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-topics'] });
+      queryClient.invalidateQueries({ queryKey: ['revisions-due'] });
+    },
+  });
+}

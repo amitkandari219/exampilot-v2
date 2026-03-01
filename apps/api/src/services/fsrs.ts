@@ -2,7 +2,7 @@ import { createEmptyCard, generatorParameters, fsrs, Rating, State } from 'ts-fs
 import type { Card } from 'ts-fsrs';
 import { supabase } from '../lib/supabase.js';
 import { toDateString } from '../utils/dateUtils.js';
-import { CONFIDENCE, FSRS as FSRS_CONSTANTS } from '../constants/thresholds.js';
+import { CONFIDENCE, FSRS as FSRS_CONSTANTS, MAINTENANCE_MODE } from '../constants/thresholds.js';
 import { appEvents } from './events.js';
 
 interface FSRSCardWithTopic {
@@ -415,4 +415,94 @@ export async function getConfidenceOverview(userId: string) {
   });
 
   return { distribution, fastest_decaying: fastestDecaying };
+}
+
+// ---- MAINTENANCE MODE (T4-22) ----
+
+export async function getMaintenanceTopics(userId: string) {
+  // Find exam_ready topics with high confidence and enough revisions
+  const { data: candidates } = await supabase
+    .from('user_progress')
+    .select('topic_id, status, confidence_score, revision_count, topics!inner(name, pyq_weight, chapters!inner(name, subjects!inner(name)))')
+    .eq('user_id', userId)
+    .eq('status', 'exam_ready')
+    .gte('confidence_score', MAINTENANCE_MODE.MIN_CONFIDENCE)
+    .gte('revision_count', MAINTENANCE_MODE.MIN_REVISIONS);
+
+  interface MaintenanceRow {
+    topic_id: string; status: string; confidence_score: number; revision_count: number;
+    topics: { name: string; pyq_weight: number; chapters: { name: string; subjects: { name: string } } };
+  }
+  const rows = (candidates || []) as unknown as MaintenanceRow[];
+
+  // Check which have FSRS cards and their current intervals
+  const topicIds = rows.map((r) => r.topic_id);
+  const { data: cards } = await supabase
+    .from('fsrs_cards')
+    .select('topic_id, stability, scheduled_days, due')
+    .eq('user_id', userId)
+    .in('topic_id', topicIds.length > 0 ? topicIds : ['__none__']);
+
+  const cardMap = new Map((cards || []).map((c: { topic_id: string; stability: number; scheduled_days: number; due: string }) => [c.topic_id, c]));
+
+  return rows.map((r) => {
+    const card = cardMap.get(r.topic_id);
+    return {
+      topic_id: r.topic_id,
+      topic_name: r.topics.name,
+      subject_name: r.topics.chapters?.subjects?.name,
+      chapter_name: r.topics.chapters?.name,
+      confidence_score: r.confidence_score,
+      revision_count: r.revision_count,
+      pyq_weight: r.topics.pyq_weight,
+      current_interval_days: card?.scheduled_days || 0,
+      next_due: card?.due || null,
+      maintenance_eligible: true,
+    };
+  });
+}
+
+export async function enableMaintenanceMode(userId: string, topicId: string) {
+  // Verify topic is eligible
+  const { data: progress } = await supabase
+    .from('user_progress')
+    .select('status, confidence_score, revision_count')
+    .eq('user_id', userId)
+    .eq('topic_id', topicId)
+    .single();
+
+  if (!progress || progress.status !== 'exam_ready' ||
+      progress.confidence_score < MAINTENANCE_MODE.MIN_CONFIDENCE ||
+      progress.revision_count < MAINTENANCE_MODE.MIN_REVISIONS) {
+    throw new Error('Topic not eligible for maintenance mode');
+  }
+
+  // Double the stability to space out revisions
+  const { data: card } = await supabase
+    .from('fsrs_cards')
+    .select('id, stability, due, scheduled_days')
+    .eq('user_id', userId)
+    .eq('topic_id', topicId)
+    .single();
+
+  if (!card) throw new Error('No FSRS card for topic');
+
+  const newStability = card.stability * MAINTENANCE_MODE.STABILITY_MULTIPLIER;
+  const newDue = new Date(Date.now() + card.scheduled_days * MAINTENANCE_MODE.STABILITY_MULTIPLIER * 86400000);
+
+  await supabase
+    .from('fsrs_cards')
+    .update({
+      stability: newStability,
+      due: newDue.toISOString(),
+      scheduled_days: Math.round(card.scheduled_days * MAINTENANCE_MODE.STABILITY_MULTIPLIER),
+    })
+    .eq('id', card.id);
+
+  return {
+    topic_id: topicId,
+    new_stability: newStability,
+    next_due: newDue.toISOString(),
+    maintenance_active: true,
+  };
 }

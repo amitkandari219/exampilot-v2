@@ -8,6 +8,7 @@ export async function currentAffairsRoutes(app: FastifyInstance) {
       completed: boolean;
       notes?: string;
       subject_ids?: string[];
+      source?: 'personal' | 'workplace';
     };
     const result = await logCA(request.userId, body);
     return reply.status(200).send(result);

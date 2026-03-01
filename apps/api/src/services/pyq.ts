@@ -160,6 +160,120 @@ export async function getTopicPyqDetail(topicId: string) {
   };
 }
 
+// ---- PYQ CORRELATION ANALYSIS (T4-5) ----
+
+export async function getPyqCorrelation(userId: string) {
+  const [topicsRes, progressRes, snapshotsRes] = await Promise.all([
+    supabase.from('topics').select('id, name, pyq_weight, pyq_trend, importance, chapters!inner(name, subjects!inner(name))'),
+    supabase.from('user_progress').select('topic_id, status, health_score, confidence_score').eq('user_id', userId),
+    supabase.from('weakness_snapshots').select('topic_id, health_score').eq('user_id', userId).order('snapshot_date', { ascending: false }),
+  ]);
+
+  const progressMap = new Map((progressRes.data || []).map((p: { topic_id: string; status: string; health_score: number; confidence_score: number }) => [p.topic_id, p]));
+  // Latest health per topic
+  const healthMap = new Map<string, number>();
+  for (const s of (snapshotsRes.data || []) as { topic_id: string; health_score: number }[]) {
+    if (!healthMap.has(s.topic_id)) healthMap.set(s.topic_id, s.health_score);
+  }
+
+  interface TopicRow { id: string; name: string; pyq_weight: number; pyq_trend: string; importance: number; chapters: { name: string; subjects: { name: string } } }
+  const topics = (topicsRes.data || []) as unknown as TopicRow[];
+
+  // High-risk = weak + high PYQ weight
+  const highRisk = topics
+    .filter((t) => t.pyq_weight >= 3)
+    .map((t) => {
+      const progress = progressMap.get(t.id);
+      const health = healthMap.get(t.id) ?? 50;
+      const status = progress?.status || 'untouched';
+      const riskScore = t.pyq_weight * (100 - health) / 100; // Higher = more risk
+      return {
+        topic_id: t.id, topic_name: t.name,
+        subject_name: t.chapters?.subjects?.name, chapter_name: t.chapters?.name,
+        pyq_weight: t.pyq_weight, pyq_trend: t.pyq_trend,
+        health_score: health, status, importance: t.importance,
+        risk_score: Math.round(riskScore * 10) / 10,
+        risk_level: riskScore >= 3 ? 'critical' : riskScore >= 2 ? 'high' : 'moderate',
+      };
+    })
+    .sort((a, b) => b.risk_score - a.risk_score);
+
+  // Rising trend + weak = highest priority
+  const risingAndWeak = highRisk.filter((t) => t.pyq_trend === 'rising' && t.health_score < 50);
+
+  return {
+    high_risk_topics: highRisk.slice(0, 20),
+    rising_and_weak: risingAndWeak.slice(0, 10),
+    summary: {
+      total_high_pyq: highRisk.length,
+      critical_count: highRisk.filter((t) => t.risk_level === 'critical').length,
+      high_count: highRisk.filter((t) => t.risk_level === 'high').length,
+    },
+  };
+}
+
+// ---- PYQ TREND-VOLATILITY INDEX (T4-20) ----
+
+export async function getPyqVolatility() {
+  const { data: pyqData } = await supabase
+    .from('pyq_data')
+    .select('topic_id, year, question_count');
+
+  const { data: topicRows } = await supabase
+    .from('topics')
+    .select('id, name, pyq_weight, pyq_trend, chapters!inner(name, subjects!inner(name))');
+
+  // Build year-count map per topic
+  const topicYearMap = new Map<string, Map<number, number>>();
+  for (const row of (pyqData || []) as { topic_id: string; year: number; question_count: number }[]) {
+    if (!topicYearMap.has(row.topic_id)) topicYearMap.set(row.topic_id, new Map());
+    const yearMap = topicYearMap.get(row.topic_id)!;
+    yearMap.set(row.year, (yearMap.get(row.year) || 0) + row.question_count);
+  }
+
+  interface TopicRow { id: string; name: string; pyq_weight: number; pyq_trend: string; chapters: { name: string; subjects: { name: string } } }
+  const topics = (topicRows || []) as unknown as TopicRow[];
+  const topicMap = new Map(topics.map((t) => [t.id, t]));
+
+  const results: {
+    topic_id: string; topic_name: string; subject_name: string;
+    pyq_weight: number; trend: string;
+    volatility_score: number; volatility_label: string;
+    year_counts: { year: number; count: number }[];
+  }[] = [];
+
+  for (const [topicId, yearMap] of topicYearMap) {
+    const topic = topicMap.get(topicId);
+    if (!topic) continue;
+
+    const counts = Array.from(yearMap.values());
+    if (counts.length < 2) continue;
+
+    const mean = counts.reduce((a, b) => a + b, 0) / counts.length;
+    const variance = counts.reduce((sum, c) => sum + (c - mean) ** 2, 0) / counts.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = mean > 0 ? stdDev / mean : 0; // Coefficient of variation
+
+    const volatilityScore = Math.round(Math.min(100, cv * 100));
+    const volatilityLabel = volatilityScore >= 70 ? 'erratic' : volatilityScore >= 40 ? 'variable' : 'consistent';
+
+    const yearCounts = Array.from(yearMap.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => a.year - b.year);
+
+    results.push({
+      topic_id: topicId, topic_name: topic.name,
+      subject_name: topic.chapters?.subjects?.name || '',
+      pyq_weight: topic.pyq_weight, trend: topic.pyq_trend,
+      volatility_score: volatilityScore, volatility_label: volatilityLabel,
+      year_counts: yearCounts,
+    });
+  }
+
+  results.sort((a, b) => b.volatility_score - a.volatility_score);
+  return { topics: results.slice(0, 50) };
+}
+
 export async function recalculatePyqWeights() {
   // Get all PYQ data grouped by topic
   const { data: pyqData, error } = await supabase

@@ -275,4 +275,109 @@ export const api = {
     request<UserProfile>('/api/profile'),
   updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string }): Promise<UserProfile> =>
     request<UserProfile>('/api/profile', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  // Resume point (T5-9)
+  getResumePoint: (): Promise<{ topic_id: string; topic_name: string; subject_name: string; chapter_name: string; status: string; last_touched: string } | null> =>
+    request('/api/daily-plan/resume-point'),
+
+  // Topic urgency (T4-11)
+  getTopicUrgency: (): Promise<{ days_remaining: number; topics: Array<{ topic_id: string; topic_name: string; urgency_score: number; level: string }> }> =>
+    request('/api/weakness/urgency'),
+
+  // Diminishing returns (T4-16)
+  getDiminishingReturns: (): Promise<{ topics: Array<{ topic_id: string; topic_name: string; hours_spent: number; score_delta: number; suggestion: string }> }> =>
+    request('/api/weakness/diminishing-returns'),
+
+  // PYQ volatility (T4-20)
+  getPyqVolatility: (): Promise<{ topics: Array<{ topic_id: string; topic_name: string; volatility_score: number; volatility_label: string }> }> =>
+    request('/api/pyq-volatility'),
+
+  // PYQ correlation (T4-5)
+  getPyqCorrelation: (): Promise<{ high_risk_topics: Array<{ topic_id: string; topic_name: string; risk_score: number; risk_level: string }> }> =>
+    request('/api/pyq-correlation'),
+
+  // Maintenance mode (T4-22)
+  getMaintenanceTopics: (): Promise<Array<{ topic_id: string; topic_name: string; maintenance_eligible: boolean }>> =>
+    request('/api/fsrs/maintenance'),
+
+  enableMaintenanceMode: (topicId: string): Promise<{ maintenance_active: boolean }> =>
+    request(`/api/fsrs/maintenance/${topicId}`, { method: 'POST' }),
+
+  // Work pressure (T4-24)
+  updateWorkPressure: (level: number): Promise<{ work_pressure_level: number }> =>
+    request('/api/stress/work-pressure', { method: 'POST', body: JSON.stringify({ level }) }),
+
+  // CA with workplace source (T5-5)
+  logCAWithSource: (body: { hours_spent: number; completed: boolean; notes?: string; subject_ids?: string[]; source?: 'personal' | 'workplace' }): Promise<{ success: boolean; study_credit_hours?: number }> =>
+    request('/api/ca/log', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Mains delta (T2-22)
+  getMainsDelta: (): Promise<{ total_enriched: number; mains_gaps: Array<{ topic_id: string; topic_name: string; mains_importance: number }> }> =>
+    request('/api/strategy/mains-delta'),
+
+  // Scorecard (T2-17)
+  importScorecard: (body: { attempt_year: number; stage: string; gs1_marks?: number; gs2_marks?: number; gs3_marks?: number; gs4_marks?: number; essay_marks?: number }): Promise<{ success: boolean }> =>
+    request('/api/profile/scorecard', { method: 'POST', body: JSON.stringify(body) }),
+
+  getScorecardAnalysis: (): Promise<{ scorecards: unknown[]; weak_zones: unknown[]; weak_subject_ids: string[] }> =>
+    request('/api/profile/scorecard'),
+
+  // Micro-session plan (T2-10)
+  getMicroSessionPlan: (minutes = 15): Promise<{ items: Array<{ topic_id: string; topic_name: string; subject_name: string; chapter_name: string; estimated_minutes: number; type: string; difficulty: number; pyq_weight: number }>; available_minutes: number; total_minutes: number }> =>
+    request(`/api/daily-plan/micro?minutes=${minutes}`),
+
+  // Resources (INFRA-3 + T2-9)
+  getResources: (): Promise<Array<{ id: string; title: string; author: string | null; resource_type: string; is_standard: boolean }>> =>
+    request('/api/resources'),
+
+  getResourcesForTopic: (topicId: string): Promise<Array<{ resource_id: string; title: string; author: string | null; chapter_range: string | null; relevance: number }>> =>
+    request(`/api/resources/topic/${topicId}`),
+
+  // Reading progress (T4-2)
+  getReadingProgress: (): Promise<Array<{ id: string; resource_id: string; title: string; author: string | null; total_pages: number | null; pages_read: number; completion_pct: number; last_read_at: string | null }>> =>
+    request('/api/reading-progress'),
+
+  updateReadingProgress: (resourceId: string, body: { pages_read?: number; total_pages?: number; notes?: string }): Promise<{ completion_pct: number }> =>
+    request(`/api/reading-progress/${resourceId}`, { method: 'POST', body: JSON.stringify(body) }),
+
+  // Answer writing (INFRA-4 + T2-7)
+  getAnswerTemplates: (topicId: string): Promise<Array<{ id: string; prompt: string; word_limit: number; question_type: string; structure_hints: string[]; key_points: string[] }>> =>
+    request(`/api/answers/templates/${topicId}`),
+
+  submitAnswer: (body: { template_id: string; topic_id: string; word_count?: number; time_taken_minutes?: number; score_structure?: number; score_intro?: number; score_examples?: number; score_analysis?: number; score_conclusion?: number; notes?: string }): Promise<{ total_score: number | null }> =>
+    request('/api/answers/submit', { method: 'POST', body: JSON.stringify(body) }),
+
+  getAnswerHistory: (topicId?: string): Promise<Array<{ id: string; topic_id: string; prompt: string; total_score: number | null; submitted_at: string }>> =>
+    request(`/api/answers/history${topicId ? `?topicId=${topicId}` : ''}`),
+
+  getAnswerStats: (): Promise<{ total_submissions: number; avg_score: number; topics_practiced: number; avg_time_minutes: number }> =>
+    request('/api/answers/stats'),
+
+  // Peer benchmarking (T2-8)
+  getPeerBenchmark: (): Promise<{ cohort: string; sample_size: number; metrics: Record<string, { your_value: number; percentile: number | null; cohort_median: number }> }> =>
+    request('/api/benchmark/peer'),
+
+  // Deep mock analysis (T2-4)
+  getDeepMockAnalysis: (): Promise<{ question_type_breakdown: Array<{ type: string; total: number; correct: number; accuracy: number }>; difficulty_breakdown: Array<{ level: string; total: number; correct: number; accuracy: number }>; negative_marking_impact: number; total_questions: number }> =>
+    request('/api/mocks/deep-analysis'),
+
+  // Paper analysis (T4-13)
+  getPaperAnalysis: (): Promise<{ papers: Array<{ paper: string; total: number; correct: number; accuracy: number }> }> =>
+    request('/api/mocks/paper-analysis'),
+
+  // Micro-mock questions (T4-3)
+  getMicroMockQuestions: (topicId: string): Promise<{ questions: Array<{ id: string; question_text: string; option_a: string; option_b: string; option_c: string; option_d: string }>; topic_id: string }> =>
+    request(`/api/quiz/micro-mock/${topicId}`),
+
+  // Active recall prompts (T4-12)
+  getActiveRecallQuestions: (topicId: string): Promise<{ questions: Array<{ id: string; question_text: string; option_a: string; option_b: string; option_c: string; option_d: string }>; topic_id: string }> =>
+    request(`/api/quiz/recall/${topicId}`),
+
+  // Submit quiz
+  submitQuiz: (body: { quiz_type: 'micro_mock' | 'active_recall'; topic_id: string; answers: Array<{ question_id: string; selected_option: string }>; time_taken_seconds?: number }): Promise<{ correct: number; total: number; accuracy: number }> =>
+    request('/api/quiz/submit', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Quiz history
+  getQuizHistory: (topicId?: string): Promise<Array<{ id: string; quiz_type: string; topic_id: string; correct: number; accuracy: number; created_at: string }>> =>
+    request(`/api/quiz/history${topicId ? `?topicId=${topicId}` : ''}`),
 };

@@ -490,6 +490,111 @@ export async function getMockTests(userId: string, limit = 20): Promise<MockTest
   return (data || []) as MockTest[];
 }
 
+// T2-4: Deep mock analysis — question-type breakdown, negative marking impact
+export async function getDeepMockAnalysis(userId: string) {
+  const { data: questions } = await supabase
+    .from('mock_questions')
+    .select('is_correct, is_attempted, question_type, marks, negative_marks, difficulty, mock_tests!inner(test_date, user_id)')
+    .eq('mock_tests.user_id', userId);
+
+  if (!questions || questions.length === 0) {
+    return { question_type_breakdown: [], negative_marking_impact: 0, difficulty_breakdown: [], total_questions: 0 };
+  }
+
+  // Question type breakdown
+  const typeMap = new Map<string, { total: number; correct: number; attempted: number }>();
+  let totalNegativeMarks = 0;
+  let totalPositiveMarks = 0;
+  const diffMap = new Map<string, { total: number; correct: number }>();
+
+  for (const q of questions as unknown as Array<{
+    is_correct: boolean; is_attempted: boolean; question_type: string | null;
+    marks: number; negative_marks: number; difficulty: string | null;
+  }>) {
+    const qType = q.question_type || 'unknown';
+    const entry = typeMap.get(qType) || { total: 0, correct: 0, attempted: 0 };
+    entry.total++;
+    if (q.is_attempted) entry.attempted++;
+    if (q.is_correct) entry.correct++;
+    typeMap.set(qType, entry);
+
+    if (q.is_correct) totalPositiveMarks += (q.marks || 2);
+    else if (q.is_attempted) totalNegativeMarks += (q.negative_marks || 0.67);
+
+    const diff = q.difficulty || 'medium';
+    const dEntry = diffMap.get(diff) || { total: 0, correct: 0 };
+    dEntry.total++;
+    if (q.is_correct) dEntry.correct++;
+    diffMap.set(diff, dEntry);
+  }
+
+  const question_type_breakdown = Array.from(typeMap.entries()).map(([type, data]) => ({
+    type, total: data.total, attempted: data.attempted, correct: data.correct,
+    accuracy: data.attempted > 0 ? Math.round((data.correct / data.attempted) * 100) : 0,
+  }));
+
+  const difficulty_breakdown = Array.from(diffMap.entries()).map(([level, data]) => ({
+    level, total: data.total, correct: data.correct,
+    accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+  }));
+
+  return {
+    question_type_breakdown,
+    difficulty_breakdown,
+    negative_marking_impact: Math.round(totalNegativeMarks * 100) / 100,
+    positive_marks: Math.round(totalPositiveMarks * 100) / 100,
+    net_score: Math.round((totalPositiveMarks - totalNegativeMarks) * 100) / 100,
+    total_questions: questions.length,
+  };
+}
+
+// T4-13: Paper 1 vs Paper 2 separate mock analysis
+export async function getPaperAnalysis(userId: string) {
+  const { data: questions } = await supabase
+    .from('mock_questions')
+    .select('is_correct, is_attempted, paper, subject_id, mock_tests!inner(test_date, user_id)')
+    .eq('mock_tests.user_id', userId)
+    .not('paper', 'is', null);
+
+  if (!questions || questions.length === 0) {
+    return { papers: [] };
+  }
+
+  const paperMap = new Map<string, { total: number; correct: number; attempted: number; subjects: Map<string, { total: number; correct: number }> }>();
+
+  for (const q of questions as unknown as Array<{
+    is_correct: boolean; is_attempted: boolean; paper: string; subject_id: string;
+  }>) {
+    const entry = paperMap.get(q.paper) || { total: 0, correct: 0, attempted: 0, subjects: new Map() };
+    entry.total++;
+    if (q.is_attempted) entry.attempted++;
+    if (q.is_correct) entry.correct++;
+
+    const subEntry = entry.subjects.get(q.subject_id) || { total: 0, correct: 0 };
+    subEntry.total++;
+    if (q.is_correct) subEntry.correct++;
+    entry.subjects.set(q.subject_id, subEntry);
+
+    paperMap.set(q.paper, entry);
+  }
+
+  const papers = Array.from(paperMap.entries()).map(([paper, data]) => ({
+    paper,
+    total: data.total,
+    attempted: data.attempted,
+    correct: data.correct,
+    accuracy: data.attempted > 0 ? Math.round((data.correct / data.attempted) * 100) : 0,
+    subject_breakdown: Array.from(data.subjects.entries()).map(([subject_id, s]) => ({
+      subject_id,
+      total: s.total,
+      correct: s.correct,
+      accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0,
+    })),
+  }));
+
+  return { papers };
+}
+
 export async function importMockCSV(userId: string, csvContent: string): Promise<MockCSVResult> {
   const lines = csvContent.trim().split('\n');
   if (lines.length < 2) {

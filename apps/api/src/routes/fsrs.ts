@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { recordReview, batchRecalculateConfidence, getRevisionsDue, getRevisionsCalendar } from '../services/fsrs.js';
+import { recordReview, batchRecalculateConfidence, getRevisionsDue, getRevisionsCalendar, getMaintenanceTopics, enableMaintenanceMode } from '../services/fsrs.js';
 import { todayString } from '../utils/dateUtils.js';
 
 export async function fsrsRoutes(app: FastifyInstance) {
@@ -37,6 +37,18 @@ export async function fsrsRoutes(app: FastifyInstance) {
   }>('/api/revisions/calendar', async (request, reply) => {
     const month = request.query.month || new Date().toISOString().slice(0, 7);
     const result = await getRevisionsCalendar(request.userId, month);
+    return reply.status(200).send(result);
+  });
+
+  app.get('/api/fsrs/maintenance', async (request, reply) => {
+    const result = await getMaintenanceTopics(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  app.post<{
+    Params: { topicId: string };
+  }>('/api/fsrs/maintenance/:topicId', async (request, reply) => {
+    const result = await enableMaintenanceMode(request.userId, request.params.topicId);
     return reply.status(200).send(result);
   });
 }

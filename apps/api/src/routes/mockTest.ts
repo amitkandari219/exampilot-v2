@@ -5,6 +5,8 @@ import {
   getMockAnalytics,
   getTopicMockHistory,
   importMockCSV,
+  getDeepMockAnalysis,
+  getPaperAnalysis,
 } from '../services/mockTest.js';
 
 export async function mockTestRoutes(app: FastifyInstance) {
@@ -54,6 +56,18 @@ export async function mockTestRoutes(app: FastifyInstance) {
     }
 
     const result = await importMockCSV(request.userId, csv);
+    return reply.status(200).send(result);
+  });
+
+  // T2-4: Deep mock analysis
+  app.get('/api/mocks/deep-analysis', async (request, reply) => {
+    const result = await getDeepMockAnalysis(request.userId);
+    return reply.status(200).send(result);
+  });
+
+  // T4-13: Paper 1 vs Paper 2 analysis
+  app.get('/api/mocks/paper-analysis', async (request, reply) => {
+    const result = await getPaperAnalysis(request.userId);
     return reply.status(200).send(result);
   });
 }

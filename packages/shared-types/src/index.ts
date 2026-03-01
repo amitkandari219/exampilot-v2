@@ -427,7 +427,7 @@ export interface RecalibrationLogEntry {
 }
 
 // ── Simulation ──
-export type SimulationScenarioType = 'skip_days' | 'change_hours' | 'change_strategy' | 'change_exam_date' | 'defer_topics' | 'focus_subject';
+export type SimulationScenarioType = 'skip_days' | 'change_hours' | 'change_strategy' | 'change_exam_date' | 'defer_topics' | 'focus_subject' | 'attempt_budget';
 
 export interface SimulationScenario {
   type: SimulationScenarioType;
