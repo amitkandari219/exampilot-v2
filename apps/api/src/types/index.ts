@@ -1,7 +1,7 @@
 import type { StrategyMode as _SM, ExamMode as _EM } from '@exampilot/shared-types';
 
 export const STRATEGY_MODES: readonly _SM[] = ['conservative', 'aggressive', 'balanced', 'working_professional'];
-export const EXAM_MODES: readonly _EM[] = ['mains', 'prelims', 'post_prelims', 'csat'];
+export const EXAM_MODES: readonly _EM[] = ['mains', 'prelims', 'csat'];
 
 // Re-export all shared types
 export type {

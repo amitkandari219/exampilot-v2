@@ -24,7 +24,7 @@ export async function modeRoutes(app: FastifyInstance) {
   }>('/api/mode/preview', async (request, reply) => {
     const { mode } = request.query as { mode?: string };
 
-    const validModes: ExamMode[] = ['mains', 'prelims', 'post_prelims'];
+    const validModes: ExamMode[] = ['mains', 'prelims', 'csat'];
     if (!mode || !validModes.includes(mode as ExamMode)) {
       return reply.status(400).send({ error: `mode query param required. Must be one of: ${validModes.join(', ')}` });
     }

@@ -1,6 +1,6 @@
 // ── Type aliases ──
 export type StrategyMode = 'conservative' | 'aggressive' | 'balanced' | 'working_professional';
-export type ExamMode = 'mains' | 'prelims' | 'post_prelims' | 'csat';
+export type ExamMode = 'mains' | 'prelims' | 'csat';
 export type GsPaper = 'GS-I' | 'GS-II' | 'GS-III' | 'GS-IV' | 'Prelims';
 export type PyqTrend = 'rising' | 'stable' | 'declining';
 export type TopicStatus = 'untouched' | 'in_progress' | 'first_pass' | 'revised' | 'exam_ready' | 'deferred_scope';

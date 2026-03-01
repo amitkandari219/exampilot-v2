@@ -43,11 +43,6 @@ const EXAM_MODE_INFO: Record<ExamMode, { label: string; description: string; col
     description: 'Full syllabus active. Balanced across all GS papers + optional.',
     color: '#3498DB',
   },
-  post_prelims: {
-    label: 'After Prelims',
-    description: 'Catching up on Ethics, IR, World History & Internal Security.',
-    color: '#9B59B6',
-  },
   csat: {
     label: 'CSAT Focus',
     description: 'Aptitude, ethics & comprehension boosted. Lighter syllabus load.',
@@ -116,7 +111,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.examModeToggle}>
-          {(['prelims', 'mains', 'post_prelims', 'csat'] as ExamMode[]).map((m) => (
+          {(['prelims', 'mains', 'csat'] as ExamMode[]).map((m) => (
             <TouchableOpacity
               key={m}
               style={[styles.examModeBtn, examMode === m && styles.examModeBtnActive]}
@@ -124,7 +119,7 @@ export default function DashboardScreen() {
               disabled={switchExamMode.isPending}
             >
               <Text style={[styles.examModeBtnText, examMode === m && styles.examModeBtnTextActive]}>
-                {m === 'post_prelims' ? 'After Prelims' : m === 'csat' ? 'CSAT' : m.charAt(0).toUpperCase() + m.slice(1)}
+                {m === 'csat' ? 'CSAT' : m.charAt(0).toUpperCase() + m.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}

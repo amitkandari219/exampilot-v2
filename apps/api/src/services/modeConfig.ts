@@ -176,7 +176,7 @@ export async function getActiveSubjectIds(userId: string): Promise<Set<string> |
 
   const mode = profile.current_mode as ExamMode;
 
-  if (mode === 'mains' || mode === 'post_prelims' || mode === 'csat') return null;
+  if (mode === 'mains' || mode === 'csat') return null;
 
   const config = await getModeConfig(mode);
 

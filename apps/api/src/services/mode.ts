@@ -58,7 +58,7 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
       .from('user_profiles')
       .update({ strategy_params: { ...strategyParams, revision_frequency: newRevisionFrequency } })
       .eq('id', userId);
-  } else if (targetMode === 'mains' || targetMode === 'post_prelims') {
+  } else if (targetMode === 'mains') {
     // Restore default revision_frequency from strategy mode
     const { getDefaultParams } = await import('./strategy.js');
     const defaults = await getDefaultParams(profile.strategy_mode as StrategyMode);
