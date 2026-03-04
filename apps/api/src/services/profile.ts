@@ -5,9 +5,24 @@ export async function getProfile(userId: string) {
     .from('user_profiles')
     .select('name, exam_date, attempt_number, created_at, current_mode, daily_hours, study_approach, strategy_mode')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
+
+  if (!data) {
+    return {
+      name: '',
+      exam_date: null,
+      avatar_url: null,
+      attempt_number: null,
+      created_at: new Date().toISOString(),
+      current_mode: 'prelims' as const,
+      daily_hours: 6,
+      study_approach: 'mixed',
+      strategy_mode: 'balanced',
+      onboarding_complete: false,
+    };
+  }
 
   return {
     name: data.name || '',
@@ -44,4 +59,14 @@ export async function updateProfile(
   if (error) throw new Error(error.message);
 
   return { updated: true };
+}
+
+export async function registerPushToken(userId: string, pushToken: string) {
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({ push_token: pushToken })
+    .eq('id', userId);
+
+  if (error) throw new Error(error.message);
+  return { registered: true };
 }

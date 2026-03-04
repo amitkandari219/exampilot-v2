@@ -149,7 +149,7 @@ export async function gatherSignals(userId: string, windowDays: number = RECAL_C
 
   const wRows = weaknessRows || [];
   const totalWeakness = wRows.length;
-  const criticalWeakCount = wRows.filter((w: any) => w.category === 'critical' || w.category === 'weak').length;
+  const criticalWeakCount = wRows.filter((w: { category: string }) => w.category === 'critical' || w.category === 'weak').length;
   const criticalWeaknessPct = totalWeakness > 0 ? (criticalWeakCount / totalWeakness) * 100 : 0;
 
   return {

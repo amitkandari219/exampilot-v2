@@ -21,20 +21,29 @@ export default function Index() {
       return;
     }
 
-    // Check if onboarding is completed
-    supabase
-      .from('user_profiles')
-      .select('onboarding_completed')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          setOnboarded(false);
-        } else {
-          setOnboarded(data?.onboarding_completed === true);
-        }
+    // Validate session is still valid, then check onboarding
+    supabase.auth.getUser().then(({ error: authError }) => {
+      if (authError) {
+        // Token is invalid (e.g. after db reset) — force logout
+        supabase.auth.signOut().catch(() => {});
         setChecking(false);
-      });
+        return;
+      }
+
+      supabase
+        .from('user_profiles')
+        .select('onboarding_completed')
+        .eq('id', session.user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            setOnboarded(false);
+          } else {
+            setOnboarded(data?.onboarding_completed === true);
+          }
+          setChecking(false);
+        });
+    });
   }, [session, authLoading]);
 
   if (authLoading || checking) {

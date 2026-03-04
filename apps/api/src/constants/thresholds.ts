@@ -28,6 +28,10 @@ export const BURNOUT = {
   RECOVERY_HALF: 0.5,
   RAMP_DAY1: 0.7,
   RAMP_DAY2: 0.85,
+  FATIGUE_W_CONSECUTIVE: 10,
+  FATIGUE_W_DIFFICULTY: 8,
+  FATIGUE_W_HOURS: 20,
+  FATIGUE_W_REST: 15,
 } as const;
 
 // Stress composite weights (used in stress)
@@ -124,6 +128,9 @@ export const PLANNER = {
   SEQ_COMPLETION_THRESHOLD: 0.60,
   SEQ_PRIMARY_BOOST: 20,
   PAST_WEAKNESS_BOOST: 4,
+  TIME_PRESSURE_BOOST: 2,
+  OVERLAP_BOOST: 3,
+  STRATEGY_LOCK_BOOST: 50,
 } as const;
 
 // FSRS constants (used in fsrs, decayTrigger)
@@ -212,6 +219,11 @@ export const WEEKLY_REVIEW = {
   ZERO_DAY_HIGHLIGHT: 3,
 } as const;
 
+// Snooze limits (used in fsrs)
+export const SNOOZE = {
+  MAX_DAYS: 7,
+} as const;
+
 // Timer constants (used in mobile TimerContext)
 export const TIMER = {
   WARNING_THRESHOLD_SECONDS: 300,
@@ -221,4 +233,24 @@ export const TIMER = {
 export const VELOCITY_WEIGHTING = {
   WEIGHT_7D: 0.6,
   WEIGHT_14D: 0.4,
+} as const;
+
+// Alert thresholds (used in alerts)
+export const ALERTS = {
+  NEGLECT_DAYS: 14,
+  CONFIDENCE_FLOOR: 30,
+  MIN_DECAYED_TOPICS: 5,
+  BUFFER_CRITICAL: -2,
+  STREAK_RISK_HOUR: 18,
+} as const;
+
+// Cohort benchmarking (used in cohortBenchmark, PeerComparisonCard)
+export const COHORT = {
+  MIN_SAMPLE_SIZE: 5,
+} as const;
+
+// Mock test analysis constants (used in mockTest)
+export const MOCK = {
+  NEGATIVE_MARKS_PER_WRONG: 0.66,
+  PRELIMS_CUTOFF_ESTIMATE: 55,
 } as const;

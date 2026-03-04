@@ -10,7 +10,7 @@ import type {
   TopicNote,
   SystemEvent, StudyPlanOverview, TopicResource,
   AnswerWritingStats, AnswerPractice,
-  SmartAlert, CohortPercentile,
+  SmartAlert, CohortPercentile, BuddyStatus,
 } from '../types';
 import type {
   VelocityData, VelocityHistoryPoint, BufferData,
@@ -30,18 +30,24 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return {};
 }
 
+const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const authHeaders = await getAuthHeader();
 
   const res = await fetch(`${API_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      'X-Timezone': USER_TIMEZONE,
       ...authHeaders,
     },
     ...options,
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      supabase.auth.signOut().catch(() => {});
+    }
     const error = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(error.error || 'Request failed');
   }
@@ -92,14 +98,19 @@ export interface SyllabusProgressData {
   }>;
 }
 
+export interface RevisionItem {
+  topic_id: string;
+  due: string;
+  stability: number;
+  difficulty: number;
+  topics: { name: string };
+  overdue_by_days?: number;
+}
+
 export interface RevisionsDueData {
-  revisions: Array<{
-    topic_id: string;
-    topic_name: string;
-    due: string;
-    stability: number;
-    difficulty: number;
-  }>;
+  overdue: RevisionItem[];
+  today: RevisionItem[];
+  upcoming: RevisionItem[];
 }
 
 export const api = {
@@ -143,6 +154,9 @@ export const api = {
   // FSRS
   recordReview: (topicId: string, rating: number): Promise<{ card: object; next_review: string }> =>
     request<{ card: object; next_review: string }>(`/api/fsrs/review/${topicId}`, { method: 'POST', body: JSON.stringify({ rating }) }),
+
+  snoozeRevision: (topicId: string, days: number = 1): Promise<{ new_due: string }> =>
+    request<{ new_due: string }>(`/api/fsrs/snooze/${topicId}`, { method: 'POST', body: JSON.stringify({ days }) }),
 
   recalculateConfidence: (): Promise<{ updated: number }> =>
     request<{ updated: number }>('/api/fsrs/recalculate', { method: 'POST' }),
@@ -205,6 +219,12 @@ export const api = {
 
   deferPlanItemV2: (itemId: string): Promise<{ status: string; movedTo?: string }> =>
     request<{ status: string; movedTo?: string }>(`/api/daily-plan/items/${itemId}/defer`, { method: 'PATCH' }),
+
+  updatePlanItemEstimate: (itemId: string, estimatedHours: number): Promise<{ success: boolean }> =>
+    request<{ success: boolean }>(`/api/daily-plan/items/${itemId}/estimate`, { method: 'PATCH', body: JSON.stringify({ estimated_hours: estimatedHours }) }),
+
+  strategyLockTopic: (topicId: string, lockDays: number): Promise<{ locked: boolean; lock_until: string }> =>
+    request<{ locked: boolean; lock_until: string }>('/api/daily-plan/strategy-lock', { method: 'POST', body: JSON.stringify({ topicId, lockDays }) }),
 
   // Recalibration
   getRecalibrationStatus: (): Promise<RecalibrationStatus> =>
@@ -302,7 +322,12 @@ export const api = {
   // Answer Writing
   getAnswerStats: (): Promise<AnswerWritingStats> =>
     request<AnswerWritingStats>('/api/answer-writing/stats'),
-  logAnswer: (body: { topic_id?: string; question_text?: string; word_count?: number; time_taken_minutes?: number; self_score?: number }): Promise<AnswerPractice> =>
+  logAnswer: (body: {
+    topic_id?: string; question_text?: string; word_count?: number;
+    time_taken_minutes?: number; self_score?: number;
+    question_type?: string; structure_checklist?: string[];
+    question_source?: string; review_flag?: boolean;
+  }): Promise<AnswerPractice> =>
     request<AnswerPractice>('/api/answer-writing', { method: 'POST', body: JSON.stringify(body) }),
 
   // Alerts
@@ -322,4 +347,15 @@ export const api = {
     request<UserProfile>('/api/profile'),
   updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string; daily_hours?: number; study_approach?: string }): Promise<UserProfile> =>
     request<UserProfile>('/api/profile', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  registerPushToken: (token: string): Promise<{ registered: boolean }> =>
+    request<{ registered: boolean }>('/api/profile/push-token', { method: 'POST', body: JSON.stringify({ token }) }),
+
+  // Study Buddy
+  getBuddyStatus: (): Promise<BuddyStatus> =>
+    request<BuddyStatus>('/api/buddy/status'),
+  sendWave: (pairId: string): Promise<{ sent: boolean }> =>
+    request<{ sent: boolean }>('/api/buddy/wave', { method: 'POST', body: JSON.stringify({ pairId }) }),
+  toggleBuddyOptIn: (optIn: boolean): Promise<{ opted_in: boolean }> =>
+    request<{ opted_in: boolean }>('/api/buddy/opt-in', { method: 'POST', body: JSON.stringify({ optIn }) }),
 };

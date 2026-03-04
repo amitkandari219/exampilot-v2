@@ -116,8 +116,18 @@ export async function runDailyMaintenance() {
     errors.push({ userId: 'system', step: 'cohort_benchmarks', error: e.message });
   }
 
-  // Step 8: Weekly review (Sundays only)
+  // Step 8: Weekly buddy pairing (Mondays only)
   const dayOfWeek = new Date().getDay();
+  if (dayOfWeek === 1) {
+    try {
+      const { runWeeklyPairing } = await import('./buddy.js');
+      await runWeeklyPairing();
+    } catch (e: any) {
+      errors.push({ userId: 'system', step: 'buddyPairing', error: e.message });
+    }
+  }
+
+  // Step 9: Weekly review (Sundays only)
   if (dayOfWeek === 0) {
     for (const user of users) {
       try {
@@ -148,7 +158,7 @@ export async function runDailyMaintenance() {
         finished_at: new Date().toISOString(),
         users_processed: users.length,
         errors: errors.length > 0 ? errors : [],
-        status: errors.length > 0 ? 'completed' : 'completed',
+        status: errors.length > 0 ? 'completed_with_errors' : 'completed',
       })
       .eq('id', cronLog.id);
   }

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { BRI_WEIGHTS } from '../constants/thresholds.js';
+import { BRI_WEIGHTS, BURNOUT } from '../constants/thresholds.js';
 import { appEvents } from './events.js';
 
 export async function calculateFatigueScore(userId: string): Promise<number> {
@@ -47,7 +47,7 @@ export async function calculateFatigueScore(userId: string): Promise<number> {
   const restDays7 = 7 - recentLogs.filter((l) => l.hours_studied > 0).length;
 
   // Fatigue formula
-  const fatigue = (consecutiveDays * 10) + (avgDifficulty3d * 8) + (hours3d / targetHours * 20) - (restDays7 * 15);
+  const fatigue = (consecutiveDays * BURNOUT.FATIGUE_W_CONSECUTIVE) + (avgDifficulty3d * BURNOUT.FATIGUE_W_DIFFICULTY) + (hours3d / targetHours * BURNOUT.FATIGUE_W_HOURS) - (restDays7 * BURNOUT.FATIGUE_W_REST);
 
   return Math.max(0, Math.min(100, Math.round(fatigue)));
 }
@@ -148,7 +148,7 @@ export async function checkRecoveryTrigger(userId: string): Promise<boolean> {
 
   if (!snapshots || snapshots.length < 2) return false;
 
-  // Trigger if BRI > threshold for 2 consecutive days
+  // Trigger if BRI stays critically low for 2 consecutive days (lower BRI = worse)
   return snapshots.every((s) => s.bri_score < (100 - threshold));
 }
 
@@ -282,7 +282,7 @@ export async function getBurnoutData(userId: string) {
     await activateRecoveryMode(userId);
   }
 
-  if (bri_score > 50 && !shouldRecover && !(profile?.recovery_mode_active)) {
+  if (bri_score < 50 && !shouldRecover && !(profile?.recovery_mode_active)) {
     appEvents.emit('notification:queue', { userId, type: 'recovery_suggestion' });
   }
 
