@@ -25,6 +25,12 @@ import { modeRoutes } from './routes/mode.js';
 import { quicklogRoutes } from './routes/quicklog.js';
 import { topicNotesRoutes } from './routes/topicNotes.js';
 import { weekPlanRoutes } from './routes/weekPlan.js';
+import { systemEventsRoutes } from './routes/systemEvents.js';
+import { studyPlanOverviewRoutes } from './routes/studyPlanOverview.js';
+import { resourceRoutes } from './routes/resources.js';
+import { answerWritingRoutes } from './routes/answerWriting.js';
+import { alertRoutes } from './routes/alerts.js';
+import { cohortBenchmarkRoutes } from './routes/cohortBenchmark.js';
 import { cronRoutes } from './routes/cron.js';
 
 const app = Fastify({ logger: true });
@@ -62,6 +68,12 @@ async function start() {
   await app.register(quicklogRoutes);
   await app.register(topicNotesRoutes);
   await app.register(weekPlanRoutes);
+  await app.register(systemEventsRoutes);
+  await app.register(studyPlanOverviewRoutes);
+  await app.register(resourceRoutes);
+  await app.register(answerWritingRoutes);
+  await app.register(alertRoutes);
+  await app.register(cohortBenchmarkRoutes);
   await app.register(cronRoutes);
 
   app.get('/health', async () => ({ status: 'ok' }));

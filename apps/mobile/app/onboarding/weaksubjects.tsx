@@ -50,12 +50,14 @@ export default function WeakSubjectsScreen() {
       subtitle="Tap 3. This seeds your revision priority from day one."
       nextLabel="Generate My UPSC Plan →"
       nextDisabled={selected.length !== MAX_SELECTION}
-      onNext={() =>
+      onNext={() => {
+        const attemptNum = parseInt(params.attempt || '1', 10);
+        const nextPath = attemptNum >= 2 ? '/onboarding/past-attempt' : '/onboarding/complete';
         router.push({
-          pathname: '/onboarding/complete',
+          pathname: nextPath as any,
           params: { ...params, weak_subjects: selected.join(',') },
-        })
-      }
+        });
+      }}
     >
       <View style={styles.chipContainer}>
         {SUBJECTS.map((subject) => {

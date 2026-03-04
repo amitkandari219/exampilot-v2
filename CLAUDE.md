@@ -107,9 +107,11 @@ Services follow a strict tier system. **Never import upward.**
 
 ```
 TIER 0: constants/, utils/          — zero imports
-TIER 1: modeConfig, stress, benchmark, currentAffairs, syllabus, notification, pyq
+TIER 1: modeConfig, stress, benchmark, currentAffairs, syllabus, notification, pyq,
+        resources, systemEvents, answerWriting, cohortBenchmark, studyPlanOverview
                                     — import only supabase + tier 0
-TIER 2: fsrs, burnout, velocity, weakness, gamification, decayTrigger, recalibration
+TIER 2: fsrs, burnout, velocity, weakness, gamification, decayTrigger, recalibration,
+        alerts
                                     — import tier 0-1 + events
 TIER 3: planner, planActions, simulator, strategy, mode, mockTest,
         weeklyReview, strategyCascade, endOfDay

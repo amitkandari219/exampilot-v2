@@ -57,6 +57,7 @@ interface PlannerProfile {
   fatigue_threshold: number;
   pyq_weight_minimum: number;
   study_approach: 'sequential' | 'mixed';
+  past_attempt_data: { mains_weakest_papers?: string[] } | null;
 }
 
 interface DailyLogEntry {
@@ -78,6 +79,7 @@ interface PlanItem {
   estimated_hours: number;
   priority_score: number;
   display_order: number;
+  reason: string;
 }
 
 interface PlannerContext {
@@ -320,6 +322,18 @@ function assessCapacity(
   return { availableHours, isLightDay, isPostHeavy, energyLevel, maxTopics, maxAvgDifficulty };
 }
 
+// ── Subject-to-paper mapping for past weakness boost ──
+
+function mapSubjectToPaper(subjectName: string): string | null {
+  const lower = subjectName.toLowerCase();
+  if (lower.includes('polity') || lower.includes('governance') || lower.includes('international')) return 'gs2';
+  if (lower.includes('history') || lower.includes('culture') || lower.includes('society') || lower.includes('geography')) return 'gs1';
+  if (lower.includes('econom') || lower.includes('environment') || lower.includes('science') || lower.includes('technology') || lower.includes('security') || lower.includes('disaster')) return 'gs3';
+  if (lower.includes('ethics') || lower.includes('integrity') || lower.includes('aptitude')) return 'gs4';
+  if (lower.includes('essay')) return 'essay';
+  return null;
+}
+
 // ── 2. Topic scoring (pure functions, no DB calls) ──
 
 function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
@@ -364,11 +378,17 @@ function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
   const isWeekend = planDate.getDay() === 0 || planDate.getDay() === 6;
   const weekendBoost = (isWorkingProfessional && isWeekend && t.pyq_weight >= 3) ? PLANNER.WEEKEND_BOOST : 0;
 
+  // Past weakness boost for repeaters
+  const pastWeakPapers = profile.past_attempt_data?.mains_weakest_papers || [];
+  const subjectName = t.chapters?.subjects?.name || '';
+  const paper = mapSubjectToPaper(subjectName);
+  const pastWeaknessBoost = (paper && pastWeakPapers.includes(paper)) ? PLANNER.PAST_WEAKNESS_BOOST : 0;
+
   const modeImportanceBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
   const effectiveImportance = t.importance + modeImportanceBoost;
 
   let priority = (t.pyq_weight * PLANNER.PYQ_FACTOR) + (effectiveImportance * PLANNER.IMPORTANCE_FACTOR) + (urgency * PLANNER.URGENCY_FACTOR)
-    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost;
+    + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost + pastWeaknessBoost;
 
   // Sequential mode: heavily boost primary subject, suppress others
   if (ctx.studyApproach === 'sequential' && ctx.primarySubjectId) {
@@ -394,6 +414,39 @@ function scoreRevisionTopic(t: TopicWithJoins, ctx: PlannerContext): number {
   const subjectId: string | undefined = t.chapters?.subject_id;
   const modeBoost = subjectId ? (importanceModifiers.get(subjectId) || 0) : 0;
   return (t.pyq_weight * PLANNER.PYQ_FACTOR) + ((t.importance + modeBoost) * PLANNER.IMPORTANCE_FACTOR) + PLANNER.REVISION_BASE_BOOST + prelimsBoost;
+}
+
+// ── 2b. Compute human-readable reason for plan item ──
+
+function computeReason(
+  topic: TopicWithJoins,
+  type: 'new' | 'revision',
+  ctx: PlannerContext,
+): string {
+  const prog = ctx.progressMap.get(topic.id);
+
+  if (ctx.deferredTopicIds.has(topic.id)) {
+    return 'Rolled over from yesterday';
+  }
+  if (prog?.confidence_status === 'decayed') {
+    return 'Memory fading — revision prevents full re-study';
+  }
+  if (prog?.confidence_status === 'stale') {
+    return 'Starting to fade — revision before decay';
+  }
+  if (ctx.blindSpotIds.has(topic.id)) {
+    return 'Blind spot — high PYQ weight but not yet covered';
+  }
+  if (ctx.falseSecurityIds.has(topic.id)) {
+    return 'Mock scores low despite feeling familiar';
+  }
+  if (ctx.revisionTopicIds.has(topic.id) && type === 'revision') {
+    return 'Spaced repetition says it\'s time to review';
+  }
+  if (topic.pyq_weight >= 4) {
+    return 'High PYQ weight — frequently asked in past exams';
+  }
+  return 'Scheduled based on priority scoring and available time';
 }
 
 // ── 3. Constraint filtering ──
@@ -478,6 +531,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
       estimated_hours: hours,
       priority_score: item.priority,
       display_order: order++,
+      reason: computeReason(item.topic, item.type as 'new' | 'revision', ctx),
     });
 
     usedHours += hours;
@@ -491,7 +545,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
   }
 
   // Ensure min 2 subjects
-  ensureDualSubject(planItems, remaining, subjectsUsed);
+  ensureDualSubject(planItems, remaining, subjectsUsed, ctx);
 
   return planItems;
 }
@@ -500,6 +554,7 @@ function ensureDualSubject(
   planItems: PlanItem[],
   remaining: ScoredCandidate[],
   subjectsUsed: Set<string>,
+  ctx: PlannerContext,
 ) {
   if (subjectsUsed.size !== 1 || planItems.length < 2) return;
 
@@ -517,6 +572,7 @@ function ensureDualSubject(
       estimated_hours: hours,
       priority_score: altCandidate.priority,
       display_order: lastItem.display_order,
+      reason: computeReason(altCandidate.topic, altCandidate.type as 'new' | 'revision', ctx),
     };
     subjectsUsed.add(altCandidate.subjectId!);
   }
@@ -588,6 +644,7 @@ function formatPlan(plan: any) {
     status: item.status,
     completed_at: item.completed_at,
     actual_hours: item.actual_hours,
+    reason: item.reason || null,
     topic: item.topics ? {
       name: item.topics.name,
       chapter_id: item.topics.chapter_id,

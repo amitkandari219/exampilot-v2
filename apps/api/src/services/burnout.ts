@@ -174,6 +174,14 @@ export async function activateRecoveryMode(userId: string) {
     trigger_bri: bri_score,
   });
 
+  appEvents.emit('system:log', {
+    userId,
+    eventType: 'recovery_activated',
+    title: 'Recovery mode activated',
+    description: `BRI score ${bri_score}. Recovery for ${recoveryDays} days.`,
+    metadata: { bri_score, recoveryDays },
+  });
+
   return {
     recovery_mode_active: true,
     recovery_mode_start: toDateString(new Date()),
@@ -215,6 +223,14 @@ export async function exitRecoveryMode(userId: string, reason: string) {
   }
 
   appEvents.emit('xp:award', { userId, triggerType: 'recovery_completion' });
+
+  appEvents.emit('system:log', {
+    userId,
+    eventType: 'recovery_ended',
+    title: 'Recovery mode ended',
+    description: `Reason: ${reason}.`,
+    metadata: { reason },
+  });
 
   return {
     recovery_mode_active: false,

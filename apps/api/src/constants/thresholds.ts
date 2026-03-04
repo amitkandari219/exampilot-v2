@@ -123,6 +123,7 @@ export const PLANNER = {
   SEQ_PRIMARY_PCT: 0.70,
   SEQ_COMPLETION_THRESHOLD: 0.60,
   SEQ_PRIMARY_BOOST: 20,
+  PAST_WEAKNESS_BOOST: 4,
 } as const;
 
 // FSRS constants (used in fsrs, decayTrigger)

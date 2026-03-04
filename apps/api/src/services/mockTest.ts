@@ -406,6 +406,41 @@ export async function getMockAnalytics(userId: string): Promise<MockAnalytics> {
     recommendation = 'Excellent performance! Maintain consistency and focus on timed practice.';
   }
 
+  // Deep analysis (only when 2+ tests exist)
+  let deep_analysis = null;
+  if (testsCount >= 2) {
+    const negativeImpact = (tests || []).reduce((sum: number, t: any) => {
+      const incorrect = t.total_questions ? (t.max_score / 2 - t.score) / 0.66 : 0;
+      return sum + (incorrect > 0 ? incorrect * 0.66 : 0);
+    }, 0);
+
+    const attemptRate = (tests || []).reduce((sum: number, t: any) => {
+      const totalQ = t.max_score > 0 ? t.max_score / 2 : 0;
+      const attempted = totalQ > 0 ? ((t.score + negativeImpact) / 2) : 0;
+      return sum + (totalQ > 0 ? (attempted / totalQ) * 100 : 0);
+    }, 0) / testsCount;
+
+    const cutoffTrajectory = score_trend.map((t: any) => ({
+      test_date: t.test_date,
+      score: Math.round(t.score_pct * 10) / 10,
+      estimated_cutoff: 100,
+    }));
+
+    const topicGaps = weakest_topics.slice(0, 5).map((t: any) => {
+      let advice = 'Revise fundamentals and attempt more practice questions.';
+      if (t.accuracy < 0.2) advice = 'Critical gap — prioritize this topic immediately with focused study.';
+      else if (t.accuracy < 0.35) advice = 'Weak area — do targeted revision and solve PYQs for this topic.';
+      return { topic: t.topic_name, accuracy: t.accuracy, advice };
+    });
+
+    deep_analysis = {
+      negative_marking_impact: Math.round(negativeImpact * 10) / 10,
+      attempt_rate: Math.round(attemptRate * 10) / 10,
+      cutoff_trajectory: cutoffTrajectory,
+      topic_gaps: topicGaps,
+    };
+  }
+
   return {
     score_trend,
     subject_accuracy,
@@ -415,6 +450,7 @@ export async function getMockAnalytics(userId: string): Promise<MockAnalytics> {
     avg_score_pct: Math.round(avgScorePct * 10) / 10,
     best_score_pct: Math.round(bestScorePct * 10) / 10,
     recommendation,
+    deep_analysis,
   };
 }
 

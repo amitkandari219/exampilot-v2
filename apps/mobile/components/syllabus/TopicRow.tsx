@@ -1,5 +1,6 @@
 import React, {  useState , useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import type { TopicWithProgress, TopicStatus } from '../../types';
@@ -55,6 +56,7 @@ function statusLabel(status: TopicStatus): string {
 
 export function TopicRow({ topic, onPress }: TopicRowProps) {
   const { theme } = useTheme();
+  const router = useRouter();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [healthSheetVisible, setHealthSheetVisible] = useState(false);
   const progress = topic.user_progress;
@@ -74,6 +76,13 @@ export function TopicRow({ topic, onPress }: TopicRowProps) {
           />
         )}
         <PYQBadge weight={topic.pyq_weight} />
+        <TouchableOpacity
+          style={styles.infoIcon}
+          onPress={() => router.push({ pathname: '/topic-detail', params: { topicId: topic.id, topicName: topic.name } })}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.infoIconText}>{'>'}</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.middleRow}>
@@ -146,5 +155,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   dateText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.textMuted,
+  },
+  infoIcon: {
+    marginLeft: theme.spacing.xs,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+  },
+  infoIconText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textMuted,
+    fontWeight: '600',
   },
 });

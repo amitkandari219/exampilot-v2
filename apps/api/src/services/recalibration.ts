@@ -422,6 +422,14 @@ export async function runRecalibration(userId: string, triggerType: 'auto_daily'
     appEvents.emit('notification:queue', { userId, type: 'recalibration_triggered' });
   }
 
+  appEvents.emit('system:log', {
+    userId,
+    eventType: 'recalibration',
+    title: paramsChanged ? 'Study parameters recalibrated' : 'Recalibration check — no changes needed',
+    description: `Based on ${signals.windowDays}-day analysis.`,
+    metadata: { trigger: triggerType, paramsChanged },
+  });
+
   return {
     status: paramsChanged ? 'applied' : 'no_change',
     signals,

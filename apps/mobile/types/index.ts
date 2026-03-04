@@ -15,6 +15,14 @@ export type {
   SubjectCoverage, WeeklyReviewSummary,
   QuickLogEntry, QuickLogPayload,
   TopicNote, TopicNoteType,
+  SystemEvent,
+  SubjectProjection, RevisionPreviewDay, StudyPlanOverview,
+  TopicResource,
+  PastAttemptData,
+  AnswerPractice, AnswerWritingStats,
+  DeepMockAnalysis,
+  SmartAlert, AlertSeverity, AlertType,
+  CohortPercentile,
 } from '@exampilot/shared-types';
 
 // ── Mobile-only types ──

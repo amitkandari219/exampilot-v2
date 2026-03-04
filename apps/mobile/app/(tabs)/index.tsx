@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
@@ -16,7 +17,15 @@ import { V4Pill } from '../../components/v4/V4Pill';
 import { V4MetricBox } from '../../components/v4/V4MetricBox';
 import { V4Bar } from '../../components/v4/V4Bar';
 import { V4Tip } from '../../components/v4/V4Tip';
-import { isScreenUnlocked } from '../../lib/disclosure';
+import { isScreenUnlocked, isDashboardSectionUnlocked } from '../../lib/disclosure';
+import { ActivityFeed } from '../../components/dashboard/ActivityFeed';
+import { WelcomeBackBanner } from '../../components/dashboard/WelcomeBackBanner';
+import { GuidedJourneyCard } from '../../components/dashboard/GuidedJourneyCard';
+import { useVelocity, useBuffer } from '../../hooks/useVelocity';
+import { useAnswerStats } from '../../hooks/useAnswerWriting';
+import { useAlerts } from '../../hooks/useAlerts';
+import { AlertBanner } from '../../components/dashboard/AlertBanner';
+import { METRIC_LABELS, METRIC_TOOLTIPS } from '../../lib/labelMap';
 import { toDateString } from '../../lib/dateUtils';
 
 export default function DashboardScreen() {
@@ -32,6 +41,31 @@ export default function DashboardScreen() {
   const { data: revisionsDue } = useRevisionsDue(today);
   const { data: benchmark } = useBenchmark();
   const { data: quickLogs } = useQuickLogs(today);
+  const { data: velocity } = useVelocity();
+  const { data: buffer } = useBuffer();
+  const { data: answerStats } = useAnswerStats();
+  const { data: alerts } = useAlerts();
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+  }, [fadeAnim]);
+
+  // Detect missed days: streak is 0 and user has been around > 1 day
+  const missedDays = useMemo(() => {
+    if (!velocity?.streak || daysUsed <= 1) return 0;
+    if (velocity.streak.current_count === 0) return 1;
+    return 0;
+  }, [velocity, daysUsed]);
+
+  useEffect(() => {
+    if (missedDays <= 0) return;
+    const key = 'welcome_back_dismissed_' + toDateString(new Date());
+    AsyncStorage.getItem(key).then(val => {
+      if (val !== 'true') setShowWelcomeBack(true);
+    });
+  }, [missedDays]);
 
   const greeting = getGreeting();
   const isMains = examMode === 'mains';
@@ -105,7 +139,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={[styles.container, { opacity: fadeAnim }]} showsVerticalScrollIndicator={false}>
 
         {/* 2.1.1 — Header Row */}
         <View style={styles.header}>
@@ -124,14 +158,23 @@ export default function DashboardScreen() {
           />
         </View>
 
-        {/* 2.1.2 — Welcome Card (day 1-3 only) */}
-        {daysUsed <= 3 && (
-          <V4Card style={[styles.section, { borderWidth: 1, borderColor: theme.colors.accent + '44' }]}>
-            <Text style={[styles.welcomeTitle, { color: theme.colors.accent }]}>Welcome to ExamPilot</Text>
-            <Text style={styles.welcomeBody}>
-              For the next few days, just focus on the "Start Here" card below. Tap it, study, mark done. Metrics, readiness scores, and revision will fill in as you build history.
-            </Text>
-          </V4Card>
+        {/* Welcome-back banner for returning users */}
+        {showWelcomeBack && missedDays > 0 && (
+          <WelcomeBackBanner
+            missedDays={missedDays}
+            bufferBalance={buffer?.balance || 0}
+            onDismiss={() => setShowWelcomeBack(false)}
+          />
+        )}
+
+        {/* 2.1.2 — Guided Journey Card (day 1-3 only) */}
+        {!isVeteran && daysUsed <= 3 && (
+          <GuidedJourneyCard day={Math.max(daysUsed, 1)} />
+        )}
+
+        {/* Smart Alerts */}
+        {isDashboardSectionUnlocked('activityFeed', daysUsed, isVeteran) && alerts?.[0] && (
+          <AlertBanner alert={alerts[0]} />
         )}
 
         {/* 2.1.3 — Hero START HERE Card */}
@@ -166,49 +209,69 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Full Study Plan link */}
+        {firstIncomplete && (
+          <TouchableOpacity onPress={() => router.push('/study-plan' as any)} activeOpacity={0.7}>
+            <Text style={styles.fullPlanLink}>How will I cover everything? →</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Summary line for day 1-2 freshers when metrics hidden */}
+        {!isDashboardSectionUnlocked('metricRow', daysUsed, isVeteran) && (
+          <Text style={styles.summaryLine}>
+            Just focus on the task above. Metrics will appear as you build history.
+          </Text>
+        )}
+
         {/* 2.1.4 — 5-Metric Row */}
-        <View style={styles.metricRow}>
+        {isDashboardSectionUnlocked('metricRow', daysUsed, isVeteran) && <View style={styles.metricRow}>
           <V4MetricBox
             value={hoursToday.toFixed(1)}
             label="hrs today"
             sublabel={`of ${plan?.available_hours || 6} target`}
             valueColor={theme.colors.accent}
+            tooltip={METRIC_TOOLTIPS.hoursToday}
           />
           <V4MetricBox
             value={`${tasksDone.done}/${tasksDone.total}`}
             label="tasks done"
             valueColor={theme.colors.green}
+            tooltip={METRIC_TOOLTIPS.tasksDone}
           />
           {isMains ? (
             <V4MetricBox
-              value="—"
+              value={answerStats?.today_count ?? 0}
               label="answers today"
-              sublabel="coming soon"
+              sublabel={answerStats?.total_count ? `${answerStats.total_count} total` : undefined}
               valueColor={theme.colors.purple}
+              tooltip={METRIC_TOOLTIPS.answersToday}
             />
           ) : (
             <V4MetricBox
               value={currentStreak}
               label="day streak"
               valueColor={theme.colors.purple}
+              tooltip={METRIC_TOOLTIPS.streak}
             />
           )}
-        </View>
+        </View>}
 
-        <View style={[styles.metricRow, styles.section]}>
+        {isDashboardSectionUnlocked('metricRow', daysUsed, isVeteran) && <View style={[styles.metricRow, styles.section]}>
           <V4MetricBox
             value={revisionCount}
             label="revisions due"
             valueColor={theme.colors.warn}
+            tooltip={METRIC_TOOLTIPS.revisionsDue}
           />
           <V4MetricBox
             value={readinessScore || '—'}
             label="momentum"
             sublabel="7-day score"
             valueColor={theme.colors.accent}
+            tooltip={METRIC_TOOLTIPS.momentum}
           />
-        </View>
-        {revisionCount > 0 && (
+        </View>}
+        {isDashboardSectionUnlocked('metricRow', daysUsed, isVeteran) && revisionCount > 0 && (
           <V4Tip
             message="Topics starting to fade from memory. A quick 20-min revision brings them back."
             variant="info"
@@ -217,7 +280,7 @@ export default function DashboardScreen() {
         )}
 
         {/* 2.1.5 — Prelims/Mains Split Bar (mains only) */}
-        {isMains && (
+        {isDashboardSectionUnlocked('splitBar', daysUsed, isVeteran) && isMains && (
           <V4Card bordered style={styles.section}>
             <Text style={styles.splitTitle}>This Week's Focus Split</Text>
             <View style={styles.splitBar}>
@@ -229,13 +292,13 @@ export default function DashboardScreen() {
               </View>
             </View>
             <Text style={styles.splitCaption}>
-              Answer writing: -- this week · Weakest paper: --
+              Answer writing: {answerStats?.total_count ?? 0} logged · Avg score: {answerStats?.avg_self_score ? answerStats.avg_self_score.toFixed(1) : '—'}/10
             </Text>
           </V4Card>
         )}
 
-        {/* 2.1.6 — Exam Readiness Card (hidden first 7 days) */}
-        {daysUsed > 7 && (
+        {/* 2.1.6 — Exam Readiness Card */}
+        {isDashboardSectionUnlocked('examReadiness', daysUsed, isVeteran) && (
           <V4Card bordered style={styles.section}>
             <View style={styles.readinessHeader}>
               <Text style={styles.readinessTitle}>Exam Readiness</Text>
@@ -248,8 +311,8 @@ export default function DashboardScreen() {
               <ReadinessBar label="Coverage" progress={benchmark?.components?.coverage || 0} color={theme.colors.warn} theme={theme} />
               <ReadinessBar label="Confidence" progress={benchmark?.components?.confidence || 0} color={theme.colors.accent} theme={theme} />
               <ReadinessBar label="Consistency" progress={benchmark?.components?.consistency || 0} color={theme.colors.green} theme={theme} />
-              <ReadinessBar label="Velocity" progress={benchmark?.components?.velocity || 0} color={theme.colors.purple} theme={theme} />
-              <ReadinessBar label="Weakness" progress={benchmark?.components?.weakness || 0} color={theme.colors.danger} theme={theme} />
+              <ReadinessBar label={METRIC_LABELS.velocity} progress={benchmark?.components?.velocity || 0} color={theme.colors.purple} theme={theme} />
+              <ReadinessBar label={METRIC_LABELS.weakness} progress={benchmark?.components?.weakness || 0} color={theme.colors.danger} theme={theme} />
             </View>
             <V4Tip
               message="Composite score based on coverage, confidence, consistency, speed, and weakness handling."
@@ -258,8 +321,11 @@ export default function DashboardScreen() {
           </V4Card>
         )}
 
-        {/* 2.1.7 — Backlog Card (hidden day 1) */}
-        {daysUsed > 1 && backlogCount > 0 && (
+        {/* Activity Feed */}
+        {isDashboardSectionUnlocked('activityFeed', daysUsed, isVeteran) && <ActivityFeed />}
+
+        {/* 2.1.7 — Backlog Card */}
+        {isDashboardSectionUnlocked('backlog', daysUsed, isVeteran) && backlogCount > 0 && (
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => router.push('/(tabs)/planner')}
@@ -281,7 +347,7 @@ export default function DashboardScreen() {
         )}
 
         {/* 2.1.8 — Navigation Cards */}
-        {navItems.length > 0 && (
+        {isDashboardSectionUnlocked('navCards', daysUsed, isVeteran) && navItems.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.navSectionTitle}>EXPLORE</Text>
             <View style={styles.navGrid}>
@@ -301,7 +367,7 @@ export default function DashboardScreen() {
         )}
 
         <View style={{ height: theme.spacing.xxl }} />
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -405,6 +471,24 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 10,
     color: theme.colors.textMuted,
     marginTop: 6,
+  },
+
+  // Full plan link
+  fullPlanLink: {
+    fontSize: 13,
+    color: theme.colors.accent,
+    fontWeight: '600',
+    marginBottom: theme.spacing.md,
+    textAlign: 'center',
+  },
+
+  // Summary line for new users
+  summaryLine: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: theme.spacing.md,
+    lineHeight: 19,
   },
 
   // Metrics

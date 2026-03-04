@@ -1,6 +1,6 @@
-import React, { useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import React, { useMemo, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, Alert, Animated } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { useDailyPlan, useCompletePlanItem, useDeferPlanItem } from '../../hooks/usePlanner';
@@ -14,6 +14,8 @@ import { V4Bar } from '../../components/v4/V4Bar';
 import { V4Pill } from '../../components/v4/V4Pill';
 import { V4Tip } from '../../components/v4/V4Tip';
 import { DailyPlanItem, PlanItemType } from '../../types';
+import { WarmEmptyState } from '../../components/common/WarmEmptyState';
+import { useVelocity } from '../../hooks/useVelocity';
 import { toDateString } from '../../lib/dateUtils';
 
 // Color map for task type left borders and pills
@@ -31,6 +33,28 @@ const TYPE_LABELS: Record<PlanItemType, string> = {
   stretch: 'DAILY',
 };
 
+function CompletedLabel({ color }: { color: string }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+  }, [opacity]);
+  return <Animated.Text style={{ fontSize: 11, marginTop: 4, color, opacity, fontWeight: '700' }}>Done</Animated.Text>;
+}
+
+function AnimatedStrikethrough({ children, textStyle, mutedColor }: { children: string; textStyle: object; mutedColor: string }) {
+  const widthPct = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(widthPct, { toValue: 100, duration: 400, useNativeDriver: false }).start();
+  }, [widthPct]);
+  const animatedWidth = widthPct.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
+  return (
+    <View style={{ position: 'relative' }}>
+      <Text style={[textStyle, { color: mutedColor }]}>{children}</Text>
+      <Animated.View style={{ position: 'absolute', top: '50%', left: 0, height: 1.5, width: animatedWidth, backgroundColor: mutedColor }} />
+    </View>
+  );
+}
+
 export default function PlannerScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -41,8 +65,11 @@ export default function PlannerScreen() {
   const { data: quickLogs } = useQuickLogs(today);
   const { daysUsed } = useUser();
   const timer = useTimer();
+  const router = useRouter();
   const completeMutation = useCompletePlanItem();
   const deferMutation = useDeferPlanItem();
+  const { data: velocityData } = useVelocity();
+  const streak = velocityData?.streak?.current_count || 0;
 
   // 2.2.1 — autoStartItemId: auto-start timer when navigated from dashboard hero
   useEffect(() => {
@@ -97,7 +124,13 @@ export default function PlannerScreen() {
 
   const handleComplete = (itemId: string) => {
     const item = plan?.items?.find(i => i.id === itemId);
-    completeMutation.mutate({ itemId, actualHours: item?.estimated_hours || 1 });
+    const est = item?.estimated_hours || 1;
+    const estMin = Math.round(est * 60);
+    Alert.alert('How long did you study?', `Estimated: ${estMin} min`, [
+      { text: `~${estMin} min`, onPress: () => completeMutation.mutate({ itemId, actualHours: est }) },
+      { text: `~${Math.round(estMin / 2)} min`, onPress: () => completeMutation.mutate({ itemId, actualHours: est * 0.5 }) },
+      { text: `~${Math.round(estMin * 1.5)} min`, onPress: () => completeMutation.mutate({ itemId, actualHours: est * 1.5 }) },
+    ]);
   };
 
   const handleDefer = (itemId: string) => {
@@ -107,6 +140,21 @@ export default function PlannerScreen() {
   const completedCount = plan?.items?.filter(i => i.status === 'completed').length || 0;
   const totalCount = plan?.items?.length || 0;
   const allDone = totalCount > 0 && completedCount === totalCount;
+
+  // Celebration bounce animation
+  const celebrationScale = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (allDone) {
+      Animated.spring(celebrationScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 60,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      celebrationScale.setValue(0);
+    }
+  }, [allDone, celebrationScale]);
 
   // 2.2.2 — Capacity calculations
   const totalPlannedMinutes = (plan?.items || []).reduce((s, i) => s + (i.estimated_hours || 0) * 60, 0);
@@ -159,9 +207,16 @@ export default function PlannerScreen() {
           </View>
 
           {/* Topic name */}
-          <Text style={[styles.taskTopic, isCompleted && styles.topicCompleted]}>
-            {item.topic?.name || 'Topic'}
-          </Text>
+          {isCompleted ? (
+            <AnimatedStrikethrough textStyle={styles.taskTopic} mutedColor={theme.colors.textMuted}>{item.topic?.name || 'Topic'}</AnimatedStrikethrough>
+          ) : (
+            <Text style={styles.taskTopic}>{item.topic?.name || 'Topic'}</Text>
+          )}
+
+          {/* Reason text */}
+          {item.reason && !isCompleted && (
+            <Text style={styles.reasonText}>{item.reason}</Text>
+          )}
 
           {/* 2.2.4 — DECAY tooltip */}
           {item.type === 'decay_revision' && !isCompleted && (
@@ -244,7 +299,7 @@ export default function PlannerScreen() {
                 </TouchableOpacity>
               )}
               {isCompleted && (
-                <Text style={[styles.doneLabel, { color: theme.colors.green }]}>✓ Done</Text>
+                <CompletedLabel color={theme.colors.green} />
               )}
             </>
           )}
@@ -279,6 +334,12 @@ export default function PlannerScreen() {
               </V4Card>
             )}
 
+            {plan && (
+              <TouchableOpacity onPress={() => router.push('/study-plan' as any)} activeOpacity={0.7}>
+                <Text style={styles.fullPlanLink}>View Full Study Plan →</Text>
+              </TouchableOpacity>
+            )}
+
             {burnout?.in_recovery && burnout.recovery_day && (
               <RecoveryBanner day={burnout.recovery_day} totalDays={5} />
             )}
@@ -293,10 +354,10 @@ export default function PlannerScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderTaskCard}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No study items for today</Text>
-            <Text style={styles.emptySubtext}>Your plan will generate automatically</Text>
-          </View>
+          <WarmEmptyState
+            title="Your study plan is being prepared..."
+            message="Check back in a moment — we're crafting today's optimal study schedule."
+          />
         }
         ListFooterComponent={
           <>
@@ -318,12 +379,24 @@ export default function PlannerScreen() {
               </View>
             ))}
 
-            {/* Celebration */}
+            {/* Streak-aware celebration */}
             {allDone && (
-              <View style={styles.celebration}>
-                <Text style={styles.celebrationText}>All done for today!</Text>
-                <Text style={styles.celebrationSub}>Great work. Rest well.</Text>
-              </View>
+              <Animated.View style={[styles.celebration, { transform: [{ scale: celebrationScale }] }]}>
+                <Text style={styles.celebrationText}>
+                  {streak > 3
+                    ? `${streak} days in a row! Strong momentum.`
+                    : streak === 1
+                    ? 'First day conquered! The hardest part is starting.'
+                    : 'All done for today!'}
+                </Text>
+                <Text style={styles.celebrationSub}>
+                  {streak > 7
+                    ? 'Incredible consistency — keep this engine running.'
+                    : streak > 3
+                    ? 'Your streak is building real momentum.'
+                    : 'Great work. Rest well.'}
+                </Text>
+              </Animated.View>
             )}
 
             {/* 2.2.8 — Progress bar */}
@@ -373,6 +446,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.colors.textMuted,
     marginTop: 6,
   },
+  fullPlanLink: {
+    fontSize: 13,
+    color: theme.colors.accent,
+    fontWeight: '600',
+    marginBottom: theme.spacing.md,
+    textAlign: 'center',
+  },
 
   // Light day
   lightDayBanner: {
@@ -412,9 +492,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
   },
-  topicCompleted: {
-    textDecorationLine: 'line-through',
+  reasonText: {
+    fontSize: 11,
     color: theme.colors.textMuted,
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   textDimmed: {
     color: theme.colors.textMuted,

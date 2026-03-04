@@ -108,7 +108,15 @@ export async function runDailyMaintenance() {
     }
   }
 
-  // Step 7: Weekly review (Sundays only)
+  // Step 7: Cohort benchmarks (runs once for all users, not per-user)
+  try {
+    const { computeCohortPercentiles } = await import('./cohortBenchmark.js');
+    await computeCohortPercentiles();
+  } catch (e: any) {
+    errors.push({ userId: 'system', step: 'cohort_benchmarks', error: e.message });
+  }
+
+  // Step 8: Weekly review (Sundays only)
   const dayOfWeek = new Date().getDay();
   if (dayOfWeek === 0) {
     for (const user of users) {

@@ -38,6 +38,7 @@ export default function RootLayout() {
                 <Stack.Screen name="lowday" />
                 <Stack.Screen name="ranker" />
                 <Stack.Screen name="weeklyreview" />
+                <Stack.Screen name="study-plan" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="topic-detail" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="weekly-detail" options={{ presentation: 'modal' }} />
               </Stack>

@@ -44,6 +44,7 @@ export default function CompleteScreen() {
     study_approach: string;
     daily_hours: string;
     weak_subjects: string;
+    past_attempt_data: string;
   }>();
 
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +95,11 @@ export default function CompleteScreen() {
       ? params.weak_subjects.split(',').filter(Boolean)
       : [];
 
+    let pastAttemptData = null;
+    if (params.past_attempt_data) {
+      try { pastAttemptData = JSON.parse(params.past_attempt_data); } catch { /* ignore */ }
+    }
+
     const payload = {
       answers,
       chosen_mode: chosenMode,
@@ -101,6 +107,7 @@ export default function CompleteScreen() {
       exam_date: examDate,
       study_approach: params.study_approach || 'mixed',
       ...(weakSubjects.length > 0 ? { weak_subjects: weakSubjects } : {}),
+      ...(pastAttemptData ? { past_attempt_data: pastAttemptData } : {}),
     };
 
     api.completeOnboarding(payload)

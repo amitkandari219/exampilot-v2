@@ -151,6 +151,7 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
       onboarding_version: 2,
       study_approach: (payload as unknown as { study_approach?: string }).study_approach || 'mixed',
       weak_subjects: payload.weak_subjects || [],
+      past_attempt_data: payload.past_attempt_data || null,
     })
     .select()
     .single();

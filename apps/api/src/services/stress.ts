@@ -13,10 +13,10 @@ const SIGNAL_NAMES = ['velocity', 'buffer', 'time', 'confidence'] as const;
 type SignalName = typeof SIGNAL_NAMES[number];
 
 const SIGNAL_RECOMMENDATIONS: Record<SignalName, string> = {
-  velocity: 'Your study velocity is the weakest signal. Focus on completing high-priority topics to close the pace gap.',
-  buffer: 'Your buffer bank is the weakest signal. Build surplus on good days — even small deposits compound over time.',
+  velocity: 'Your study pace is the weakest signal. Focus on completing high-priority topics to close the pace gap.',
+  buffer: 'Your safety margin is the weakest signal. Build surplus on good days — even small deposits compound over time.',
   time: 'Your completion gap vs timeline is the weakest signal. Prioritize high PYQ-weight topics for maximum exam impact.',
-  confidence: 'Topic confidence is the weakest signal. Schedule quick revisions for fading topics before they decay further.',
+  confidence: 'Topic memory is the weakest signal. Schedule quick revisions for fading topics before they decay further.',
 };
 
 export async function calculateStress(userId: string) {

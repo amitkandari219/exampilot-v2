@@ -15,6 +15,7 @@ const baseItem: DailyPlanItem = {
   status: 'pending',
   completed_at: null,
   actual_hours: null,
+  reason: null,
   topic: {
     id: 'topic-1',
     chapter_id: 'ch-1',

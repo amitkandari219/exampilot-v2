@@ -14,3 +14,20 @@ export function isScreenUnlocked(screenId: ScreenId, daysUsed: number, isVeteran
   const threshold = isVeteran ? rule.veteran : rule.fresher;
   return daysUsed >= threshold;
 }
+
+export const DASHBOARD_SECTIONS = {
+  metricRow:     { fresher: 3,  veteran: 0 },
+  examReadiness: { fresher: 8,  veteran: 0 },
+  backlog:       { fresher: 3,  veteran: 0 },
+  splitBar:      { fresher: 3,  veteran: 0 },
+  navCards:      { fresher: 3,  veteran: 0 },
+  activityFeed:  { fresher: 5,  veteran: 0 },
+} as const;
+
+type DashboardSectionId = keyof typeof DASHBOARD_SECTIONS;
+
+export function isDashboardSectionUnlocked(sectionId: DashboardSectionId, daysUsed: number, isVeteran: boolean): boolean {
+  const rule = DASHBOARD_SECTIONS[sectionId];
+  const threshold = isVeteran ? rule.veteran : rule.fresher;
+  return daysUsed >= threshold;
+}

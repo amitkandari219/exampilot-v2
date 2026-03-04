@@ -8,6 +8,9 @@ import type {
   CAStats, CASubjectGap,
   QuickLogEntry, QuickLogPayload,
   TopicNote,
+  SystemEvent, StudyPlanOverview, TopicResource,
+  AnswerWritingStats, AnswerPractice,
+  SmartAlert, CohortPercentile,
 } from '../types';
 import type {
   VelocityData, VelocityHistoryPoint, BufferData,
@@ -287,6 +290,32 @@ export const api = {
     request<TopicNote>(`/api/notes/${noteId}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
   deleteTopicNote: (noteId: string): Promise<{ success: boolean }> =>
     request<{ success: boolean }>(`/api/notes/${noteId}`, { method: 'DELETE' }),
+
+  // System Events
+  getSystemEvents: (limit = 20): Promise<SystemEvent[]> =>
+    request<SystemEvent[]>(`/api/system-events?limit=${limit}`),
+
+  // Topic Resources
+  getTopicResources: (topicId: string): Promise<TopicResource[]> =>
+    request<TopicResource[]>(`/api/topics/${topicId}/resources`),
+
+  // Answer Writing
+  getAnswerStats: (): Promise<AnswerWritingStats> =>
+    request<AnswerWritingStats>('/api/answer-writing/stats'),
+  logAnswer: (body: { topic_id?: string; question_text?: string; word_count?: number; time_taken_minutes?: number; self_score?: number }): Promise<AnswerPractice> =>
+    request<AnswerPractice>('/api/answer-writing', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Alerts
+  getAlerts: (): Promise<SmartAlert[]> =>
+    request<SmartAlert[]>('/api/alerts'),
+
+  // Cohort Benchmark
+  getCohortPercentile: (): Promise<CohortPercentile | null> =>
+    request<CohortPercentile | null>('/api/cohort/percentile'),
+
+  // Study Plan Overview
+  getStudyPlanOverview: (): Promise<StudyPlanOverview> =>
+    request<StudyPlanOverview>('/api/study-plan-overview'),
 
   // Profile
   getProfile: (): Promise<UserProfile> =>

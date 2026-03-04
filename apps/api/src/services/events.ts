@@ -6,6 +6,7 @@ import type { NotificationType } from './notification.js';
 interface EventMap {
   'xp:award': { userId: string; triggerType: XPTriggerType; topicId?: string };
   'notification:queue': { userId: string; type: NotificationType; metadata?: Record<string, unknown> };
+  'system:log': { userId: string; eventType: string; title: string; description?: string; metadata?: Record<string, unknown> };
 }
 
 type EventName = keyof EventMap;
@@ -37,4 +38,11 @@ appEvents.on('notification:queue', async (payload) => {
     const { queueNotification } = await import('./notification.js');
     await queueNotification(payload.userId, payload.type, payload.metadata);
   } catch (e) { console.warn('[events:notification:queue]', e); }
+});
+
+appEvents.on('system:log', async (payload) => {
+  try {
+    const { logSystemEvent } = await import('./systemEvents.js');
+    await logSystemEvent(payload);
+  } catch (e) { console.warn('[events:system:log]', e); }
 });

@@ -44,6 +44,13 @@ export interface PersonaParams {
   weekend_boost: boolean;
 }
 
+// ── Past Attempt Data ──
+export interface PastAttemptData {
+  prelims_score?: number;
+  mains_weakest_papers?: string[];
+  biggest_challenge?: 'time_management' | 'answer_writing' | 'revision' | 'motivation';
+}
+
 // ── V2 Onboarding ──
 export type UserType = 'student' | 'working' | 'dropout' | 'repeater';
 
@@ -81,6 +88,7 @@ export interface OnboardingV2Payload {
   promise_text?: string;
   exam_date: string;
   weak_subjects?: string[];
+  past_attempt_data?: PastAttemptData | null;
 }
 
 // ── Syllabus ──
@@ -258,6 +266,14 @@ export interface MockAnalytics {
   avg_score_pct: number;
   best_score_pct: number;
   recommendation: string;
+  deep_analysis?: DeepMockAnalysis | null;
+}
+
+export interface DeepMockAnalysis {
+  negative_marking_impact: number;
+  attempt_rate: number;
+  cutoff_trajectory: { test_date: string; score: number; estimated_cutoff: number }[];
+  topic_gaps: { topic: string; accuracy: number; advice: string }[];
 }
 
 export interface MockTopicHistory {
@@ -321,6 +337,47 @@ export interface DailyPlanItem {
   status: PlanItemStatus;
   completed_at: string | null;
   actual_hours: number | null;
+  reason: string | null;
+}
+
+// ── System Events ──
+export interface SystemEvent {
+  id: string;
+  user_id: string;
+  event_type: string;
+  title: string;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+// ── Study Plan Overview ──
+export interface SubjectProjection {
+  subject_id: string;
+  subject_name: string;
+  total_topics: number;
+  completed_topics: number;
+  completion_pct: number;
+  total_gravity: number;
+  completed_gravity: number;
+  projected_finish_date: string | null;
+  status: 'completed' | 'on_track' | 'behind' | 'at_risk';
+}
+
+export interface RevisionPreviewDay {
+  date: string;
+  count: number;
+  topics: { name: string; subject_name: string }[];
+}
+
+export interface StudyPlanOverview {
+  exam_date: string;
+  days_remaining: number;
+  overall_projected_date: string | null;
+  overall_completion_pct: number;
+  velocity_ratio: number;
+  subjects: SubjectProjection[];
+  revision_preview: RevisionPreviewDay[];
 }
 
 // ── Weekly Review ──
@@ -533,4 +590,53 @@ export interface QuickLogPayload {
   topic_id?: string;
   hours: number;
   notes?: string;
+}
+
+// ── Answer Writing ──
+export interface AnswerPractice {
+  id: string;
+  user_id: string;
+  topic_id: string | null;
+  question_text: string | null;
+  word_count: number | null;
+  time_taken_minutes: number | null;
+  self_score: number | null;
+  practice_date: string;
+}
+
+export interface AnswerWritingStats {
+  today_count: number;
+  total_count: number;
+  avg_self_score: number;
+  avg_word_count: number;
+}
+
+// ── Smart Alerts ──
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+export type AlertType = 'subject_neglect' | 'confidence_decay' | 'buffer_critical' | 'streak_risk';
+
+export interface SmartAlert {
+  type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  action_label?: string;
+  action_route?: string;
+}
+
+// ── Cohort Benchmark ──
+export interface CohortPercentile {
+  velocity_percentile: number;
+  coverage_percentile: number;
+  sample_size: number;
+}
+
+export interface TopicResource {
+  id: string;
+  topic_id: string;
+  resource_type: 'book' | 'video' | 'notes' | 'website';
+  title: string;
+  source_name: string;
+  url: string | null;
+  display_order: number;
 }

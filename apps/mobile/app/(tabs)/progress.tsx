@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
 import { useSyllabusProgress } from '../../hooks/useSyllabus';
 import { useVelocity, useVelocityHistory, useBuffer } from '../../hooks/useVelocity';
+import { METRIC_LABELS, METRIC_TOOLTIPS, humanizeVelocity, humanizeBuffer } from '../../lib/labelMap';
 import { useStress } from '../../hooks/useStress';
 import { ProgressRing } from '../../components/progress/ProgressRing';
 import { SubjectProgressGrid } from '../../components/progress/SubjectProgressGrid';
@@ -20,6 +21,11 @@ import { WeakestTopicsAlert } from '../../components/mock/WeakestTopicsAlert';
 import { MockEntrySheet } from '../../components/mock/MockEntrySheet';
 import { useCAStats, useCASubjectGaps } from '../../hooks/useCurrentAffairs';
 import { CAStatsCard } from '../../components/ca/CAStatsCard';
+import { WarmEmptyState } from '../../components/common/WarmEmptyState';
+import { DeepAnalysisCard } from '../../components/mock/DeepAnalysisCard';
+import { AnswerStatsCard } from '../../components/answer/AnswerStatsCard';
+import { PeerComparisonCard } from '../../components/benchmark/PeerComparisonCard';
+import { useUser } from '../../context/UserContext';
 
 export default function ProgressScreen() {
   const { theme } = useTheme();
@@ -34,6 +40,7 @@ export default function ProgressScreen() {
   const { data: mockAnalytics } = useMockAnalytics();
   const { data: caStats } = useCAStats();
   const { data: caGaps } = useCASubjectGaps();
+  const { daysUsed, isVeteran } = useUser();
   const [showMockEntry, setShowMockEntry] = useState(false);
 
   // Calculate overall progress
@@ -49,6 +56,38 @@ export default function ProgressScreen() {
 
   const overallPct = totalGravity > 0 ? (completedGravity / totalGravity) * 100 : 0;
   const weightedPct = (velocity?.weighted_completion_pct || 0) * 100;
+
+  // Fresher early return: simplified view for first 3 days
+  if (daysUsed < 3 && !isVeteran && !syllabusLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView style={styles.container}>
+          <Text style={styles.title}>Progress</Text>
+          <View style={styles.ringRow}>
+            <View style={styles.ringItem}>
+              <ProgressRing percentage={overallPct} size={80} strokeWidth={5} label="Topics" />
+              <Text style={styles.ringLabel}>Unweighted</Text>
+            </View>
+            <View style={styles.ringItem}>
+              <ProgressRing
+                percentage={weightedPct}
+                size={80}
+                strokeWidth={5}
+                color={theme.colors.success}
+                label={METRIC_LABELS.gravity}
+              />
+              <Text style={styles.ringLabel}>Weighted</Text>
+            </View>
+          </View>
+          <WarmEmptyState
+            title="Analytics unlocking soon"
+            message="Keep studying for a few days — detailed insights, charts, and mock analysis will appear here as you build history."
+          />
+          <View style={{ height: theme.spacing.xxl }} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   if (syllabusLoading) {
     return (
@@ -87,7 +126,7 @@ export default function ProgressScreen() {
               size={80}
               strokeWidth={5}
               color={theme.colors.success}
-              label="Gravity"
+              label={METRIC_LABELS.gravity}
             />
             <Text style={styles.ringLabel}>Weighted</Text>
           </View>
@@ -95,15 +134,21 @@ export default function ProgressScreen() {
 
         {velocity && (
           <View style={styles.statsRow}>
-            <StatBox label="Velocity" value={`${velocity.velocity_ratio.toFixed(2)}x`} />
-            <StatBox label="Buffer" value={`${(buffer?.balance || 0).toFixed(1)}d`} />
-            <StatBox label="Streak" value={`${velocity.streak?.current_count || 0}d`} />
+            <StatBox label={METRIC_LABELS.velocity} value={`${velocity.velocity_ratio.toFixed(2)}x`} sublabel={humanizeVelocity(velocity.velocity_ratio)} tooltip={METRIC_TOOLTIPS.velocity} />
+            <StatBox label={METRIC_LABELS.buffer} value={`${(buffer?.balance || 0).toFixed(1)}d`} sublabel={humanizeBuffer(buffer?.balance || 0)} tooltip={METRIC_TOOLTIPS.buffer} />
+            <StatBox label={METRIC_LABELS.streak} value={`${velocity.streak?.current_count || 0}d`} tooltip={METRIC_TOOLTIPS.streak} />
           </View>
         )}
 
         {benchmark && (
           <View style={styles.section}>
             <BenchmarkScoreCard profile={benchmark} />
+          </View>
+        )}
+
+        {daysUsed >= 14 && (
+          <View style={styles.section}>
+            <PeerComparisonCard />
           </View>
         )}
 
@@ -115,13 +160,13 @@ export default function ProgressScreen() {
 
         {velocityChartData.length > 1 && (
           <View style={styles.section}>
-            <HistoryChart data={velocityChartData} title="Velocity (30d)" color={theme.colors.primary} />
+            <HistoryChart data={velocityChartData} title="Study Pace (30d)" color={theme.colors.primary} />
           </View>
         )}
 
         {stressChartData.length > 1 && (
           <View style={styles.section}>
-            <HistoryChart data={stressChartData} title="Stress (7d)" color={theme.colors.success} />
+            <HistoryChart data={stressChartData} title="Study Health (7d)" color={theme.colors.success} />
           </View>
         )}
 
@@ -165,15 +210,27 @@ export default function ProgressScreen() {
                 <WeakestTopicsAlert topics={mockAnalytics.weakest_topics} />
               </View>
             )}
+            {mockAnalytics.deep_analysis && (
+              <View style={styles.section}>
+                <DeepAnalysisCard analysis={mockAnalytics.deep_analysis} />
+              </View>
+            )}
           </>
         ) : (
-          <View style={styles.emptyMock}>
-            <Text style={styles.emptyMockText}>No mock tests recorded yet</Text>
-            <Text style={styles.emptyMockSub}>Tap "+ Record Mock" to add your first test</Text>
-          </View>
+          <WarmEmptyState
+            title="Ready for your first mock?"
+            message="Record a mock test to unlock score trends, subject accuracy, and weakness analysis."
+            actionLabel="Record Mock"
+            onAction={() => setShowMockEntry(true)}
+          />
         )}
 
         <MockEntrySheet visible={showMockEntry} onClose={() => setShowMockEntry(false)} />
+
+        {/* Answer Writing Section */}
+        <View style={styles.section}>
+          <AnswerStatsCard />
+        </View>
 
         <View style={{ height: theme.spacing.xxl }} />
       </ScrollView>
@@ -181,13 +238,25 @@ export default function ProgressScreen() {
   );
 }
 
-function StatBox({ label, value }: { label: string; value: string }) {
+function StatBox({ label, value, sublabel, tooltip }: { label: string; value: string; sublabel?: string; tooltip?: string }) {
   const { theme } = useTheme();
   const sStyles = useMemo(() => createStatStyles(theme), [theme]);
+  const [showTip, setShowTip] = useState(false);
   return (
     <View style={sStyles.box}>
       <Text style={sStyles.value}>{value}</Text>
-      <Text style={sStyles.label}>{label}</Text>
+      <View style={sStyles.labelRow}>
+        <Text style={sStyles.label}>{label}</Text>
+        {tooltip ? (
+          <TouchableOpacity onPress={() => setShowTip(!showTip)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <View style={sStyles.helpCircle}>
+              <Text style={sStyles.helpText}>?</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+      {sublabel ? <Text style={sStyles.sublabel}>{sublabel}</Text> : null}
+      {showTip && tooltip ? <Text style={sStyles.tooltip}>{tooltip}</Text> : null}
     </View>
   );
 }
@@ -208,10 +277,41 @@ const createStatStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '800',
     color: theme.colors.text,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   label: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.textMuted,
+  },
+  helpCircle: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: theme.colors.textMuted + '33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+  },
+  sublabel: {
+    fontSize: theme.fontSize.xs - 1,
+    color: theme.colors.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
+  },
+  tooltip: {
+    fontSize: theme.fontSize.xs - 1,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
+    lineHeight: 14,
   },
 });
 
