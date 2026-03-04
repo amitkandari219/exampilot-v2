@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase.js';
 import type { HealthCategory } from '../types/index.js';
 import { getActiveSubjectIds } from './modeConfig.js';
 import { toDateString, daysAgo } from '../utils/dateUtils.js';
-import { HEALTH_WEIGHTS } from '../constants/thresholds.js';
+import { HEALTH_WEIGHTS, WEAKNESS_SEED } from '../constants/thresholds.js';
 
 // Typed interfaces for Supabase join results
 interface SubjectRow { id: string; name: string }
@@ -560,6 +560,61 @@ export async function getTopicHealth(userId: string, topicId: string) {
     recommendation: recommend(snapshot.category as HealthCategory, weakest),
     trend: (trend || []).map((t: any) => ({ date: t.snapshot_date, score: t.health_score })),
   };
+}
+
+/**
+ * Seed weakness_snapshots for topics in the given weak subjects with a low initial health score.
+ * Called during onboarding to pre-mark subjects the user self-identified as weak.
+ */
+export async function seedWeakSubjects(userId: string, subjectNames: string[]) {
+  if (!subjectNames.length) return;
+
+  // Find subject IDs by name (case-insensitive match)
+  const { data: subjects } = await supabase
+    .from('subjects')
+    .select('id, name')
+    .in('name', subjectNames);
+
+  if (!subjects || subjects.length === 0) return;
+
+  const subjectIds = subjects.map((s: SubjectRow) => s.id);
+
+  // Find all topics belonging to those subjects
+  const { data: chapters } = await supabase
+    .from('chapters')
+    .select('id')
+    .in('subject_id', subjectIds);
+
+  if (!chapters || chapters.length === 0) return;
+
+  const chapterIds = chapters.map((c: { id: string }) => c.id);
+
+  const { data: topics } = await supabase
+    .from('topics')
+    .select('id')
+    .in('chapter_id', chapterIds);
+
+  if (!topics || topics.length === 0) return;
+
+  const today = toDateString(new Date());
+  const rows = topics.map((t: { id: string }) => ({
+    user_id: userId,
+    topic_id: t.id,
+    snapshot_date: today,
+    health_score: WEAKNESS_SEED.INITIAL_HEALTH_SCORE,
+    category: categorize(WEAKNESS_SEED.INITIAL_HEALTH_SCORE),
+    confidence_component: 0,
+    revision_component: 0,
+    effort_component: 0,
+    stability_component: 0,
+  }));
+
+  // Insert in batches of 200 to avoid payload limits
+  for (let i = 0; i < rows.length; i += 200) {
+    await supabase
+      .from('weakness_snapshots')
+      .upsert(rows.slice(i, i + 200), { onConflict: 'user_id,topic_id,snapshot_date' });
+  }
 }
 
 export async function getHealthTrend(userId: string, topicId: string, days = 30) {

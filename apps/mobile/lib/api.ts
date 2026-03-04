@@ -6,6 +6,8 @@ import type {
   MockTest, MockAnalytics, MockTopicHistory,
   SimulationScenario, SimulationResult,
   CAStats, CASubjectGap,
+  QuickLogEntry, QuickLogPayload,
+  TopicNote,
 } from '../types';
 import type {
   VelocityData, VelocityHistoryPoint, BufferData,
@@ -55,7 +57,7 @@ export interface StrategyData {
   burnout_threshold?: number;
 }
 
-interface SyllabusData {
+export interface SyllabusData {
   subjects: Array<{
     id: string;
     name: string;
@@ -195,6 +197,12 @@ export const api = {
   regeneratePlan: (date?: string, hours?: number): Promise<DailyPlan> =>
     request<DailyPlan>('/api/daily-plan/regenerate', { method: 'POST', body: JSON.stringify({ date, hours }) }),
 
+  movePlanItem: (itemId: string, targetDate: string): Promise<{ success: boolean; overCapacity: boolean }> =>
+    request<{ success: boolean; overCapacity: boolean }>(`/api/daily-plan/items/${itemId}/move`, { method: 'PATCH', body: JSON.stringify({ targetDate }) }),
+
+  deferPlanItemV2: (itemId: string): Promise<{ status: string; movedTo?: string }> =>
+    request<{ status: string; movedTo?: string }>(`/api/daily-plan/items/${itemId}/defer`, { method: 'PATCH' }),
+
   // Recalibration
   getRecalibrationStatus: (): Promise<RecalibrationStatus> =>
     request<RecalibrationStatus>('/api/recalibration'),
@@ -260,9 +268,29 @@ export const api = {
   getCASubjectGaps: (): Promise<CASubjectGap[]> =>
     request<CASubjectGap[]>('/api/ca/subject-gaps'),
 
+  // Quick Log
+  createQuickLog: (body: QuickLogPayload): Promise<QuickLogEntry> =>
+    request<QuickLogEntry>('/api/quicklog', { method: 'POST', body: JSON.stringify(body) }),
+  getQuickLogs: (date?: string): Promise<QuickLogEntry[]> =>
+    request<QuickLogEntry[]>(`/api/quicklog${date ? `?date=${date}` : ''}`),
+
+  // Week Plan
+  getWeekPlan: (week: 'current' | 'next' = 'current'): Promise<any> =>
+    request<any>(`/api/weekplan${week === 'next' ? '?week=next' : ''}`),
+
+  // Topic Notes
+  getTopicNotes: (topicId: string): Promise<TopicNote[]> =>
+    request<TopicNote[]>(`/api/topics/${topicId}/notes`),
+  addTopicNote: (topicId: string, body: { note_type: 'text' | 'link'; content: string }): Promise<TopicNote> =>
+    request<TopicNote>(`/api/topics/${topicId}/notes`, { method: 'POST', body: JSON.stringify(body) }),
+  updateTopicNote: (noteId: string, content: string): Promise<TopicNote> =>
+    request<TopicNote>(`/api/notes/${noteId}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
+  deleteTopicNote: (noteId: string): Promise<{ success: boolean }> =>
+    request<{ success: boolean }>(`/api/notes/${noteId}`, { method: 'DELETE' }),
+
   // Profile
   getProfile: (): Promise<UserProfile> =>
     request<UserProfile>('/api/profile'),
-  updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string }): Promise<UserProfile> =>
+  updateProfile: (body: { name?: string; exam_date?: string; avatar_url?: string; daily_hours?: number; study_approach?: string }): Promise<UserProfile> =>
     request<UserProfile>('/api/profile', { method: 'PATCH', body: JSON.stringify(body) }),
 };

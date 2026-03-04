@@ -1,134 +1,147 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChatBubble } from '../../components/onboarding/ChatBubble';
 import { api } from '../../lib/api';
-import { OnboardingV2Answers, OnboardingV2Payload, UserTargets, StrategyMode, Challenge } from '../../types';
+import { classifyModeV2 } from '../../lib/classify';
 import { useTheme } from '../../context/ThemeContext';
 import { Theme } from '../../constants/theme';
+import type { OnboardingV2Answers, OnboardingV2Payload, UserTargets, UserType } from '../../types';
+
+function computeExamDate(cycle: string): string {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  // Prelims typically in late May / early June
+  if (cycle === 'next_year') {
+    return `${thisYear + 1}-06-01`;
+  }
+  // 'this_year' or 'not_sure' → nearest cycle
+  const thisYearDate = new Date(`${thisYear}-06-01`);
+  if (now < thisYearDate) {
+    return `${thisYear}-06-01`;
+  }
+  return `${thisYear + 1}-06-01`;
+}
+
+function attemptToKey(attempt: string): 'first' | 'second' | 'third_plus' {
+  switch (attempt) {
+    case '1': return 'first';
+    case '2': return 'second';
+    default: return 'third_plus';
+  }
+}
 
 export default function CompleteScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{
-    name: string;
-    target_exam_year: string;
-    attempt_number: string;
+    attempt: string;
     user_type: string;
-    challenges: string;
-    chosen_mode: string;
-    exam_date: string;
-    targets: string;
-    promise_text: string;
+    cycle: string;
+    study_approach: string;
+    daily_hours: string;
+    weak_subjects: string;
   }>();
 
-  const queryClient = useQueryClient();
-  const [submitted, setSubmitted] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [error, setError] = useState<string | null>(null);
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
-  const targets: UserTargets = useMemo(
-    () => JSON.parse(params.targets || '{}'),
-    [params.targets]
-  );
-
-  const answers: OnboardingV2Answers = useMemo(() => ({
-    name: params.name || '',
-    target_exam_year: parseInt(params.target_exam_year, 10),
-    attempt_number: params.attempt_number as OnboardingV2Answers['attempt_number'],
-    user_type: params.user_type as OnboardingV2Answers['user_type'],
-    challenges: (params.challenges?.split(',') || []) as Challenge[],
-  }), [params]);
-
+  // Start spinner
   useEffect(() => {
-    // Play animations
-    Animated.sequence([
-      Animated.spring(scaleAnim, {
+    Animated.loop(
+      Animated.timing(spinAnim, {
         toValue: 1,
-        friction: 5,
-        tension: 80,
+        duration: 1200,
         useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
+      })
+    ).start();
+  }, [spinAnim]);
 
-    // Submit to API
-    const payload: OnboardingV2Payload = {
+  // Auto-submit on mount
+  useEffect(() => {
+    const attemptKey = attemptToKey(params.attempt || '1');
+    const dailyHours = parseFloat(params.daily_hours || '6');
+    const userType = (params.user_type || 'student') as UserType;
+
+    const answers: OnboardingV2Answers = {
+      name: 'Student', // V4 collects name in settings, not onboarding
+      target_exam_year: params.cycle === 'next_year' ? new Date().getFullYear() + 1 : new Date().getFullYear(),
+      attempt_number: attemptKey,
+      user_type: userType,
+      challenges: [], // V4 doesn't collect challenges separately
+    };
+
+    const chosenMode = classifyModeV2(answers, {
+      daily_hours: dailyHours,
+      study_approach: params.study_approach === 'sequential' ? 'thorough' : 'selective',
+    });
+
+    const targets: UserTargets = {
+      daily_hours: dailyHours,
+      daily_new_topics: dailyHours >= 7 ? 3 : 2,
+      weekly_revisions: 3,
+      weekly_tests: 1,
+      weekly_answer_writing: 2,
+      weekly_ca_hours: 4,
+    };
+
+    const examDate = computeExamDate(params.cycle || 'this_year');
+
+    const weakSubjects = params.weak_subjects
+      ? params.weak_subjects.split(',').filter(Boolean)
+      : [];
+
+    const payload = {
       answers,
-      chosen_mode: params.chosen_mode as StrategyMode,
+      chosen_mode: chosenMode,
       targets,
-      promise_text: params.promise_text || undefined,
-      exam_date: params.exam_date || '',
+      exam_date: examDate,
+      study_approach: params.study_approach || 'mixed',
+      ...(weakSubjects.length > 0 ? { weak_subjects: weakSubjects } : {}),
     };
 
     api.completeOnboarding(payload)
-      .then(() => setSubmitted(true))
-      .catch(() => setSubmitted(true)); // Navigate forward even on error
+      .then(() => {
+        queryClient.removeQueries();
+        queryClient.clear();
+        if (Platform.OS === 'web') {
+          window.location.href = '/';
+        } else {
+          router.replace('/');
+        }
+      })
+      .catch((err) => {
+        setError(err?.message || 'Something went wrong. Please try again.');
+        // Navigate anyway after a delay
+        setTimeout(() => {
+          queryClient.removeQueries();
+          queryClient.clear();
+          if (Platform.OS === 'web') {
+            window.location.href = '/';
+          } else {
+            router.replace('/');
+          }
+        }, 2000);
+      });
   }, []);
 
-  const modeNames: Record<string, string> = {
-    balanced: 'Balanced',
-    aggressive: 'Aggressive',
-    conservative: 'Conservative',
-    working_professional: 'Working Professional',
-  };
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <ChatBubble
-          message={`Welcome aboard, ${params.name}! Your ExamPilot journey begins now.`}
-        />
-
-        <View style={styles.center}>
-          <Animated.View style={[styles.checkCircle, { transform: [{ scale: scaleAnim }] }]}>
-            <Text style={styles.checkmark}>✓</Text>
-          </Animated.View>
-
-          <Animated.View style={[styles.summaryCard, { opacity: fadeAnim }]}>
-            <Text style={styles.summaryTitle}>Your setup</Text>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Strategy</Text>
-              <Text style={styles.summaryValue}>{modeNames[params.chosen_mode] || params.chosen_mode}</Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Exam date</Text>
-              <Text style={styles.summaryValue}>{params.exam_date}</Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Daily target</Text>
-              <Text style={styles.summaryValue}>{targets.daily_hours}h / day</Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>New topics</Text>
-              <Text style={styles.summaryValue}>{targets.daily_new_topics} / day</Text>
-            </View>
-          </Animated.View>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.startButton, !submitted && styles.startButtonDisabled]}
-          disabled={!submitted}
-          onPress={() => {
-            queryClient.removeQueries();
-            queryClient.clear();
-            router.replace('/');
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.startButtonText}>{submitted ? 'Start Preparing' : 'Setting up...'}</Text>
-        </TouchableOpacity>
+        <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]}>
+          <View style={styles.spinnerArc} />
+        </Animated.View>
+        <Text style={styles.title}>Generating your UPSC plan...</Text>
+        <Text style={styles.subtitle}>Setting up strategy, planner, and revision schedule</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
     </SafeAreaView>
   );
@@ -141,70 +154,45 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
-    paddingTop: theme.spacing.lg,
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  spinner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 4,
+    borderColor: theme.colors.border,
     marginBottom: theme.spacing.xl,
   },
-  checkmark: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: theme.colors.background,
+  spinnerArc: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 4,
+    borderColor: 'transparent',
+    borderTopColor: theme.colors.accent,
   },
-  summaryCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    width: '100%',
-    gap: theme.spacing.md,
-  },
-  summaryTitle: {
-    fontSize: theme.fontSize.lg,
+  title: {
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.text,
-    textAlign: 'center',
     marginBottom: theme.spacing.sm,
+    textAlign: 'center',
   },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: theme.fontSize.sm,
+  subtitle: {
+    fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: 'center',
   },
-  summaryValue: {
-    fontSize: theme.fontSize.md,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  startButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    marginTop: theme.spacing.lg,
-  },
-  startButtonDisabled: {
-    opacity: 0.5,
-  },
-  startButtonText: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '700',
-    color: theme.colors.background,
+  errorText: {
+    fontSize: 13,
+    color: theme.colors.danger,
+    marginTop: theme.spacing.md,
+    textAlign: 'center',
   },
 });

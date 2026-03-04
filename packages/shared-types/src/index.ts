@@ -80,6 +80,7 @@ export interface OnboardingV2Payload {
   targets: UserTargets;
   promise_text?: string;
   exam_date: string;
+  weak_subjects?: string[];
 }
 
 // ── Syllabus ──
@@ -502,4 +503,34 @@ export interface CASubjectGap {
   tag_count: number;
   percentage: number;
   alert: string | null;
+}
+
+// ── Topic Notes ──
+export type TopicNoteType = 'text' | 'link';
+
+export interface TopicNote {
+  id: string;
+  user_id: string;
+  topic_id: string;
+  note_type: TopicNoteType;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Quick Log ──
+export interface QuickLogEntry {
+  id: string;
+  user_id: string;
+  topic_id: string | null;
+  hours: number;
+  notes: string | null;
+  logged_at: string;
+  created_at: string;
+}
+
+export interface QuickLogPayload {
+  topic_id?: string;
+  hours: number;
+  notes?: string;
 }

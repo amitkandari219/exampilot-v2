@@ -1,86 +1,42 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { TextInput, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QuestionScreen } from '../../components/onboarding/QuestionScreen';
-import { useTheme } from '../../context/ThemeContext';
-import { Theme } from '../../constants/theme';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../hooks/useAuth';
+import { SelectionCard } from '../../components/onboarding/SelectionCard';
 
-export default function NameScreen() {
-  const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+const ATTEMPT_OPTIONS = [
+  { key: '1', label: '1st Attempt', subtitle: "Fresh start — we'll build from zero" },
+  { key: '2', label: '2nd Attempt', subtitle: "You know the game. Let's sharpen." },
+  { key: '3', label: '3rd+ Attempt', subtitle: 'Aggressive mode. No wasted days.' },
+] as const;
+
+export default function AttemptScreen() {
   const router = useRouter();
-  const { session } = useAuth();
-  const [name, setName] = useState('');
-
-  useEffect(() => {
-    // Try localStorage/AsyncStorage first (set by redo onboarding)
-    const readPrefill = Platform.OS === 'web'
-      ? () => {
-          const val = localStorage.getItem('prefill_name');
-          if (val) { localStorage.removeItem('prefill_name'); }
-          return Promise.resolve(val);
-        }
-      : () => AsyncStorage.getItem('prefill_name').then((val) => {
-          if (val) AsyncStorage.removeItem('prefill_name');
-          return val;
-        });
-
-    readPrefill().then((val) => {
-      if (val) {
-        setName(val);
-      } else if (session?.user?.id) {
-        // Fallback: read from Supabase directly
-        supabase
-          .from('user_profiles')
-          .select('name')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data?.name) setName(data.name);
-          });
-      }
-    });
-  }, [session?.user?.id]);
+  const [attempt, setAttempt] = useState<string | null>(null);
 
   return (
     <QuestionScreen
       step={0}
-      totalSteps={10}
-      chatMessage="Hey! I'm ExamPilot, your UPSC preparation companion. What should I call you?"
-      question="Your name"
-      subtitle="We'll personalize your experience"
-      nextDisabled={name.trim().length < 2}
+      totalSteps={6}
+      question="Which attempt is this?"
+      subtitle="No judgment. 2nd and 3rd attempts clear more often than 1st."
+      nextDisabled={attempt === null}
       onNext={() =>
-        router.push({ pathname: '/onboarding/professional', params: { name: name.trim() } })
+        router.push({
+          pathname: '/onboarding/professional',
+          params: { attempt },
+        })
       }
     >
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your name"
-        placeholderTextColor={theme.colors.textMuted}
-        value={name}
-        onChangeText={setName}
-        autoCapitalize="words"
-        autoFocus
-        returnKeyType="next"
-      />
+      {ATTEMPT_OPTIONS.map((opt) => (
+        <SelectionCard
+          key={opt.key}
+          icon={opt.key === '1' ? '🌱' : opt.key === '2' ? '🎯' : '🔥'}
+          label={opt.label}
+          subtitle={opt.subtitle}
+          selected={attempt === opt.key}
+          onPress={() => setAttempt(opt.key)}
+        />
+      ))}
     </QuestionScreen>
   );
 }
-
-const createStyles = (theme: Theme) => StyleSheet.create({
-  input: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    fontSize: theme.fontSize.xl,
-    fontWeight: '600',
-    color: theme.colors.text,
-    textAlign: 'center',
-  },
-});

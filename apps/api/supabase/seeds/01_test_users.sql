@@ -12,27 +12,33 @@ INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password,
   email_confirmed_at, created_at, updated_at,
   confirmation_token, recovery_token, email_change_token_new,
+  email_change, phone_change, phone_change_token,
+  email_change_token_current, reauthentication_token,
   raw_app_meta_data, raw_user_meta_data
 ) VALUES
   ('d0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'test-balanced@exampilot.dev',
    crypt('password123', gen_salt('bf')),
    now(), now(), now(), '', '', '',
+   '', '', '', '', '',
    '{"provider": "email", "providers": ["email"]}', '{"name": "Test Balanced"}'),
   ('d0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'test-aggressive@exampilot.dev',
    crypt('password123', gen_salt('bf')),
    now(), now(), now(), '', '', '',
+   '', '', '', '', '',
    '{"provider": "email", "providers": ["email"]}', '{"name": "Test Aggressive"}'),
   ('d0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'test-conservative@exampilot.dev',
    crypt('password123', gen_salt('bf')),
    now(), now(), now(), '', '', '',
+   '', '', '', '', '',
    '{"provider": "email", "providers": ["email"]}', '{"name": "Test Conservative"}'),
   ('d0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'test-wp@exampilot.dev',
    crypt('password123', gen_salt('bf')),
    now(), now(), now(), '', '', '',
+   '', '', '', '', '',
    '{"provider": "email", "providers": ["email"]}', '{"name": "Test Working Professional"}')
 ON CONFLICT (id) DO NOTHING;
 

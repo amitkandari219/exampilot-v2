@@ -1,23 +1,31 @@
-import React, {  useState , useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useUser } from '../../context/UserContext';
 import { Theme } from '../../constants/theme';
 import { useSyllabusProgress, useUpdateTopicProgress } from '../../hooks/useSyllabus';
 import { SummaryBar } from '../../components/syllabus/SummaryBar';
 import { SubjectCard } from '../../components/syllabus/SubjectCard';
 import { TopicUpdateSheet } from '../../components/syllabus/TopicUpdateSheet';
-import { TopicWithProgress, Subject, ChapterWithTopics } from '../../types';
+import { V4Card } from '../../components/v4/V4Card';
+import { V4Tip } from '../../components/v4/V4Tip';
+import { TopicWithProgress, ChapterWithTopics } from '../../types';
 
 export default function SyllabusScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { daysUsed, isVeteran } = useUser();
   const { data: subjects, isLoading } = useSyllabusProgress();
   const updateProgress = useUpdateTopicProgress();
   const [selectedTopic, setSelectedTopic] = useState<TopicWithProgress | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
 
+  const isFirstWeek = !isVeteran && daysUsed <= 7;
+
   const handleTopicPress = (topicId: string) => {
-    // Find the topic across all subjects/chapters
+    // Disable topic expansion in first week
+    if (isFirstWeek) return;
+
     for (const subject of subjects || []) {
       for (const chapter of subject.chapters || []) {
         const topic = (chapter as ChapterWithTopics).topics?.find((t) => t.id === topicId);
@@ -75,18 +83,46 @@ export default function SyllabusScreen() {
     <SafeAreaView style={styles.safe}>
       <Text style={styles.title}>Syllabus Map</Text>
 
-      <SummaryBar
-        totalTopics={totalTopics}
-        completedTopics={completedTopics}
-        weightedCompletion={avgWeightedCompletion}
-        avgConfidence={avgConfidence}
-      />
+      {/* 5.3.1 — First-Week Info Card */}
+      {isFirstWeek && (
+        <View style={styles.firstWeekContainer}>
+          <V4Card bordered style={styles.firstWeekCard}>
+            <Text style={styles.firstWeekTitle}>Getting Started</Text>
+            <Text style={styles.firstWeekDesc}>
+              Your progress appears here as you study. Follow the daily plan and subjects will light up with completion data.
+            </Text>
+          </V4Card>
+          <V4Tip message="Weighted by PYQ importance — high-frequency topics count more." variant="info" />
+        </View>
+      )}
 
+      {/* 5.3.2 — Show "Not started" labels OR regular summary */}
+      {isFirstWeek ? (
+        <View style={styles.notStartedBar}>
+          <Text style={styles.notStartedText}>Not started yet</Text>
+          <Text style={styles.notStartedHint}>{totalTopics} topics to cover</Text>
+        </View>
+      ) : (
+        <>
+          <SummaryBar
+            totalTopics={totalTopics}
+            completedTopics={completedTopics}
+            weightedCompletion={avgWeightedCompletion}
+            avgConfidence={avgConfidence}
+          />
+          <V4Tip message="Weighted by PYQ importance — high-frequency topics count more." variant="info" />
+        </>
+      )}
+
+      {/* 5.3.3 — Disable topic expansion in first week (handled in handleTopicPress) */}
       <FlatList
         data={subjects || []}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <SubjectCard subject={item} onTopicPress={handleTopicPress} />
+          <SubjectCard
+            subject={item}
+            onTopicPress={handleTopicPress}
+          />
         )}
         contentContainerStyle={styles.list}
       />
@@ -113,4 +149,19 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   list: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.xxl },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  // First week
+  firstWeekContainer: { paddingHorizontal: theme.spacing.lg, marginBottom: 8 },
+  firstWeekCard: { marginBottom: 8 },
+  firstWeekTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.accent, marginBottom: 6 },
+  firstWeekDesc: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20 },
+
+  // Not started
+  notStartedBar: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  notStartedText: { fontSize: 16, fontWeight: '600', color: theme.colors.textMuted },
+  notStartedHint: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
 });

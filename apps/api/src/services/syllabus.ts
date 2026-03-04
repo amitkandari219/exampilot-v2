@@ -53,6 +53,16 @@ export async function getUserProgress(userId: string) {
     .eq('user_id', userId);
   if (error) throw error;
 
+  // Fetch FSRS card dates for revision scheduling info
+  const { data: fsrsCards } = await supabase
+    .from('fsrs_cards')
+    .select('topic_id, last_review, due')
+    .eq('user_id', userId);
+
+  const fsrsMap = new Map(
+    (fsrsCards || []).map((c: { topic_id: string; last_review: string | null; due: string | null }) => [c.topic_id, c])
+  );
+
   const progressMap = new Map(
     (progress || []).map((p) => [p.topic_id, p])
   );
@@ -92,7 +102,12 @@ export async function getUserProgress(userId: string) {
           chConfidenceCount++;
         }
 
-        return { ...topic, user_progress: userProg };
+        const fsrsCard = fsrsMap.get(topic.id) || null;
+        return {
+          ...topic,
+          user_progress: userProg,
+          fsrs_dates: fsrsCard ? { last_review: fsrsCard.last_review, next_revision: fsrsCard.due } : null,
+        };
       });
 
       subTotalTopics += chTotalTopics;

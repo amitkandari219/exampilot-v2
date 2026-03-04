@@ -56,6 +56,7 @@ interface PlannerProfile {
   recovery_mode_end: string | null;
   fatigue_threshold: number;
   pyq_weight_minimum: number;
+  study_approach: 'sequential' | 'mixed';
 }
 
 interface DailyLogEntry {
@@ -101,6 +102,8 @@ interface PlannerContext {
   maxAvgDifficulty: number;
   date: string;
   revisionRatio: number;
+  studyApproach: 'sequential' | 'mixed';
+  primarySubjectId: string | null;
 }
 
 // ── 1. Data fetching ──
@@ -238,11 +241,29 @@ async function fetchPlannerData(userId: string, date: string): Promise<PlannerCo
   const revisionRatio = typedProfile.strategy_params?.revision_frequency
     ? 1 / typedProfile.strategy_params.revision_frequency : PLANNER.DEFAULT_REVISION_RATIO;
 
+  // Sequential mode: identify primary subject (highest PYQ gravity not yet at completion threshold)
+  const studyApproach = (typedProfile.study_approach || 'mixed') as 'sequential' | 'mixed';
+  let primarySubjectId: string | null = null;
+  if (studyApproach === 'sequential') {
+    let bestGravity = -Infinity;
+    for (const [subId, stats] of subjectTopicCounts.entries()) {
+      const completion = stats.total > 0 ? stats.done / stats.total : 0;
+      if (completion >= PLANNER.SEQ_COMPLETION_THRESHOLD) continue;
+      // Gravity = total PYQ weight of remaining topics in subject
+      const subjectTopics = allTopics.filter(t => t.chapters?.subject_id === subId);
+      const gravity = subjectTopics.reduce((sum, t) => sum + (t.pyq_weight || 0), 0);
+      if (gravity > bestGravity) {
+        bestGravity = gravity;
+        primarySubjectId = subId;
+      }
+    }
+  }
+
   return {
     profile: typedProfile, fatigueScore, recentLogs: typedLogs, allTopics,
     progressMap, revisionTopicIds, deferredTopicIds, subjectPlanCount,
     subjectTopicCounts, importanceModifiers, falseSecurityIds, blindSpotIds, overRevisedIds,
-    ...capacity, date, revisionRatio,
+    ...capacity, date, revisionRatio, studyApproach, primarySubjectId,
   };
 }
 
@@ -349,6 +370,16 @@ function scoreTopic(t: TopicWithJoins, ctx: PlannerContext): number {
   let priority = (t.pyq_weight * PLANNER.PYQ_FACTOR) + (effectiveImportance * PLANNER.IMPORTANCE_FACTOR) + (urgency * PLANNER.URGENCY_FACTOR)
     + decayBoost + freshness + mockBoost + prelimsBoost + insightBoost + deferredBoost + weekendBoost;
 
+  // Sequential mode: heavily boost primary subject, suppress others
+  if (ctx.studyApproach === 'sequential' && ctx.primarySubjectId) {
+    if (subjectId === ctx.primarySubjectId) {
+      priority += PLANNER.SEQ_PRIMARY_BOOST;
+    } else {
+      // Non-primary new topics get suppressed (revisions/CA still allowed via allocator)
+      priority -= PLANNER.SEQ_PRIMARY_BOOST;
+    }
+  }
+
   if (subjectId && (subjectPlanCount.get(subjectId) || 0) >= PLANNER.SUBJECT_REPEAT_LIMIT) {
     priority *= PLANNER.SUBJECT_REPEAT_PENALTY;
   }
@@ -385,7 +416,11 @@ function applyConstraints(candidates: ScoredCandidate[], ctx: PlannerContext): S
 // ── 4. Greedy allocation ──
 
 function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): PlanItem[] {
-  const { availableHours, maxTopics, maxAvgDifficulty, revisionRatio } = ctx;
+  const { availableHours, maxTopics, maxAvgDifficulty, revisionRatio, studyApproach } = ctx;
+  const isSequential = studyApproach === 'sequential';
+  const maxSameSubjectPct = isSequential ? PLANNER.SEQ_MAX_SAME_SUBJECT_PCT : PLANNER.MAX_SAME_SUBJECT_PCT;
+  const varietyBonusValue = isSequential ? PLANNER.SEQ_VARIETY_BONUS : PLANNER.VARIETY_BONUS;
+
   let usedHours = 0;
   const subjectHours = new Map<string, number>();
   const subjectsUsed = new Set<string>();
@@ -410,7 +445,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
       const subjectId = item.subjectId;
       if (subjectId) {
         const currentSubjectHours = subjectHours.get(subjectId) || 0;
-        if (currentSubjectHours + hours > availableHours * PLANNER.MAX_SAME_SUBJECT_PCT) continue;
+        if (currentSubjectHours + hours > availableHours * maxSameSubjectPct) continue;
       }
 
       if (maxAvgDifficulty < Infinity && planItems.length > 0) {
@@ -422,7 +457,7 @@ function allocateGreedy(candidates: ScoredCandidate[], ctx: PlannerContext): Pla
         if (projectedAvg > maxAvgDifficulty) continue;
       }
 
-      const varietyBonus = (lastSubjectId && subjectId && subjectId !== lastSubjectId) ? PLANNER.VARIETY_BONUS : 0;
+      const varietyBonus = (lastSubjectId && subjectId && subjectId !== lastSubjectId) ? varietyBonusValue : 0;
       const effective = item.priority + varietyBonus;
 
       if (effective > bestEffective) {
@@ -579,4 +614,4 @@ function formatPlan(plan: any) {
 }
 
 // Re-export mutation functions from planActions
-export { completePlanItem, deferPlanItem, skipPlanItem, regeneratePlan, scheduleImmediateRevision } from './planActions.js';
+export { completePlanItem, deferPlanItem, skipPlanItem, regeneratePlan, scheduleImmediateRevision, movePlanItem } from './planActions.js';

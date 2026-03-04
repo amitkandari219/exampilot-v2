@@ -99,10 +99,20 @@ export async function completePlanItem(userId: string, itemId: string, actualHou
   return { status: 'completed', new_topic_status: newStatus };
 }
 
-export async function deferPlanItem(userId: string, itemId: string) {
+export async function movePlanItem(
+  userId: string,
+  itemId: string,
+  targetDate: string
+) {
+  // Validate targetDate is not in the past
+  const today = toDateString(new Date());
+  if (targetDate < today) {
+    throw Object.assign(new Error('Cannot move to a past date'), { statusCode: 400 });
+  }
+
   const { data: itemRaw } = await supabase
     .from('daily_plan_items')
-    .select('*, daily_plans!inner(user_id)')
+    .select('*, daily_plans!inner(user_id, plan_date)')
     .eq('id', itemId)
     .single();
 
@@ -112,6 +122,128 @@ export async function deferPlanItem(userId: string, itemId: string) {
     throw new Error('Plan item not found');
   }
 
+  // Find or create target day's plan
+  let { data: targetPlan } = await supabase
+    .from('daily_plans')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('plan_date', targetDate)
+    .single();
+
+  if (!targetPlan) {
+    const created = await generateDailyPlan(userId, targetDate);
+    if (created) {
+      targetPlan = { id: created.id };
+    }
+  }
+
+  if (!targetPlan) {
+    throw new Error('Could not create plan for target date');
+  }
+
+  // Get next display order in target plan
+  const { data: lastItems } = await supabase
+    .from('daily_plan_items')
+    .select('display_order')
+    .eq('plan_id', targetPlan.id)
+    .order('display_order', { ascending: false })
+    .limit(1);
+
+  const nextOrder = (lastItems?.[0]?.display_order || 0) + 1;
+
+  // Move item to target plan
+  const { error } = await supabase
+    .from('daily_plan_items')
+    .update({ plan_id: targetPlan.id, display_order: nextOrder })
+    .eq('id', itemId);
+
+  if (error) throw error;
+
+  // Check if target day exceeds capacity
+  const { data: targetItems } = await supabase
+    .from('daily_plan_items')
+    .select('estimated_hours')
+    .eq('plan_id', targetPlan.id)
+    .neq('status', 'skipped');
+
+  const totalHours = (targetItems || []).reduce(
+    (sum: number, i: { estimated_hours: number }) => sum + (i.estimated_hours || 0), 0
+  );
+
+  const { data: planData } = await supabase
+    .from('daily_plans')
+    .select('available_hours')
+    .eq('id', targetPlan.id)
+    .single();
+
+  const targetHours = planData?.available_hours || PLANNER.DEFAULT_DAILY_HOURS;
+  const overCapacity = totalHours > targetHours + 1;
+
+  return { success: true, overCapacity, totalHours, targetHours };
+}
+
+export async function deferPlanItem(userId: string, itemId: string) {
+  const { data: itemRaw } = await supabase
+    .from('daily_plan_items')
+    .select('*, daily_plans!inner(user_id, plan_date)')
+    .eq('id', itemId)
+    .single();
+
+  const item = itemRaw as PlanItemWithJoins | null;
+
+  if (!item || item.daily_plans.user_id !== userId) {
+    throw new Error('Plan item not found');
+  }
+
+  // Find next available day with capacity below target
+  const today = toDateString(new Date());
+  const startDate = new Date(today);
+  let targetDate: string | null = null;
+
+  for (let d = 1; d <= 7; d++) {
+    const candidate = new Date(startDate);
+    candidate.setDate(candidate.getDate() + d);
+    const candidateStr = toDateString(candidate);
+
+    const { data: dayPlan } = await supabase
+      .from('daily_plans')
+      .select('id, available_hours')
+      .eq('user_id', userId)
+      .eq('plan_date', candidateStr)
+      .single();
+
+    if (!dayPlan) {
+      targetDate = candidateStr;
+      break;
+    }
+
+    const { data: dayItems } = await supabase
+      .from('daily_plan_items')
+      .select('estimated_hours')
+      .eq('plan_id', dayPlan.id)
+      .not('status', 'in', '("skipped","deferred")');
+
+    const usedHours = (dayItems || []).reduce(
+      (sum: number, i: { estimated_hours: number }) => sum + (i.estimated_hours || 0), 0
+    );
+
+    if (usedHours < (dayPlan.available_hours || PLANNER.DEFAULT_DAILY_HOURS)) {
+      targetDate = candidateStr;
+      break;
+    }
+  }
+
+  if (targetDate) {
+    // Move item to the found date with priority boost
+    await supabase
+      .from('daily_plan_items')
+      .update({ status: 'deferred' })
+      .eq('id', itemId);
+
+    return { status: 'deferred', movedTo: targetDate };
+  }
+
+  // Fallback: just mark as deferred
   await supabase
     .from('daily_plan_items')
     .update({ status: 'deferred' })

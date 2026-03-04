@@ -13,6 +13,8 @@ export type {
   CADailyLog, CATag, CAStreak, CAStats, CASubjectGap,
   UserProgress, BufferTransactionType, BufferTransaction,
   SubjectCoverage, WeeklyReviewSummary,
+  QuickLogEntry, QuickLogPayload,
+  TopicNote, TopicNoteType,
 } from '@exampilot/shared-types';
 
 // ── Mobile-only types ──
@@ -36,6 +38,7 @@ export interface UserProfile {
   avatar_url: string | null;
   exam_date: string | null;
   prelims_date: string | null;
+  attempt_number: string | null;
   daily_hours: number;
   strategy_mode: StrategyMode;
   strategy_params: StrategyParams;
@@ -51,6 +54,7 @@ export interface UserProfile {
   recovery_mode_active: boolean;
   recovery_mode_start: string | null;
   recovery_mode_end: string | null;
+  study_approach: string;
 }
 
 export interface OnboardingAnswers {

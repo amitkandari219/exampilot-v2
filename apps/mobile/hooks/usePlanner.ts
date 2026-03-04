@@ -49,3 +49,27 @@ export function useRegeneratePlan() {
     },
   });
 }
+
+export function useMovePlanItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ itemId, targetDate }: { itemId: string; targetDate: string }) =>
+      api.movePlanItem(itemId, targetDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
+    },
+  });
+}
+
+export function useDeferPlanItemV2() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (itemId: string) =>
+      api.deferPlanItemV2(itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
+    },
+  });
+}

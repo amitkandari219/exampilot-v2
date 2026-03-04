@@ -25,6 +25,8 @@ export function registerAuthMiddleware(app: FastifyInstance) {
     if (request.url === '/health') return;
     // Skip auth for non-API routes
     if (!request.url.startsWith('/api/')) return;
+    // Skip auth for CORS preflight requests
+    if (request.method === 'OPTIONS') return;
     // Skip auth for cron routes (validated via x-cron-secret header in cron.ts)
     if (request.url.startsWith('/api/cron/')) return;
 

@@ -48,11 +48,11 @@ export const BRI_WEIGHTS = {
 
 // Benchmark readiness weights (used in benchmark)
 export const BENCHMARK_WEIGHTS = {
-  COVERAGE: 0.30,
+  COVERAGE: 0.25,
   CONFIDENCE: 0.25,
-  WEAKNESS: 0.20,
-  CONSISTENCY: 0.15,
-  VELOCITY: 0.10,
+  CONSISTENCY: 0.20,
+  VELOCITY: 0.15,
+  WEAKNESS: 0.15,
 } as const;
 
 // Topic health weights (used in weakness)
@@ -61,6 +61,11 @@ export const HEALTH_WEIGHTS = {
   REVISION: 0.20,
   ACCURACY: 0.30,
   RECENCY: 0.25,
+} as const;
+
+// Weakness seeding (used in weakness service for onboarding)
+export const WEAKNESS_SEED = {
+  INITIAL_HEALTH_SCORE: 25,
 } as const;
 
 // Planner scoring factors (used in planner)
@@ -111,6 +116,13 @@ export const PLANNER = {
   MAX_IMMEDIATE_REVISIONS: 3,
   DECAY_REVISION_HOURS: 0.5,
   DECAY_REVISION_PRIORITY: 99,
+  // Sequential mode overrides
+  SEQ_VARIETY_BONUS: 0,
+  SEQ_MAX_SAME_SUBJECT_PCT: 0.80,
+  SEQ_MIN_SUBJECTS: 1,
+  SEQ_PRIMARY_PCT: 0.70,
+  SEQ_COMPLETION_THRESHOLD: 0.60,
+  SEQ_PRIMARY_BOOST: 20,
 } as const;
 
 // FSRS constants (used in fsrs, decayTrigger)
@@ -197,6 +209,11 @@ export const WEEKLY_REVIEW = {
   BRI_LOW_RISK: 60,
   BRI_ELEVATED: 40,
   ZERO_DAY_HIGHLIGHT: 3,
+} as const;
+
+// Timer constants (used in mobile TimerContext)
+export const TIMER = {
+  WARNING_THRESHOLD_SECONDS: 300,
 } as const;
 
 // Velocity composite weighting (used in velocity, simulator)

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase.js';
 export async function getProfile(userId: string) {
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('name, exam_date, avatar_url')
+    .select('name, exam_date, attempt_number, created_at, current_mode, daily_hours, study_approach, strategy_mode')
     .eq('id', userId)
     .single();
 
@@ -12,18 +12,25 @@ export async function getProfile(userId: string) {
   return {
     name: data.name || '',
     exam_date: data.exam_date || null,
-    avatar_url: data.avatar_url || null,
+    avatar_url: null,
+    attempt_number: data.attempt_number || null,
+    created_at: data.created_at,
+    current_mode: data.current_mode || 'prelims',
+    daily_hours: data.daily_hours ?? 6,
+    study_approach: data.study_approach || 'mixed',
+    strategy_mode: data.strategy_mode || 'balanced',
   };
 }
 
 export async function updateProfile(
   userId: string,
-  updates: { name?: string; exam_date?: string; avatar_url?: string }
+  updates: { name?: string; exam_date?: string; daily_hours?: number; study_approach?: string }
 ) {
-  const allowed: Record<string, any> = {};
+  const allowed: Record<string, string | number> = {};
   if (updates.name !== undefined) allowed.name = updates.name;
   if (updates.exam_date !== undefined) allowed.exam_date = updates.exam_date;
-  if (updates.avatar_url !== undefined) allowed.avatar_url = updates.avatar_url;
+  if (updates.daily_hours !== undefined) allowed.daily_hours = updates.daily_hours;
+  if (updates.study_approach !== undefined) allowed.study_approach = updates.study_approach;
 
   if (Object.keys(allowed).length === 0) {
     return { updated: false };

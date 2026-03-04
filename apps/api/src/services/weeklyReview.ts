@@ -131,7 +131,7 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
     strategyProfile,
     allSubjects,
     subjectConfidence,
-    planItemsWithSubjects,
+    _planItemsPlaceholder,
     userProgressLastTouched,
   ] = await Promise.all([
     // daily_logs
@@ -241,21 +241,8 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
       .select('subject_id, avg_confidence')
       .eq('user_id', userId),
 
-    // daily_plan_items this week joined to topics→chapters→subjects
-    // to determine which subjects were actually touched in plan items
-    // Supabase query builder subquery type not compatible with .in() filter type
-    supabase
-      .from('daily_plan_items')
-      .select('topics(id, chapters(subject_id))')
-      .in(
-        'plan_id',
-        supabase
-          .from('daily_plans')
-          .select('id')
-          .eq('user_id', userId)
-          .gte('plan_date', weekStartStr)
-          .lte('plan_date', weekEndStr) as unknown as string[]
-      ),
+    // placeholder — planItemsWithSubjects resolved below after Promise.all
+    Promise.resolve({ data: null, error: null }),
 
     // user_progress — last_touched per topic (for 14-day untouched detection)
     supabase
@@ -264,6 +251,15 @@ export async function generateWeeklyReview(userId: string, weekEnd?: string): Pr
       .eq('user_id', userId)
       .gt('confidence_score', 0),
   ]);
+
+  // Resolve planItemsWithSubjects: two-step query since .in() doesn't support subqueries
+  const planIds = (planData.data || []).map((p: any) => p.id);
+  const planItemsWithSubjects = planIds.length > 0
+    ? await supabase
+        .from('daily_plan_items')
+        .select('topics(id, chapters(subject_id))')
+        .in('plan_id', planIds)
+    : { data: null, error: null };
 
   // --- Compute Study Metrics ---
   const logs = dailyLogs.data || [];

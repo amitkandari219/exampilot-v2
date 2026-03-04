@@ -5,6 +5,12 @@ interface ProfileData {
   name: string;
   exam_date: string | null;
   avatar_url: string | null;
+  attempt_number: string | null;
+  created_at: string;
+  current_mode: string;
+  daily_hours: number;
+  study_approach: string;
+  strategy_mode: string;
 }
 
 export function useProfile() {
@@ -18,10 +24,12 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: { name?: string; exam_date?: string; avatar_url?: string }) =>
+    mutationFn: (body: { name?: string; exam_date?: string; avatar_url?: string; daily_hours?: number; study_approach?: string }) =>
       api.updateProfile(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['strategy'] });
     },
   });
 }

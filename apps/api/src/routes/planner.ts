@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { generateDailyPlan, completePlanItem, deferPlanItem, skipPlanItem, regeneratePlan } from '../services/planner.js';
+import { generateDailyPlan, completePlanItem, deferPlanItem, skipPlanItem, regeneratePlan, movePlanItem } from '../services/planner.js';
 import { todayString } from '../utils/dateUtils.js';
 
 export async function plannerRoutes(app: FastifyInstance) {
@@ -40,6 +40,21 @@ export async function plannerRoutes(app: FastifyInstance) {
   }>('/api/daily-plan/regenerate', async (request, reply) => {
     const date = request.body?.date || todayString();
     const result = await regeneratePlan(request.userId, date, request.body?.hours);
+    return reply.status(200).send(result);
+  });
+
+  app.patch<{
+    Params: { itemId: string };
+    Body: { targetDate: string };
+  }>('/api/daily-plan/items/:itemId/move', async (request, reply) => {
+    const result = await movePlanItem(request.userId, request.params.itemId, request.body.targetDate);
+    return reply.status(200).send(result);
+  });
+
+  app.patch<{
+    Params: { itemId: string };
+  }>('/api/daily-plan/items/:itemId/defer', async (request, reply) => {
+    const result = await deferPlanItem(request.userId, request.params.itemId);
     return reply.status(200).send(result);
   });
 }

@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { AuthContext, useAuthState } from '../hooks/useAuth';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { UserProvider } from '../context/UserContext';
+import { TimerProvider } from '../context/TimerContext';
 
 const queryClient = new QueryClient();
 
@@ -22,13 +24,25 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
-          <ThemedStatusBar />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+          <UserProvider>
+            <TimerProvider>
+              <ThemedStatusBar />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="auth" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="revision" />
+                <Stack.Screen name="fullsyllabus" />
+                <Stack.Screen name="mocks" />
+                <Stack.Screen name="lowday" />
+                <Stack.Screen name="ranker" />
+                <Stack.Screen name="weeklyreview" />
+                <Stack.Screen name="topic-detail" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="weekly-detail" options={{ presentation: 'modal' }} />
+              </Stack>
+            </TimerProvider>
+          </UserProvider>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>

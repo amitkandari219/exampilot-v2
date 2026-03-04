@@ -17,6 +17,7 @@ export type {
   SimulationScenarioType, SimulationScenario, SimulationSnapshot, SimulationDelta, SimulationResult,
   CADailyLog, CATag, CAStreak, CAStats, CASubjectGap,
   UserProgress, BufferTransactionType, BufferTransaction, DailyPlan, DailyPlanItem, SubjectCoverage, WeeklyReviewSummary,
+  QuickLogEntry, QuickLogPayload,
 } from '@exampilot/shared-types';
 
 // ── API-only types ──

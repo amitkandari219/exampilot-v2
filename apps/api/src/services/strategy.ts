@@ -4,6 +4,7 @@ import { getDefaultParams, getPersonaDefaults } from './modeConfig.js';
 import { calculateVelocity } from './velocity.js';
 import { regeneratePlan } from './planner.js';
 import { toDateString, daysUntil } from '../utils/dateUtils.js';
+import { seedWeakSubjects } from './weakness.js';
 
 // Re-export from modeConfig for backward compatibility
 export { getDefaultParams, getPersonaDefaults } from './modeConfig.js';
@@ -148,6 +149,8 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
       user_type: payload.answers.user_type,
       challenges: payload.answers.challenges,
       onboarding_version: 2,
+      study_approach: (payload as unknown as { study_approach?: string }).study_approach || 'mixed',
+      weak_subjects: payload.weak_subjects || [],
     })
     .select()
     .single();
@@ -173,6 +176,11 @@ export async function completeOnboardingV2(userId: string, payload: OnboardingV2
       user_id: userId,
       promise_text: payload.promise_text,
     });
+  }
+
+  // Seed weakness snapshots for self-identified weak subjects
+  if (payload.weak_subjects && payload.weak_subjects.length > 0) {
+    await seedWeakSubjects(userId, payload.weak_subjects);
   }
 
   // Insert persona snapshot

@@ -12,8 +12,8 @@ export async function onboardingRoutes(app: FastifyInstance) {
     // Detect V2 payload by presence of `answers` field
     if ('answers' in payload) {
       const v2 = payload as OnboardingV2Payload;
-      if (!v2.chosen_mode || !v2.exam_date || !v2.answers?.name) {
-        return reply.status(400).send({ error: 'Missing required fields: chosen_mode, exam_date, answers.name' });
+      if (!v2.chosen_mode || !v2.exam_date) {
+        return reply.status(400).send({ error: 'Missing required fields: chosen_mode, exam_date' });
       }
       const result = await completeOnboardingV2(userId, v2);
       return reply.status(200).send(result);

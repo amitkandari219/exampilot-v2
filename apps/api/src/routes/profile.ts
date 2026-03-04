@@ -8,7 +8,7 @@ export async function profileRoutes(app: FastifyInstance) {
   });
 
   app.patch('/api/profile', async (request, reply) => {
-    const body = request.body as { name?: string; exam_date?: string; avatar_url?: string };
+    const body = request.body as { name?: string; exam_date?: string; daily_hours?: number; study_approach?: string };
     const result = await updateProfile(request.userId, body);
     return reply.status(200).send(result);
   });
