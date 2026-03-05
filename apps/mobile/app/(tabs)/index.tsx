@@ -70,12 +70,14 @@ export default function DashboardScreen() {
   const greeting = getGreeting();
   const isMains = examMode === 'mains';
 
-  // Calculate days until exam
+  // Calculate days until exam (use prelims_date in prelims mode, exam_date otherwise)
   const daysUntilExam = useMemo(() => {
-    if (!profile?.exam_date) return null;
-    const diff = Math.ceil((new Date(profile.exam_date).getTime() - Date.now()) / 86400000);
+    const targetDate = (examMode === 'prelims' && profile?.prelims_date)
+      ? profile.prelims_date : profile?.exam_date;
+    if (!targetDate) return null;
+    const diff = Math.ceil((new Date(targetDate).getTime() - Date.now()) / 86400000);
     return diff > 0 ? diff : null;
-  }, [profile?.exam_date]);
+  }, [profile?.exam_date, profile?.prelims_date, examMode]);
 
   // Find first incomplete plan item for hero card
   const firstIncomplete = useMemo(() => {
@@ -146,7 +148,7 @@ export default function DashboardScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.greetingSmall}>{greeting}</Text>
             <Text style={styles.countdown}>
-              {isMains ? 'Mains' : 'Prelims'} in{' '}
+              {examMode === 'mains' ? 'Mains' : examMode === 'post_prelims' ? 'Mains' : 'Prelims'} in{' '}
               <Text style={{ color: theme.colors.accent }}>
                 {daysUntilExam ?? '—'} days
               </Text>

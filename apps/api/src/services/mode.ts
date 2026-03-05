@@ -76,23 +76,17 @@ export async function switchExamMode(userId: string, targetMode: ExamMode) {
     change_reason: `exam_mode_switch:${oldMode}_to_${targetMode}`,
   });
 
-  // 4. Recalculate velocity with new scope
-  try {
-    const { calculateVelocity } = await import('./velocity.js');
-    await calculateVelocity(userId);
-  } catch (e) { console.warn('[mode:velocity-recalc]', e);
-    // Non-critical
-  }
-
-  // 5. Regenerate tomorrow's plan
-  try {
-    const { regeneratePlan } = await import('./planner.js');
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    await regeneratePlan(userId, toDateString(tomorrow));
-  } catch (e) { console.warn('[mode:plan-regen]', e);
-    // Non-critical
-  }
+  // 4. Recalculate velocity + regenerate plan in parallel (both non-critical)
+  const [velocityResult, planResult] = await Promise.allSettled([
+    import('./velocity.js').then(({ calculateVelocity }) => calculateVelocity(userId)),
+    import('./planner.js').then(({ regeneratePlan }) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return regeneratePlan(userId, toDateString(tomorrow));
+    }),
+  ]);
+  if (velocityResult.status === 'rejected') console.warn('[mode:velocity-recalc]', velocityResult.reason);
+  if (planResult.status === 'rejected') console.warn('[mode:plan-regen]', planResult.reason);
 
   return {
     current_mode: targetMode,

@@ -15,8 +15,10 @@ import { V4Pill } from '../../components/v4/V4Pill';
 import { V4Tip } from '../../components/v4/V4Tip';
 import { DailyPlanItem, PlanItemType } from '../../types';
 import { WarmEmptyState } from '../../components/common/WarmEmptyState';
+import { ShareButton } from '../../components/common/ShareButton';
 import { useVelocity } from '../../hooks/useVelocity';
 import { toDateString } from '../../lib/dateUtils';
+import { formatDailyPlanForShare } from '../../lib/shareFormatters';
 
 // Color map for task type left borders and pills
 const TYPE_COLORS: Record<PlanItemType, { color: string; variant: 'accent' | 'purple' | 'danger' | 'warn' }> = {
@@ -318,9 +320,12 @@ export default function PlannerScreen() {
               <V4Card bordered style={styles.capacityCard}>
                 <View style={styles.capacityHeader}>
                   <Text style={styles.capacityTitle}>Today's Plan</Text>
-                  <Text style={styles.capacityHours}>
-                    {(totalPlannedMinutes / 60).toFixed(1)} hrs / {plan.available_hours || 6} hrs
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={styles.capacityHours}>
+                      {(totalPlannedMinutes / 60).toFixed(1)} hrs / {plan.available_hours || 6} hrs
+                    </Text>
+                    <ShareButton getText={() => formatDailyPlanForShare(plan)} />
+                  </View>
                 </View>
                 <V4Bar
                   progress={Math.min(capacityPct, 100)}

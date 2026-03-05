@@ -351,7 +351,7 @@ export async function regeneratePlan(userId: string, date: string, newHours?: nu
       return null;
     }
 
-    // Re-attach completed items to the new plan
+    // Re-attach completed items to the new plan (single batch insert)
     if (completedItems && completedItems.length > 0) {
       const { data: lastItems } = await supabase
         .from('daily_plan_items')
@@ -362,8 +362,8 @@ export async function regeneratePlan(userId: string, date: string, newHours?: nu
 
       let order = (lastItems?.[0]?.display_order || 0) + 1;
 
-      for (const item of completedItems) {
-        await supabase.from('daily_plan_items').insert({
+      await supabase.from('daily_plan_items').insert(
+        completedItems.map((item) => ({
           plan_id: plan.id,
           topic_id: item.topic_id,
           type: item.type,
@@ -373,8 +373,8 @@ export async function regeneratePlan(userId: string, date: string, newHours?: nu
           display_order: order++,
           status: 'completed',
           completed_at: item.completed_at,
-        });
-      }
+        }))
+      );
     }
 
     if (newHours) {
