@@ -37,10 +37,24 @@ export function useSwitchExamMode() {
 
   return useMutation({
     mutationFn: (examMode: ExamMode) => api.switchExamMode(examMode),
+    onMutate: async (examMode) => {
+      await queryClient.cancelQueries({ queryKey: ['profile'] });
+      const previous = queryClient.getQueryData(['profile']);
+      queryClient.setQueryData(['profile'], (old: any) =>
+        old ? { ...old, current_mode: examMode } : old
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['strategy'] });
       queryClient.invalidateQueries({ queryKey: ['velocity'] });
       queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['profile'], context.previous);
+      }
     },
   });
 }

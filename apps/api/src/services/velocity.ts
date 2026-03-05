@@ -29,46 +29,46 @@ interface BufferProfile {
 }
 
 export async function calculateVelocity(userId: string) {
-  // Get user profile
-  const { data: profileRaw } = await supabase
-    .from('user_profiles')
-    .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date, velocity_target_multiplier, recovery_mode_active')
-    .eq('id', userId)
-    .single();
+  const now = new Date();
 
-  const profile = profileRaw as VelocityProfile | null;
+  // Fetch all independent data in parallel
+  const [profileResult, topicsResult, activeSubjectIds, progressResult, logsResult] = await Promise.all([
+    supabase.from('user_profiles')
+      .select('exam_date, buffer_capacity, daily_hours, strategy_params, current_mode, prelims_date, velocity_target_multiplier, recovery_mode_active')
+      .eq('id', userId).single(),
+    supabase.from('topics')
+      .select('id, pyq_weight, chapters!inner(subject_id)'),
+    getActiveSubjectIds(userId),
+    supabase.from('user_progress')
+      .select('topic_id, status')
+      .eq('user_id', userId),
+    supabase.from('daily_logs')
+      .select('log_date, gravity_completed')
+      .eq('user_id', userId)
+      .gte('log_date', toDateString(daysAgo(14, now)))
+      .order('log_date', { ascending: false }),
+  ]);
+
+  const profile = profileResult.data as VelocityProfile | null;
 
   if (!profile || !profile.exam_date) {
     throw new Error('User profile or exam date not found');
   }
 
-  const now = new Date();
   const targetDate = (profile.current_mode === 'prelims' && profile.prelims_date)
     ? profile.prelims_date : profile.exam_date;
   const examDate = new Date(targetDate);
   const daysRemaining = daysUntil(examDate, now);
 
-  // Get all topics — gravity = pyq_weight only
-  const { data: topicsRaw } = await supabase
-    .from('topics')
-    .select('id, pyq_weight, chapters!inner(subject_id)');
-
   // Filter out paused subjects based on current exam mode
-  const activeSubjectIds = await getActiveSubjectIds(userId);
   const topics = activeSubjectIds
-    ? (topicsRaw || []).filter((t: any) => {
+    ? (topicsResult.data || []).filter((t: any) => {
         const subjectId = t.chapters?.subject_id;
         return !subjectId || activeSubjectIds.has(subjectId);
       })
-    : (topicsRaw || []);
+    : (topicsResult.data || []);
 
-  // Get user progress
-  const { data: progress } = await supabase
-    .from('user_progress')
-    .select('topic_id, status')
-    .eq('user_id', userId);
-
-  const progressMap = new Map((progress || []).map((p) => [p.topic_id, p.status]));
+  const progressMap = new Map((progressResult.data || []).map((p) => [p.topic_id, p.status]));
   const completedStatuses = ['first_pass', 'revised', 'exam_ready'];
 
   let totalGravity = 0;
@@ -95,13 +95,7 @@ export async function calculateVelocity(userId: string) {
   const rawRequiredVelocity = effectiveDays > 0 ? remainingGravity / effectiveDays : 0;
   const requiredVelocity = rawRequiredVelocity * (profile.velocity_target_multiplier ?? 1.0);
 
-  // Get last 14 days of daily logs
-  const { data: logs } = await supabase
-    .from('daily_logs')
-    .select('log_date, gravity_completed')
-    .eq('user_id', userId)
-    .gte('log_date', toDateString(daysAgo(14, now)))
-    .order('log_date', { ascending: false });
+  const logs = logsResult.data;
 
   // Calculate weighted velocity
   const sevenDayLogs = (logs || []).slice(0, 7);
