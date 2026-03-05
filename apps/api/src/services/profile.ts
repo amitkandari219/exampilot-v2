@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase.js';
 export async function getProfile(userId: string) {
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('name, exam_date, attempt_number, created_at, current_mode, daily_hours, study_approach, strategy_mode')
+    .select('name, exam_date, prelims_date, attempt_number, created_at, current_mode, daily_hours, study_approach, strategy_mode')
     .eq('id', userId)
     .maybeSingle();
 
@@ -13,6 +13,7 @@ export async function getProfile(userId: string) {
     return {
       name: '',
       exam_date: null,
+      prelims_date: null,
       avatar_url: null,
       attempt_number: null,
       created_at: new Date().toISOString(),
@@ -27,6 +28,7 @@ export async function getProfile(userId: string) {
   return {
     name: data.name || '',
     exam_date: data.exam_date || null,
+    prelims_date: data.prelims_date || null,
     avatar_url: null,
     attempt_number: data.attempt_number || null,
     created_at: data.created_at,

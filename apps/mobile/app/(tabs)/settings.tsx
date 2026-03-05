@@ -85,9 +85,12 @@ export default function SettingsScreen() {
   const studyApproach = profile?.study_approach || 'mixed';
   const currentExamMode = (profile?.current_mode || 'prelims') as ExamMode;
 
-  const daysLeft = profile?.exam_date
-    ? Math.max(0, Math.ceil((new Date(profile.exam_date).getTime() - Date.now()) / 86400000))
-    : null;
+  const daysLeft = useMemo(() => {
+    const targetDate = (currentExamMode === 'prelims' && profile?.prelims_date)
+      ? profile.prelims_date : profile?.exam_date;
+    if (!targetDate) return null;
+    return Math.max(0, Math.ceil((new Date(targetDate).getTime() - Date.now()) / 86400000));
+  }, [profile?.exam_date, profile?.prelims_date, currentExamMode]);
 
   const strategyLabel = profile?.strategy_mode
     ? profile.strategy_mode.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
@@ -204,7 +207,6 @@ export default function SettingsScreen() {
                   currentExamMode === key && { backgroundColor: theme.colors.accent },
                 ]}
                 onPress={() => handleExamModeSwitch(key)}
-                disabled={switchExamMode.isPending}
               >
                 <Text style={[
                   styles.segmentText,
