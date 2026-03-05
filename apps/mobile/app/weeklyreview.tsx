@@ -15,6 +15,8 @@ import { V4Bar } from '../components/v4/V4Bar';
 import { V4Pill } from '../components/v4/V4Pill';
 import { V4SectionLabel } from '../components/v4/V4SectionLabel';
 import { V4Tip } from '../components/v4/V4Tip';
+import { ShareButton } from '../components/common/ShareButton';
+import { formatWeeklyReviewForShare } from '../lib/shareFormatters';
 
 function hoursBarColor(h: number): string {
   if (h >= 5) return '#34D399';
@@ -106,9 +108,12 @@ export default function WeeklyReviewScreen() {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Weekly Review</Text>
-        <Text style={styles.dateRange}>
-          {review.week_start_date} — {review.week_end_date}
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.lg }}>
+          <Text style={[styles.dateRange, { marginBottom: 0 }]}>
+            {review.week_start_date} — {review.week_end_date}
+          </Text>
+          <ShareButton getText={() => formatWeeklyReviewForShare(review)} />
+        </View>
 
         {/* 5.2.1 — Bar Chart */}
         <V4Card style={styles.section}>
