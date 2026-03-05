@@ -14,10 +14,11 @@ const RESOURCE_ICON: Record<TopicResource['resource_type'], string> = {
 };
 
 export default function TopicDetailScreen() {
-  const { topicId, topicName, subjectName } = useLocalSearchParams<{
+  const { topicId, topicName, subjectName, description } = useLocalSearchParams<{
     topicId: string;
     topicName?: string;
     subjectName?: string;
+    description?: string;
   }>();
   const { theme } = useTheme();
   const { data: resources, isLoading } = useTopicResources(topicId);
@@ -44,6 +45,10 @@ export default function TopicDetailScreen() {
         <Text style={styles.topicName}>{topicName || 'Topic'}</Text>
         {subjectName && <Text style={styles.subjectName}>{subjectName}</Text>}
       </View>
+
+      {description && (
+        <Text style={styles.descriptionText}>{description}</Text>
+      )}
 
       <Text style={styles.sectionTitle}>Recommended Resources</Text>
 
@@ -85,6 +90,13 @@ const createStyles = (theme: { colors: Record<string, string>; spacing: Record<s
       fontSize: theme.fontSize.sm,
       color: theme.colors.textMuted,
       marginTop: 2,
+    },
+    descriptionText: {
+      fontSize: theme.fontSize.sm,
+      color: theme.colors.textSecondary,
+      lineHeight: 22,
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
     },
     sectionTitle: {
       fontSize: theme.fontSize.md,

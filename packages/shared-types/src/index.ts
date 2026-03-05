@@ -124,6 +124,7 @@ export interface Topic {
   pyq_weight: number;
   pyq_trend: PyqTrend;
   last_pyq_year: number | null;
+  description: string | null;
 }
 
 // ── Gamification ──

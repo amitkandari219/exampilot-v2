@@ -28,6 +28,7 @@ const baseItem: DailyPlanItem = {
     pyq_weight: 4,
     pyq_trend: 'rising',
     last_pyq_year: 2024,
+    description: null,
   },
   chapter_name: 'Polity Basics',
   subject_name: 'Indian Polity',
