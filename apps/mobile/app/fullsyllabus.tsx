@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, ActivityIndicator, TextInput,
+  TouchableOpacity, ActivityIndicator, TextInput, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
@@ -9,11 +9,13 @@ import { useUser } from '../context/UserContext';
 import { Theme } from '../constants/theme';
 import { useSyllabus } from '../hooks/useSyllabus';
 import { useTopicNotes, useAddTopicNote, useDeleteTopicNote } from '../hooks/useTopicNotes';
+import { useTopicResources } from '../hooks/useResources';
 import { V4Card } from '../components/v4/V4Card';
 import { V4Bar } from '../components/v4/V4Bar';
 import { V4Pill } from '../components/v4/V4Pill';
 import { V4SectionLabel } from '../components/v4/V4SectionLabel';
 import { V4Tip } from '../components/v4/V4Tip';
+import type { TopicResource } from '../types';
 
 type FilterKey = 'all' | 'untouched' | 'revision' | 'weak' | 'exam_ready';
 const FILTERS: { key: FilterKey; label: string }[] = [
@@ -230,6 +232,12 @@ export default function FullSyllabusScreen() {
                                   </Text>
                                 )}
                               </View>
+                              <TopicDescriptionAndResources
+                                topicId={topic.id}
+                                description={topic.description}
+                                theme={theme}
+                                styles={styles}
+                              />
                               <TopicDetail topicId={topic.id} theme={theme} styles={styles} />
                             </>
                           )}
@@ -246,6 +254,48 @@ export default function FullSyllabusScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+const RESOURCE_ICON: Record<string, string> = {
+  book: '\u{1F4D6}',
+  video: '\u{1F3AC}',
+  notes: '\u{1F4DD}',
+  website: '\u{1F310}',
+};
+
+function TopicDescriptionAndResources({ topicId, description, theme, styles }: {
+  topicId: string;
+  description: string | null;
+  theme: Theme;
+  styles: any;
+}) {
+  const { data: resources } = useTopicResources(topicId);
+
+  if (!description && (!resources || resources.length === 0)) return null;
+
+  return (
+    <View style={styles.descResContainer}>
+      {description && (
+        <Text style={styles.descriptionText} numberOfLines={3}>{description}</Text>
+      )}
+      {resources && resources.length > 0 && (
+        <View style={styles.inlineResources}>
+          {resources.map((r: TopicResource) => (
+            <TouchableOpacity
+              key={r.id}
+              style={styles.inlineResourceRow}
+              disabled={!r.url}
+              onPress={() => r.url && Linking.openURL(r.url)}
+            >
+              <Text style={styles.resourceIconText}>{RESOURCE_ICON[r.resource_type] || '\u{1F4D6}'}</Text>
+              <Text style={styles.inlineResourceTitle} numberOfLines={1}>{r.title}</Text>
+              <Text style={styles.inlineResourceSource}>{r.source_name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -394,6 +444,38 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: 6,
   },
   dateText: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+
+  // Description & Resources
+  descResContainer: {
+    marginLeft: 32,
+    marginRight: 4,
+    paddingVertical: 6,
+  },
+  descriptionText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  inlineResources: { gap: 4 },
+  inlineResourceRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    paddingVertical: 3,
+  },
+  resourceIconText: { fontSize: 13 },
+  inlineResourceTitle: {
+    fontSize: 12,
+    color: theme.colors.text,
+    fontWeight: '500' as const,
+    flex: 1,
+  },
+  inlineResourceSource: {
     fontSize: 11,
     color: theme.colors.textMuted,
   },

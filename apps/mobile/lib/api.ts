@@ -81,6 +81,7 @@ export interface SyllabusData {
         difficulty: number;
         estimated_hours: number;
         pyq_weight: number;
+        description: string | null;
         user_progress?: { status: string; confidence_status: string } | null;
       }>;
     }>;
